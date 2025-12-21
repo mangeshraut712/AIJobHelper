@@ -31,6 +31,10 @@ ai_service = AIService()
 job_service = JobService(ai_service)
 export_service = ExportService()
 
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "service": "CareerAgentPro", "version": "1.0.0"}
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to AIJobHelper API"}
