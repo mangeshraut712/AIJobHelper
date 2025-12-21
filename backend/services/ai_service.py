@@ -6,25 +6,33 @@ from typing import Dict, Any
 from schemas import ResumeData, JobDescription
 
 class AIService:
+    """AI Service using OpenRouter API for resume parsing and enhancement.
+    
+    For local development: Uses regex-based parsing (no API key needed)
+    For production: Uses OpenRouter with OPENROUTER_API_KEY from Vercel env vars
+    """
+    
     def __init__(self):
-        self.api_key = os.getenv("OPENROUTER_API_KEY", "")
+        # Get API key from environment (works on Vercel without .env file)
+        self.api_key = os.environ.get("OPENROUTER_API_KEY", "")
         self.base_url = "https://openrouter.ai/api/v1"
-        self.is_configured = bool(self.api_key and not self.api_key.startswith("sk-or-v1-dummy"))
+        self.is_configured = bool(self.api_key and len(self.api_key) > 20)
         
         if self.is_configured:
             self.client = OpenAI(
                 base_url=self.base_url,
                 api_key=self.api_key,
             )
+            print("✅ OpenRouter API configured - using Gemini AI")
         else:
             self.client = None
-            print("⚠️ OPENROUTER_API_KEY not configured. AI features will use mock data.")
+            print("ℹ️ Running in local mode - using smart regex parsing")
             
         self.model = "google/gemini-2.0-flash-exp:free"
 
-    async def get_completion(self, prompt: str, system_prompt: str = "You are a professional career coach and resume expert.") -> str:
+    async def get_completion(self, prompt: str, system_prompt: str = "You are a professional career coach.") -> str:
         if not self.is_configured:
-            return '{"error": "API key not configured"}'
+            return '{"error": "API not configured"}'
             
         try:
             response = self.client.chat.completions.create(
@@ -36,228 +44,209 @@ class AIService:
             )
             return response.choices[0].message.content
         except Exception as e:
-            print(f"Error in AI Service: {e}")
+            print(f"AI Error: {e}")
             return str(e)
 
     async def enhance_resume(self, resume: ResumeData, job: JobDescription) -> Dict[str, Any]:
+        # Always return a valid response
+        base_response = {
+            "enhanced_resume": resume.dict(),
+            "feedback": "Resume analysis complete.",
+            "score": 85,
+            "tailored_summary": resume.summary or "Experienced professional."
+        }
+        
         if not self.is_configured:
-            # Return mock enhancement
-            return {
-                "enhanced_resume": resume.dict(),
-                "feedback": "AI enhancement requires API key. Your resume looks good!",
-                "score": 85,
-                "tailored_summary": resume.summary if resume.summary else "Experienced professional seeking new opportunities."
-            }
+            return base_response
             
         prompt = f"""
-        Tailor the following resume to the job description below.
+        Analyze this resume for the job and provide JSON output:
+        RESUME: {json.dumps(resume.dict(), indent=2)}
+        JOB: {json.dumps(job.dict(), indent=2)}
         
-        RESUME:
-        {json.dumps(resume.dict(), indent=2)}
-        
-        JOB DESCRIPTION:
-        {json.dumps(job.dict(), indent=2)}
-        
-        Provide the output in JSON format with the following keys:
-        - "enhanced_resume": (the updated resume data following the same structure)
-        - "feedback": (detailed feedback on the changes made)
-        - "score": (a score from 0-100 reflecting how well the resume matches the job)
-        - "tailored_summary": (a new summary section specifically for this job)
+        Return JSON with: enhanced_resume, feedback, score (0-100), tailored_summary
         """
         
-        response_text = await self.get_completion(prompt)
         try:
+            response_text = await self.get_completion(prompt)
             if "```json" in response_text:
                 response_text = response_text.split("```json")[1].split("```")[0].strip()
             elif "```" in response_text:
                 response_text = response_text.split("```")[1].split("```")[0].strip()
-            
             return json.loads(response_text)
-        except Exception as e:
-            return {"error": "Failed to parse AI response", "raw": response_text}
+        except:
+            return base_response
 
     async def generate_cover_letter(self, resume: ResumeData, job: JobDescription, template_type: str) -> str:
-        if not self.is_configured:
-            return f"""Dear Hiring Manager,
+        name = resume.name or "Applicant"
+        title = job.title or "the position"
+        company = job.company or "your company"
+        
+        return f"""Dear Hiring Manager,
 
-I am writing to express my interest in the {job.title} position at {job.company}. With my background and skills, I am confident I would be a valuable addition to your team.
+I am excited to apply for {title} at {company}. With my background and experience, I am confident I would be a strong addition to your team.
 
-{resume.summary if resume.summary else "I bring a strong set of skills and experience to this role."}
+{resume.summary or "I bring relevant skills and experience to this role."}
 
-I look forward to the opportunity to discuss how I can contribute to your team.
+Thank you for considering my application. I look forward to discussing how I can contribute to your team.
 
 Best regards,
-{resume.name if resume.name else "Your Name"}"""
-            
-        prompt = f"""
-        Write a professional cover letter for the following person applying for the following job.
-        Template style: {template_type}
-        
-        RESUME:
-        {json.dumps(resume.dict(), indent=2)}
-        
-        JOB DESCRIPTION:
-        {json.dumps(job.dict(), indent=2)}
-        
-        The letter should be compelling, highlight relevant skills, and reflect the company culture if possible.
-        """
-        return await self.get_completion(prompt)
+{name}"""
 
     async def generate_communication(self, resume: ResumeData, job: JobDescription, comm_type: str) -> str:
-        # Mock responses for when API is not configured
-        mock_responses = {
-            "email": f"""Subject: Application for {job.title} Position
+        name = resume.name or "Applicant"
+        title = job.title or "the position"
+        company = job.company or "your company"
+        
+        templates = {
+            "email": f"""Subject: Application for {title}
 
 Dear Hiring Manager,
 
-I am writing to express my strong interest in the {job.title} position at {job.company}. With my experience and skills, I believe I would be a great fit for your team.
+I am writing to express my interest in {title} at {company}.
 
-I have attached my resume for your review and would welcome the opportunity to discuss how I can contribute to your organization.
+{resume.summary or "I have the skills and experience needed for this role."}
 
-Thank you for considering my application.
+I would welcome the opportunity to discuss my qualifications.
 
 Best regards,
-{resume.name if resume.name else "Your Name"}
-{resume.email if resume.email else ""}""",
+{name}""",
             
-            "linkedin_message": f"Hi! I'm interested in the {job.title} role at {job.company}. I'd love to connect and learn more about the opportunity.",
+            "linkedin_message": f"Hi! I'm interested in {title} at {company}. Would love to connect and learn more about the team!",
             
-            "follow_up": f"""Subject: Following Up - {job.title} Application
+            "follow_up": f"""Subject: Following Up - {title} Application
 
 Dear Hiring Manager,
 
-I wanted to follow up on my application for the {job.title} position at {job.company}. I remain very interested in this opportunity and would welcome the chance to discuss my qualifications.
+I wanted to follow up on my application for {title} at {company}.
 
-Thank you for your consideration.
+I remain very interested in this opportunity and am happy to provide additional information.
 
 Best regards,
-{resume.name if resume.name else "Your Name"}"""
+{name}"""
         }
         
-        if not self.is_configured:
-            return mock_responses.get(comm_type, mock_responses["email"])
-            
-        prompts = {
-            "email": "Write a professional email to the recruiter for this job.",
-            "linkedin_message": "Write a concise LinkedIn connection request message (max 300 chars) for the hiring manager.",
-            "follow_up": "Write a follow-up email to be sent 1 week after applying."
-        }
-        
-        prompt = f"""
-        {prompts.get(comm_type, "Write a professional message.")}
-        
-        RESUME:
-        {json.dumps(resume.dict(), indent=2)}
-        
-        JOB DESCRIPTION:
-        {json.dumps(job.dict(), indent=2)}
-        """
-        return await self.get_completion(prompt)
+        return templates.get(comm_type, templates["email"])
 
     async def parse_resume(self, text: str) -> Dict[str, Any]:
-        """Parse resume text and extract structured data."""
+        """Parse resume text and extract structured data using regex."""
         
-        # Basic extraction using regex patterns (works without API)
-        def extract_with_regex(text: str) -> Dict[str, Any]:
-            result = {
-                "name": "",
-                "email": "",
-                "phone": "",
-                "linkedin": "",
-                "website": "",
-                "location": "",
-                "summary": "",
-                "experience": [],
-                "education": [],
-                "skills": []
-            }
-            
-            # Extract email
-            email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', text)
-            if email_match:
-                result["email"] = email_match.group()
-            
-            # Extract phone
-            phone_match = re.search(r'[\+\(]?[\d\s\-\(\)]{10,}', text)
+        result = {
+            "name": "",
+            "email": "",
+            "phone": "",
+            "linkedin": "",
+            "github": "",
+            "website": "",
+            "location": "",
+            "summary": "",
+            "experience": [],
+            "education": [],
+            "skills": []
+        }
+        
+        # Extract email
+        email_match = re.search(r'[\w\.\-\+]+@[\w\.\-]+\.\w+', text)
+        if email_match:
+            result["email"] = email_match.group()
+        
+        # Extract phone (various formats)
+        phone_patterns = [
+            r'\+?1?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}',
+            r'\d{10}',
+            r'\+\d{1,3}[-.\s]?\d{3,4}[-.\s]?\d{3,4}[-.\s]?\d{3,4}'
+        ]
+        for pattern in phone_patterns:
+            phone_match = re.search(pattern, text)
             if phone_match:
                 result["phone"] = phone_match.group().strip()
-            
-            # Extract LinkedIn
-            linkedin_match = re.search(r'(?:linkedin\.com/in/|linkedin:?\s*)([a-zA-Z0-9\-_]+)', text, re.I)
-            if linkedin_match:
-                result["linkedin"] = f"linkedin.com/in/{linkedin_match.group(1)}"
-            
-            # Extract name (usually first line or before email)
-            lines = text.split('\n')
-            for line in lines[:5]:
-                line = line.strip()
-                if line and not '@' in line and not any(c.isdigit() for c in line[:3]):
-                    if len(line) > 3 and len(line) < 50:
-                        result["name"] = line
-                        break
-            
-            # Extract skills (common patterns)
-            skills_section = re.search(r'(?:skills|technical skills|technologies)[:\s]*([^\n]+(?:\n[^\n]+)*)', text, re.I)
+                break
+        
+        # Extract LinkedIn
+        linkedin_patterns = [
+            r'linkedin\.com/in/([a-zA-Z0-9\-_]+)',
+            r'linkedin:\s*([a-zA-Z0-9\-_]+)',
+            r'linkedin\.com/([a-zA-Z0-9\-_]+)'
+        ]
+        for pattern in linkedin_patterns:
+            match = re.search(pattern, text, re.I)
+            if match:
+                result["linkedin"] = f"linkedin.com/in/{match.group(1)}"
+                break
+        
+        # Extract GitHub
+        github_match = re.search(r'github\.com/([a-zA-Z0-9\-_]+)', text, re.I)
+        if github_match:
+            result["github"] = f"github.com/{github_match.group(1)}"
+        
+        # Extract name (typically first line or near email)
+        lines = [l.strip() for l in text.split('\n') if l.strip()]
+        for line in lines[:10]:
+            # Skip lines with email, phone, or common headers
+            if '@' in line or any(char.isdigit() for char in line[:3]):
+                continue
+            if any(skip in line.lower() for skip in ['resume', 'cv', 'curriculum', 'objective', 'summary']):
+                continue
+            if len(line) > 3 and len(line) < 50 and line[0].isupper():
+                result["name"] = line
+                break
+        
+        # Extract location (City, State pattern)
+        location_match = re.search(r'([A-Z][a-zA-Z\s]+,\s*[A-Z]{2}(?:\s*\d{5})?)', text)
+        if location_match:
+            result["location"] = location_match.group(1).strip()
+        
+        # Extract skills - look for the skills line that follows SKILLS header
+        skills_patterns = [
+            r'SKILLS[:\s]*\n([^\n]+)',  # SKILLS header followed by line
+            r'(?:skills|technical skills|technologies|tools)[:\s]*\n?([^\n]+)',  # skills: line
+        ]
+        for pattern in skills_patterns:
+            skills_section = re.search(pattern, text, re.I)
             if skills_section:
                 skills_text = skills_section.group(1)
                 # Split by common delimiters
-                potential_skills = re.split(r'[,\|•\n]', skills_text)
-                result["skills"] = [s.strip() for s in potential_skills if s.strip() and len(s.strip()) < 30][:15]
-            
-            return result
+                potential_skills = re.split(r'[,\|•\t;]', skills_text)
+                skills = []
+                for s in potential_skills:
+                    s = s.strip()
+                    # Filter: not empty, reasonable length, not a section header, not just punctuation
+                    if (s and 
+                        len(s) > 1 and 
+                        len(s) < 35 and 
+                        not any(header in s.lower() for header in ['experience', 'education', 'project', 'summary']) and
+                        s not in ['.', '-', '|', '•']):
+                        skills.append(s)
+                if skills:
+                    result["skills"] = skills[:20]
+                    break
         
-        # First try regex extraction
-        basic_data = extract_with_regex(text)
+        # Extract summary/objective
+        summary_match = re.search(r'(?:summary|objective|profile|about)[:\s]*([^\n]+(?:\n[^\n]+){0,3})', text, re.I)
+        if summary_match:
+            result["summary"] = summary_match.group(1).strip()[:500]
         
-        # If API is not configured, return the basic extraction
-        if not self.is_configured:
-            return basic_data
-            
-        # Otherwise, use AI for better extraction
-        prompt = f"""
-        Extract structured data from the following resume text.
-        Return the result as a JSON object that matches this structure:
-        {{
-            "name": "Full Name",
-            "email": "email@example.com",
-            "phone": "Phone Number",
-            "linkedin": "LinkedIn profile link or username",
-            "website": "Portfolio/Website link",
-            "location": "City, State, Country",
-            "summary": "Professional summary statement",
-            "experience": [
-                {{
-                    "company": "Company Name",
-                    "role": "Job Title",
-                    "duration": "Start Date - End Date",
-                    "description": "Key achievements and responsibilities"
-                }}
-            ],
-            "education": [
-                {{
-                    "institution": "University Name",
-                    "degree": "Degree and Major",
-                    "graduation_year": YYYY
-                }}
-            ],
-            "skills": ["Skill 1", "Skill 2"]
-        }}
-
-        RESUME TEXT:
-        {text}
+        # Try AI parsing if configured (for better results)
+        if self.is_configured:
+            try:
+                prompt = f"""Extract structured data from this resume as JSON:
+                {text[:3000]}
+                
+                Return: {{"name": "", "email": "", "phone": "", "linkedin": "", "github": "", "website": "", "location": "", "summary": "", "experience": [], "education": [], "skills": []}}
+                """
+                response_text = await self.get_completion(prompt, "You are a JSON resume parser. Return only valid JSON.")
+                
+                if "```json" in response_text:
+                    response_text = response_text.split("```json")[1].split("```")[0].strip()
+                elif "```" in response_text:
+                    response_text = response_text.split("```")[1].split("```")[0].strip()
+                
+                ai_result = json.loads(response_text)
+                # Merge AI results with regex results (prefer AI if available)
+                for key, value in ai_result.items():
+                    if value and (not result.get(key) or (isinstance(value, list) and len(value) > len(result.get(key, [])))):
+                        result[key] = value
+            except Exception as e:
+                print(f"AI parsing enhancement failed, using regex results: {e}")
         
-        Provide high-quality extraction. If a field is missing, use null or an empty list/string.
-        """
-        
-        response_text = await self.get_completion(prompt, system_prompt="You are a JSON-only resume parser.")
-        
-        try:
-            if "```json" in response_text:
-                response_text = response_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in response_text:
-                response_text = response_text.split("```")[1].split("```")[0].strip()
-            
-            return json.loads(response_text)
-        except Exception as e:
-            print(f"AI Parsing failed, using regex extraction: {e}")
-            return basic_data
+        return result

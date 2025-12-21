@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { User, Mail, Phone, MapPin, Globe, Linkedin, Github, Briefcase, GraduationCap, Code, Save, RefreshCw, Upload, CheckCircle2, Plus, Trash2, Edit3, X, Heart, ExternalLink, Building2, FolderGit2, Link as LinkIcon, ChevronRight, Eye } from "lucide-react";
+import { User, Mail, Phone, MapPin, Globe, Linkedin, Github, Briefcase, GraduationCap, Code, Save, RefreshCw, Upload, CheckCircle2, Plus, Trash2, Edit3, X, Heart, ExternalLink, Building2, FolderGit2, Link as LinkIcon, ChevronRight } from "lucide-react";
 import axios from "axios";
 import API_URL from "@/lib/api";
 
@@ -323,32 +323,23 @@ export default function ProfilePage() {
                 {/* Main Content */}
                 <div className="lg:col-span-3 space-y-6">
                     {/* Action Bar */}
-                    <div className="flex flex-wrap gap-4 justify-between items-center">
-                        <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleFileUpload} className="hidden" />
-                        <button onClick={() => fileInputRef.current?.click()} disabled={isParsing} className="px-4 py-2 bg-secondary rounded-lg font-medium flex items-center gap-2 hover:bg-secondary/80 disabled:opacity-50">
-                            {isParsing ? <RefreshCw size={16} className="animate-spin" /> : <Upload size={16} />}
-                            {isParsing ? "Parsing..." : "Upload Resume"}
-                        </button>
-                        <button onClick={handleSave} disabled={isSaving} className={`px-6 py-2 ${saveSuccess ? 'bg-green-500' : 'bg-teal-500'} text-white rounded-lg font-medium flex items-center gap-2 hover:opacity-90 disabled:opacity-50`}>
-                            {isSaving ? <RefreshCw size={16} className="animate-spin" /> : saveSuccess ? <CheckCircle2 size={16} /> : <Save size={16} />}
-                            {isSaving ? "Saving..." : saveSuccess ? "Saved!" : "Save Profile"}
-                        </button>
-                    </div>
-
-                    {/* Resume Section */}
-                    {activeSection === 'profile' && (
-                        <div className="rounded-2xl border border-border overflow-hidden">
-                            <div className="p-6 flex items-center justify-between">
-                                <div>
-                                    <h3 className="text-xl font-bold">Resume</h3>
-                                    <p className="text-sm text-muted-foreground">Upload your resume to auto-fill your profile</p>
-                                </div>
-                                <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-teal-500 text-white rounded-lg font-medium flex items-center gap-2">
-                                    <Eye size={16} /> Upload Resume
-                                </button>
-                            </div>
+                    <div className="flex flex-wrap gap-4 justify-between items-center p-4 bg-secondary/30 rounded-2xl border border-border">
+                        <div>
+                            <h3 className="font-bold">Resume Parser</h3>
+                            <p className="text-sm text-muted-foreground">Upload PDF, DOCX, or TXT to auto-fill your profile</p>
                         </div>
-                    )}
+                        <div className="flex gap-3">
+                            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleFileUpload} className="hidden" />
+                            <button onClick={() => fileInputRef.current?.click()} disabled={isParsing} className="px-4 py-2 bg-teal-500 text-white rounded-lg font-medium flex items-center gap-2 hover:opacity-90 disabled:opacity-50">
+                                {isParsing ? <RefreshCw size={16} className="animate-spin" /> : <Upload size={16} />}
+                                {isParsing ? "Parsing..." : "Upload Resume"}
+                            </button>
+                            <button onClick={handleSave} disabled={isSaving} className={`px-6 py-2 ${saveSuccess ? 'bg-green-500' : 'bg-secondary'} ${saveSuccess ? 'text-white' : 'text-foreground'} rounded-lg font-medium flex items-center gap-2 hover:opacity-90 disabled:opacity-50`}>
+                                {isSaving ? <RefreshCw size={16} className="animate-spin" /> : saveSuccess ? <CheckCircle2 size={16} /> : <Save size={16} />}
+                                {isSaving ? "Saving..." : saveSuccess ? "Saved!" : "Save Profile"}
+                            </button>
+                        </div>
+                    </div>
 
                     {/* Contact Info */}
                     {activeSection === 'profile' && (
