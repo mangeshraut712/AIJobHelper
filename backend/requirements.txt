@@ -15,4 +15,3 @@ trafilatura
 beautifulsoup4
 lxml
 fpdf2
-python-docx

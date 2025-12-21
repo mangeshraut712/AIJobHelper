@@ -1,0 +1,26 @@
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/.env*
+frontend/.vercel
+
+# Python
+backend/__pycache__/
+backend/*.pyc
+backend/.env
+backend/.venv
+venv/
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project Specific
+storage/exports/
+*.pdf
+*.docx
+*.tex
+*.txt
+!README.md
+!requirements.txt

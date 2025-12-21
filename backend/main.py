@@ -1,8 +1,12 @@
+import sys
+import os
+# Add current directory to path for serverless/deployment environments
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from fastapi import FastAPI, Depends, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
 import uvicorn
-import os
 from dotenv import load_dotenv
 from schemas import EnhancementRequest, CoverLetterRequest, CommunicationRequest, JobDescription, ResumeData
 from services.ai_service import AIService

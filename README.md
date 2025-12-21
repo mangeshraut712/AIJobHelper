@@ -1,60 +1,59 @@
-# AIJobHelper - All-in-One AI Career Ecosystem
+# AIJobHelper - All-in-One AI Career Ecosystem 🚀
 
-AIJobHelper is a production-ready web application designed to architect your job search process. Built with a focus on minimalism, elegance, and high-performance AI integration.
+AIJobHelper is a production-ready, minimalist AI agent designed to automate and architect your job search process. From job analysis to auto-filling forms and generating tailored resumes, it is your personal career co-pilot.
 
-## 🚀 Features
+## ✨ Core Features
 
-- **AI Job Analysis**: Extract core requirements and responsibilities from any job posting URL.
-- **Resume Studio**: AI-powered resume enhancement, scoring (Match Score), and real-time feedback.
-- **Outreach Engine**: Generate tailored emails, LinkedIn messages, and follow-up drafts.
-- **Multi-Format Export**: Export your optimized resume to PDF, Word (.docx), or LaTeX code for Overleaf.
-- **Premium Design**: Inspired by Apple and Japanese design principles—clean layouts, subtle gradients, and glassmorphism.
+-   **🧠 AI Job Analyst**: Paste a URL and extract requirements, salary, and responsibilities instantly.
+-   **🎨 Resume Studio**: Real-time optimization and AI scoring for your resume.
+-   **📄 Multi-Format Export**: Professional PDF, DOCX, and LaTeX (Overleaf-ready) exports.
+-   **🤖 Autofill Agent**: Dynamic form filling with heuristic label matching and "learned" question support.
+-   **📂 Organized Storage**: Automatic day-wise categorization of all generated career assets.
+-   **💼 Outreach Studio**: Minimalist drafts for LinkedIn messages and cover letters.
 
 ## 🛠 Tech Stack
 
-- **Frontend**: Next.js 15, React 19, Tailwind CSS v4, Framer Motion, Lucide React, Zustand.
-- **Backend**: FastAPI, OpenRouter (LLM integration: Gemini 2.0 Flash), Pydantic.
-- **Export**: python-docx, fpdf2.
+-   **Frontend**: Next.js 15+, React 19, Tailwind CSS v4, Framer Motion.
+-   **Backend**: FastAPI, OpenAI/OpenRouter (Gemini 2.0 Flash).
+-   **Database/Storage**: SQLAlchemy (SQLite) & Organized local file system.
+-   **Deployment**: Vercel-ready monorepo configuration.
 
-## 🏃 Getting Started
+## 🚀 Getting Started
 
-### Backend Setup
+### 1. Backend Installation
+```bash
+cd backend
+pip install -r requirements.txt
+# Create .env and add:
+# OPENROUTER_API_KEY=your_key
+python main.py
+```
 
-1. Navigate to the `backend` directory:
-   ```bash
-   cd backend
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Set your environment variables (create a `.env` file):
-   ```env
-   OPENROUTER_API_KEY=your_key_here
-   ```
-4. Start the API server:
-   ```bash
-   python main.py
-   ```
+### 2. Frontend Installation
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-### Frontend Setup
+## 🌐 Deployment (Vercel)
 
-1. Navigate to the `frontend` directory:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+This project is configured for **Vercel** monorepo deployment.
+1.  Push to GitHub.
+2.  Import to Vercel.
+3.  Set environment variables:
+    *   `OPENROUTER_API_KEY`: Your OpenRouter API Key.
+    *   `NEXT_PUBLIC_API_URL`: Path to your backend (default included in `vercel.json`).
 
-## 🎨 Design Philosophy
+## 📁 Project Structure
 
-The application follows the **Kanso (Simplicity)** and **Shibui (Subtle Beauty)** principles. Every interaction is designed to be intentional, with smooth transitions and a focus on content clarity.
+```bash
+├── backend/          # FastAPI Server
+├── frontend/         # Next.js Application
+├── storage/          # Organized user assets (exports)
+├── vercel.json       # Deployment configuration
+└── process_application.py # CLI Automation Script
+```
 
 ---
-Built with ❤️ by AIJobHelper Team
+Built with ❤️ for top-tier engineers.
