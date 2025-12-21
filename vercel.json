@@ -6,7 +6,7 @@
             "destination": "/backend/main.py"
         },
         {
-            "source": "/((?!api/).*)",
+            "source": "/(.*)",
             "destination": "/frontend/$1"
         }
     ],
