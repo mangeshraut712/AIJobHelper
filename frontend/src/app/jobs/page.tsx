@@ -1,15 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link2, Search, Building2, MapPin, DollarSign, ListChecks, Sparkles, Loader2 } from "lucide-react";
 import axios from "axios";
 import API_URL from "@/lib/api";
 
+interface JobData {
+    title: string;
+    company: string;
+    location: string;
+    salary_range?: string;
+    description: string;
+    requirements: string[];
+    responsibilities: string[];
+}
+
 export default function JobsPage() {
     const [url, setUrl] = useState("");
     const [loading, setLoading] = useState(false);
-    const [jobData, setJobData] = useState<any>(null);
+    const [jobData, setJobData] = useState<JobData | null>(null);
 
     const handleExtract = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -50,7 +60,7 @@ export default function JobsPage() {
                 <input
                     type="url"
                     value={url}
-                    onChange={(e) => setUrl(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
                     placeholder="https://linkedin.com/jobs/..."
                     className="w-full bg-secondary/50 border border-border rounded-full py-6 pl-16 pr-40 text-lg focus:outline-hidden focus:ring-2 focus:ring-foreground/10 transition-all subtle-shadow"
                     required
@@ -146,3 +156,4 @@ export default function JobsPage() {
         </div>
     );
 }
+

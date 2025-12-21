@@ -1,7 +1,8 @@
 "use client";
 
+import React from "react";
 import { motion } from "framer-motion";
-import { Plus, Briefcase, FileText, CheckCircle2, TrendingUp } from "lucide-react";
+import { Plus, FileText, CheckCircle2, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
 export default function Dashboard() {
@@ -10,7 +11,7 @@ export default function Dashboard() {
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
-                    <p className="text-muted-foreground mt-2">Welcome back. Here's an overview of your career progress.</p>
+                    <p className="text-muted-foreground mt-2">Welcome back. Here&apos;s an overview of your career progress.</p>
                 </div>
                 <Link
                     href="/jobs"
@@ -88,7 +89,7 @@ function StatsCard({ label, value, icon, change }: { label: string, value: strin
 }
 
 function ApplicationRow({ company, role, status, date }: { company: string, role: string, status: string, date: string }) {
-    const statusColors: any = {
+    const statusColors: Record<string, string> = {
         'Interviewing': 'bg-blue-500/10 text-blue-500',
         'Applied': 'bg-yellow-500/10 text-yellow-500',
         'Rejected': 'bg-destructive/10 text-destructive',
@@ -118,3 +119,4 @@ function ActionCard({ title, description, href }: { title: string, description: 
         </Link>
     );
 }
+

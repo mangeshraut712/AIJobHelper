@@ -1,18 +1,43 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { FileUp, FileText, Download, Sparkles, AlertCircle, CheckCircle2, Sliders, Layout, Code } from "lucide-react";
-
 import axios from "axios";
 import API_URL from "@/lib/api";
 
+interface Experience {
+    company: string;
+    role: string;
+    duration: string;
+    description: string;
+}
+
+interface Education {
+    institution: string;
+    degree: string;
+    graduation_year: number;
+}
+
+interface ResumeData {
+    name: string;
+    email: string;
+    phone: string;
+    linkedin: string;
+    summary: string;
+    experience: Experience[];
+    education: Education[];
+    skills: string[];
+    targetTitle?: string;
+    lastModified?: string;
+}
+
 export default function ResumesPage() {
-    const [activeResume, setActiveResume] = useState<any>(null);
+    const [activeResume, setActiveResume] = useState<ResumeData | null>(null);
     const [isEnhancing, setIsEnhancing] = useState(false);
     const [score, setScore] = useState(0);
 
-    const mockResume = {
+    const mockResume: ResumeData = {
         name: "Mangesh Raut",
         email: "mbr63drexel@gmail.com",
         phone: "+16095053500",
@@ -229,7 +254,7 @@ export default function ResumesPage() {
 }
 
 function FeedbackItem({ type, icon, text }: { type: string, icon: React.ReactNode, text: string }) {
-    const styles: any = {
+    const styles: Record<string, string> = {
         positive: 'text-green-500 bg-green-500/5',
         warning: 'text-yellow-500 bg-yellow-500/5',
         info: 'text-blue-500 bg-blue-500/5',

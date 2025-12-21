@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Linkedin, Send, Copy, RefreshCw, Check, Clock, MessageSquare, Loader2 } from "lucide-react";
+import React, { useState } from "react";
+import { Mail, Linkedin, Send, Copy, RefreshCw, Check, Clock, MessageSquare } from "lucide-react";
 import axios from "axios";
 import API_URL from "@/lib/api";
 
@@ -103,7 +102,7 @@ export default function CommunicationPage() {
                     <div className="absolute inset-0 japanese-dot-grid opacity-10 pointer-events-none rounded-3xl" />
                     <textarea
                         value={content}
-                        onChange={(e) => setContent(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
                         placeholder="Select a type and click Generate..."
                         className="w-full h-96 bg-secondary/30 border border-border rounded-3xl p-8 md:p-12 text-lg text-foreground focus:outline-hidden focus:ring-2 focus:ring-foreground/10 transition-all resize-none leading-relaxed"
                     />
@@ -163,3 +162,4 @@ function TipsCard({ title, text }: { title: string, text: string }) {
         </div>
     );
 }
+
