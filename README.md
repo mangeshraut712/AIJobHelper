@@ -56,4 +56,4 @@ This project is configured for **Vercel** monorepo deployment.
 ```
 
 ---
-Built with ❤️ for top-tier engineers.
+Built with ❤️ by CareerAgentPro Team
