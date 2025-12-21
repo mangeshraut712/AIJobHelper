@@ -12,7 +12,7 @@ class AIService:
             base_url=self.base_url,
             api_key=self.api_key,
         )
-        self.model = "google/gemini-2.0-flash-001" # Default model
+        self.model = "google/gemini-2.0-flash-exp:free" # Use highest capability free model
 
     async def get_completion(self, prompt: str, system_prompt: str = "You are a professional career coach and resume expert.") -> str:
         try:
