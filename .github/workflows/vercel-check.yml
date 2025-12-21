@@ -1,0 +1,27 @@
+name: Vercel Deployment Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  deploy-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate vercel.json
+        run: |
+          if [ ! -f vercel.json ]; then
+            echo "vercel.json missing"
+            exit 1
+          fi
+          # Basic JSON validation
+          python3 -c "import json; json.load(open('vercel.json'))"
+      
+      - name: Check Environment Variables
+        run: |
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "Warning: OPENROUTER_API_KEY not found in secrets. Ensure it is set in Vercel."
+          fi
