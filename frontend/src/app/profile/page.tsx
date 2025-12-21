@@ -9,6 +9,9 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import API_URL from "@/lib/api";
+import { AppleCard } from "@/components/ui/AppleCard";
+import { AppleButton } from "@/components/ui/AppleButton";
+import { useToast } from "@/components/ui/Toast";
 
 interface Experience {
     id: string;
@@ -80,6 +83,7 @@ const fadeIn = {
 };
 
 export default function ProfilePage() {
+    const { toast } = useToast();
     const [activeSection, setActiveSection] = useState("info");
     const [isSaving, setIsSaving] = useState(false);
     const [isParsing, setIsParsing] = useState(false);
@@ -108,6 +112,7 @@ export default function ProfilePage() {
         setIsSaving(true);
         await new Promise(r => setTimeout(r, 500));
         localStorage.setItem("careerAgentProfile", JSON.stringify(profile));
+        toast("Profile saved successfully!", "success");
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);
         setIsSaving(false);
@@ -133,8 +138,10 @@ export default function ProfilePage() {
                 skills: parsed.skills?.length ? parsed.skills : prev.skills,
                 summary: parsed.summary || prev.summary,
             }));
+            toast("Resume parsed successfully!", "success");
         } catch (error) {
             console.error("Parse error:", error);
+            toast("Failed to parse resume. Please try again.", "error");
         } finally {
             setIsParsing(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
@@ -247,7 +254,7 @@ export default function ProfilePage() {
                     className="lg:col-span-1 space-y-6"
                 >
                     {/* Navigation */}
-                    <div className="apple-card overflow-hidden">
+                    <AppleCard noPadding className="overflow-hidden">
                         {navItems.map((item) => (
                             <motion.button
                                 key={item.id}
@@ -261,10 +268,10 @@ export default function ProfilePage() {
                                 <ChevronRight size={14} className="ml-auto text-muted-foreground" />
                             </motion.button>
                         ))}
-                    </div>
+                    </AppleCard>
 
                     {/* Profile Strength */}
-                    <div className="apple-card p-6">
+                    <AppleCard className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-semibold">Profile Strength</h3>
                             <span className="text-xl font-bold text-primary">{completeness}%</span>
@@ -277,7 +284,7 @@ export default function ProfilePage() {
                                 className="h-full bg-primary rounded-full"
                             />
                         </div>
-                    </div>
+                    </AppleCard>
                 </motion.div>
 
                 {/* Main Content */}
@@ -287,7 +294,7 @@ export default function ProfilePage() {
                     transition={{ duration: 0.5, delay: 0.2 }}
                     className="lg:col-span-3"
                 >
-                    <div className="apple-card p-8">
+                    <AppleCard className="p-8">
                         {/* Personal Info */}
                         {activeSection === "info" && (
                             <div className="space-y-6">
@@ -397,7 +404,7 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </AppleCard>
                 </motion.div>
             </div>
         </div>
