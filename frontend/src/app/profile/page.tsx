@@ -293,18 +293,20 @@ export default function ProfilePage() {
                             <div className="space-y-6">
                                 <h2 className="text-xl font-semibold mb-6">Personal Information</h2>
                                 <div className="grid md:grid-cols-2 gap-6">
-                                    <InputField icon={<User size={16} />} label="Full Name" value={profile.name} onChange={v => handleInputChange("name", v)} placeholder="John Doe" />
-                                    <InputField icon={<Briefcase size={16} />} label="Job Title" value={profile.title} onChange={v => handleInputChange("title", v)} placeholder="Software Engineer" />
-                                    <InputField icon={<Mail size={16} />} label="Email" value={profile.email} onChange={v => handleInputChange("email", v)} placeholder="john@example.com" />
-                                    <InputField icon={<Phone size={16} />} label="Phone" value={profile.phone} onChange={v => handleInputChange("phone", v)} placeholder="+1 (555) 123-4567" />
-                                    <InputField icon={<MapPin size={16} />} label="Location" value={profile.location} onChange={v => handleInputChange("location", v)} placeholder="San Francisco, CA" />
-                                    <InputField icon={<Linkedin size={16} />} label="LinkedIn" value={profile.linkedin} onChange={v => handleInputChange("linkedin", v)} placeholder="linkedin.com/in/johndoe" />
-                                    <InputField icon={<Github size={16} />} label="GitHub" value={profile.github} onChange={v => handleInputChange("github", v)} placeholder="github.com/johndoe" />
-                                    <InputField icon={<Globe size={16} />} label="Portfolio" value={profile.portfolio} onChange={v => handleInputChange("portfolio", v)} placeholder="johndoe.com" />
+                                    <InputField id="name" name="name" icon={<User size={16} />} label="Full Name" value={profile.name} onChange={v => handleInputChange("name", v)} placeholder="John Doe" autoComplete="name" />
+                                    <InputField id="title" name="title" icon={<Briefcase size={16} />} label="Job Title" value={profile.title} onChange={v => handleInputChange("title", v)} placeholder="Software Engineer" autoComplete="organization-title" />
+                                    <InputField id="email" name="email" icon={<Mail size={16} />} label="Email" value={profile.email} onChange={v => handleInputChange("email", v)} placeholder="john@example.com" autoComplete="email" />
+                                    <InputField id="phone" name="phone" icon={<Phone size={16} />} label="Phone" value={profile.phone} onChange={v => handleInputChange("phone", v)} placeholder="+1 (555) 123-4567" autoComplete="tel" />
+                                    <InputField id="location" name="location" icon={<MapPin size={16} />} label="Location" value={profile.location} onChange={v => handleInputChange("location", v)} placeholder="San Francisco, CA" autoComplete="address-level2" />
+                                    <InputField id="linkedin" name="linkedin" icon={<Linkedin size={16} />} label="LinkedIn" value={profile.linkedin} onChange={v => handleInputChange("linkedin", v)} placeholder="linkedin.com/in/johndoe" autoComplete="url" />
+                                    <InputField id="github" name="github" icon={<Github size={16} />} label="GitHub" value={profile.github} onChange={v => handleInputChange("github", v)} placeholder="github.com/johndoe" autoComplete="url" />
+                                    <InputField id="portfolio" name="portfolio" icon={<Globe size={16} />} label="Portfolio" value={profile.portfolio} onChange={v => handleInputChange("portfolio", v)} placeholder="johndoe.com" autoComplete="url" />
                                 </div>
                                 <div className="pt-4">
-                                    <label className="text-sm font-medium text-muted-foreground block mb-2">Summary</label>
+                                    <label htmlFor="summary" className="text-sm font-medium text-muted-foreground block mb-2 cursor-pointer">Summary</label>
                                     <textarea
+                                        id="summary"
+                                        name="summary"
                                         value={profile.summary}
                                         onChange={(e) => handleInputChange("summary", e.target.value)}
                                         rows={4}
@@ -411,19 +413,33 @@ function calculateCompleteness(profile: ProfileData): number {
     return Math.min(score, 100);
 }
 
-function InputField({ icon, label, value, onChange, placeholder }: { icon: React.ReactNode; label: string; value: string; onChange: (v: string) => void; placeholder: string }) {
+interface InputFieldProps {
+    id: string;
+    name: string;
+    icon: React.ReactNode;
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    placeholder: string;
+    autoComplete?: string;
+}
+
+function InputField({ id, name, icon, label, value, onChange, placeholder, autoComplete }: InputFieldProps) {
     return (
         <div>
-            <label className="text-sm font-medium text-muted-foreground block mb-2">{label}</label>
+            <label htmlFor={id} className="text-sm font-medium text-muted-foreground block mb-2 cursor-pointer">{label}</label>
             <div className="relative">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
                     {icon}
                 </div>
                 <input
+                    id={id}
+                    name={name}
                     type="text"
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     placeholder={placeholder}
+                    autoComplete={autoComplete}
                     className="w-full apple-input !pl-10"
                 />
             </div>
