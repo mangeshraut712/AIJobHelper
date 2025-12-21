@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // For Vercel deployment: Use the local Python backend in development
-// In production on Vercel, we'll use a simplified regex-based parser
+// In production on Vercel, we use pdf-parse for PDFs and regex for parsing
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
 // Helper to extract text patterns from resume
@@ -122,6 +122,18 @@ async function parseResumeText(text: string) {
     return result;
 }
 
+async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
+    try {
+        // Dynamic import for pdf-parse to avoid issues with SSR
+        const pdfParse = (await import('pdf-parse')).default;
+        const data = await pdfParse(Buffer.from(buffer));
+        return data.text;
+    } catch (error) {
+        console.error('PDF parsing error:', error);
+        throw new Error('Failed to parse PDF file');
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
@@ -134,59 +146,70 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // For production on Vercel, use regex-based parsing directly
-        // since Python serverless functions require separate configuration
+        const fileName = file.name.toLowerCase();
         const isVercel = process.env.VERCEL === '1';
 
-        if (isVercel) {
-            // Read file as text (works for .txt files)
-            // For PDF/DOCX, we need the Python backend
-            const fileName = file.name.toLowerCase();
+        // First, try to extract text from the file
+        let text = '';
 
-            if (fileName.endsWith('.txt')) {
-                const text = await file.text();
-                const parsed = await parseResumeText(text);
-                return NextResponse.json(parsed);
-            } else {
-                // For PDF/DOCX on Vercel, return a helpful message
-                // In a full implementation, you'd use a Node.js PDF parser like pdf-parse
+        if (fileName.endsWith('.txt')) {
+            text = await file.text();
+        } else if (fileName.endsWith('.pdf')) {
+            try {
+                const buffer = await file.arrayBuffer();
+                text = await extractTextFromPDF(buffer);
+            } catch {
                 return NextResponse.json(
-                    { detail: 'PDF and DOCX parsing requires the backend server. Please use a .txt file or run the app locally with the Python backend.' },
+                    { detail: 'Could not parse PDF file. Please ensure the PDF contains readable text (not scanned images).' },
+                    { status: 400 }
+                );
+            }
+        } else if (fileName.endsWith('.docx')) {
+            // DOCX parsing on Vercel is more complex - suggest using .txt or .pdf
+            if (isVercel) {
+                return NextResponse.json(
+                    { detail: 'DOCX files are not fully supported on Vercel. Please upload a PDF or TXT file instead.' },
                     { status: 400 }
                 );
             }
         }
 
-        // In development, proxy to the Python backend
-        try {
-            const backendFormData = new FormData();
-            backendFormData.append('file', file);
-
-            const response = await fetch(`${BACKEND_URL}/parse-resume`, {
-                method: 'POST',
-                body: backendFormData,
-            });
-
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({ detail: 'Backend request failed' }));
-                return NextResponse.json(error, { status: response.status });
-            }
-
-            const data = await response.json();
-            return NextResponse.json(data);
-        } catch {
-            // If backend is not available, fall back to local parsing
-            const fileName = file.name.toLowerCase();
-            if (fileName.endsWith('.txt')) {
-                const text = await file.text();
-                const parsed = await parseResumeText(text);
-                return NextResponse.json(parsed);
-            }
-            return NextResponse.json(
-                { detail: 'Backend server not available. Please ensure the Python backend is running on port 8000.' },
-                { status: 503 }
-            );
+        // If we have text, parse it locally
+        if (text && text.trim()) {
+            const parsed = await parseResumeText(text);
+            return NextResponse.json(parsed);
         }
+
+        // Fall back to Python backend (for DOCX or if local parsing fails)
+        if (!isVercel) {
+            try {
+                const backendFormData = new FormData();
+                backendFormData.append('file', file);
+
+                const response = await fetch(`${BACKEND_URL}/parse-resume`, {
+                    method: 'POST',
+                    body: backendFormData,
+                });
+
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({ detail: 'Backend request failed' }));
+                    return NextResponse.json(error, { status: response.status });
+                }
+
+                const data = await response.json();
+                return NextResponse.json(data);
+            } catch {
+                return NextResponse.json(
+                    { detail: 'Backend server not available. Please ensure the Python backend is running on port 8000.' },
+                    { status: 503 }
+                );
+            }
+        }
+
+        return NextResponse.json(
+            { detail: 'Could not extract text from the file. Please try a PDF or TXT file.' },
+            { status: 400 }
+        );
     } catch (error) {
         console.error('Resume parse error:', error);
         return NextResponse.json(
