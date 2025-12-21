@@ -5,8 +5,9 @@ frontend/.env*
 frontend/.vercel
 
 # Python
-backend/__pycache__/
-backend/*.pyc
+__pycache__/
+*.pyc
+*.pyo
 backend/.env
 backend/.venv
 venv/
