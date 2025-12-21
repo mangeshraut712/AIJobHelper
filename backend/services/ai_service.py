@@ -90,3 +90,51 @@ class AIService:
         {json.dumps(job.dict(), indent=2)}
         """
         return await self.get_completion(prompt)
+    async def parse_resume(self, text: str) -> Dict[str, Any]:
+        prompt = f"""
+        Extract structured data from the following resume text.
+        Return the result as a JSON object that matches this structure:
+        {{
+            "name": "Full Name",
+            "email": "email@example.com",
+            "phone": "Phone Number",
+            "linkedin": "LinkedIn profile link or username",
+            "website": "Portfolio/Website link",
+            "location": "City, State, Country",
+            "summary": "Professional summary statement",
+            "experience": [
+                {{
+                    "company": "Company Name",
+                    "role": "Job Title",
+                    "duration": "Start Date - End Date",
+                    "description": "Key achievements and responsibilities"
+                }}
+            ],
+            "education": [
+                {{
+                    "institution": "University Name",
+                    "degree": "Degree and Major",
+                    "graduation_year": YYYY
+                }}
+            ],
+            "skills": ["Skill 1", "Skill 2"]
+        }}
+
+        RESUME TEXT:
+        {text}
+        
+        Provide high-quality extraction. If a field is missing, use null or an empty list/string.
+        """
+        
+        response_text = await self.get_completion(prompt, system_prompt="You are a JSON-only resume parser.")
+        
+        try:
+            if "```json" in response_text:
+                response_text = response_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in response_text:
+                response_text = response_text.split("```")[1].split("```")[0].strip()
+            
+            return json.loads(response_text)
+        except Exception as e:
+            print(f"Parsing error: {e}")
+            return {"error": "Failed to parse resume", "raw": response_text}

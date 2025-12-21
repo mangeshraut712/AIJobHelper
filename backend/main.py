@@ -3,7 +3,7 @@ import os
 # Add current directory to path for serverless/deployment environments
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, Depends, HTTPException, Body
+from fastapi import FastAPI, Depends, HTTPException, Body, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
 import uvicorn
@@ -13,6 +13,7 @@ from services.ai_service import AIService
 from services.job_service import JobService
 from services.export_service import ExportService
 from services.autofill_service import AutofillService
+from services.resume_parser import ResumeParser
 
 load_dotenv()
 
@@ -30,6 +31,19 @@ app.add_middleware(
 ai_service = AIService()
 job_service = JobService(ai_service)
 export_service = ExportService()
+
+@app.post("/parse-resume")
+async def parse_resume(file: UploadFile = File(...)):
+    try:
+        content = await file.read()
+        text = ResumeParser.extract_text(content, file.filename)
+        if not text.strip():
+            raise HTTPException(status_code=400, detail="Could not extract text from resume.")
+        
+        parsed_data = await ai_service.parse_resume(text)
+        return parsed_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health():
