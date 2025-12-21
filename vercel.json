@@ -1,10 +1,6 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
     "version": 2,
-    "framework": null,
-    "installCommand": "echo 'Using custom builds'",
-    "buildCommand": "echo 'Using custom builds'",
-    "outputDirectory": null,
     "rewrites": [
         {
             "source": "/api/:path*",
@@ -58,21 +54,11 @@
     "builds": [
         {
             "src": "backend/main.py",
-            "use": "@vercel/python",
-            "config": {
-                "maxLambdaSize": "15mb"
-            }
+            "use": "@vercel/python"
         },
         {
             "src": "frontend/package.json",
             "use": "@vercel/next"
         }
-    ],
-    "functions": {
-        "backend/main.py": {
-            "memory": 1024,
-            "maxDuration": 30
-        }
-    },
-    "crons": []
+    ]
 }
