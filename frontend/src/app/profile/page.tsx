@@ -416,8 +416,16 @@ function InputField({ icon, label, value, onChange, placeholder }: { icon: React
         <div>
             <label className="text-sm font-medium text-muted-foreground block mb-2">{label}</label>
             <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</div>
-                <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full apple-input pl-11" />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                    {icon}
+                </div>
+                <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder={placeholder}
+                    className="w-full apple-input !pl-10"
+                />
             </div>
         </div>
     );
