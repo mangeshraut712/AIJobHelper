@@ -1,276 +1,233 @@
 "use client";
 
-import React, { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Plus, FileText, CheckCircle2, TrendingUp, Brain, Sparkles, ArrowRight, Calendar, Clock, Target, Zap } from "lucide-react";
 import Link from "next/link";
+import { Briefcase, FileText, MessageSquare, Target, TrendingUp, CheckCircle2, ArrowUpRight, Sparkles, Calendar, Users } from "lucide-react";
 
-function getGreeting() {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
-}
+const stats = [
+    { label: "Applications", value: "24", change: "+12%", icon: Briefcase },
+    { label: "Interviews", value: "8", change: "+33%", icon: Users },
+    { label: "Response Rate", value: "67%", change: "+8%", icon: TrendingUp },
+    { label: "Saved Jobs", value: "156", change: "+24", icon: Target },
+];
 
-export default function Dashboard() {
-    const greeting = useMemo(() => getGreeting(), []);
+const recentActivity = [
+    { type: "application", company: "Google", role: "Software Engineer", time: "2 hours ago", status: "Applied" },
+    { type: "interview", company: "Apple", role: "iOS Developer", time: "Yesterday", status: "Scheduled" },
+    { type: "response", company: "Meta", role: "Full Stack Engineer", time: "2 days ago", status: "Reviewed" },
+];
+
+const quickActions = [
+    { href: "/resumes", icon: FileText, label: "Resume Studio", desc: "Optimize your resume" },
+    { href: "/jobs", icon: Target, label: "Job Finder", desc: "Find matching jobs" },
+    { href: "/communication", icon: MessageSquare, label: "Messages", desc: "Generate outreach" },
+];
+
+const fadeIn = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.5, ease: "easeOut" as const },
+};
+
+export default function DashboardPage() {
+    const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening";
 
     return (
-        <div className="space-y-12 pb-12">
-            {/* Header with AI Status */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-xs font-medium text-green-500">AI System Online</span>
-                    </div>
-                    <h1 className="text-4xl font-bold tracking-tight">{greeting}, Mangesh! 👋</h1>
-                    <p className="text-muted-foreground mt-2">Your AI career co-pilot is ready. Here&apos;s your career progress overview.</p>
-                </div>
-                <Link
-                    href="/jobs"
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 hover:opacity-90 transition-opacity w-fit shadow-lg shadow-blue-500/25"
-                >
-                    <Plus size={18} />
-                    Analyze New Job
-                </Link>
-            </header>
+        <div className="max-w-6xl mx-auto px-6 py-8">
+            {/* Header */}
+            <motion.div {...fadeIn} className="mb-10">
+                <h1 className="text-4xl font-bold tracking-tight mb-2">{greeting}</h1>
+                <p className="text-lg text-muted-foreground">Here&apos;s what&apos;s happening with your job search.</p>
+            </motion.div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatsCard
-                    label="AI Enhancements"
-                    value="12"
-                    icon={<Sparkles size={20} />}
-                    change="+2 this week"
-                    color="blue"
-                />
-                <StatsCard
-                    label="Jobs Analyzed"
-                    value="156"
-                    icon={<Brain size={20} />}
-                    change="+24 this month"
-                    color="purple"
-                />
-                <StatsCard
-                    label="Interview Calls"
-                    value="4"
-                    icon={<CheckCircle2 size={20} />}
-                    change="+1 scheduled"
-                    color="green"
-                />
-                <StatsCard
-                    label="Match Success"
-                    value="92%"
-                    icon={<TrendingUp size={20} />}
-                    change="+4% improved"
-                    color="orange"
-                />
-            </div>
-
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Applications Table */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold">Recent Applications</h2>
-                        <Link href="/jobs" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-                            View all <ArrowRight size={14} />
-                        </Link>
-                    </div>
-                    <div className="glass rounded-3xl overflow-hidden border border-border">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="border-b border-border bg-secondary/30">
-                                    <th className="px-6 py-4 font-semibold text-sm">Company</th>
-                                    <th className="px-6 py-4 font-semibold text-sm">Role</th>
-                                    <th className="px-6 py-4 font-semibold text-sm">Status</th>
-                                    <th className="px-6 py-4 font-semibold text-sm">Match</th>
-                                    <th className="px-6 py-4 font-semibold text-sm">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                                <ApplicationRow company="Apple" role="Product Designer" status="Interviewing" match={94} date="2 days ago" />
-                                <ApplicationRow company="Stripe" role="Frontend Engineer" status="Applied" match={88} date="4 days ago" />
-                                <ApplicationRow company="Airbnb" role="Senior UX Researcher" status="Rejected" match={72} date="1 week ago" />
-                                <ApplicationRow company="GitHub" role="Software Engineer" status="Applied" match={91} date="1 week ago" />
-                                <ApplicationRow company="Vercel" role="Solutions Engineer" status="Offered" match={96} date="3 days ago" />
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* AI Insights */}
-                    <div className="p-6 rounded-3xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20">
-                        <div className="flex items-start gap-4">
-                            <div className="p-3 rounded-2xl bg-blue-500/20">
-                                <Brain size={24} className="text-blue-500" />
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10"
+            >
+                {stats.map((stat, index) => (
+                    <motion.div
+                        key={index}
+                        whileHover={{ y: -2 }}
+                        className="apple-card p-6"
+                    >
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <stat.icon className="w-5 h-5 text-primary" />
                             </div>
-                            <div className="flex-1">
-                                <h3 className="font-bold text-lg mb-1">AI Career Insight</h3>
-                                <p className="text-muted-foreground text-sm leading-relaxed">
-                                    Based on your recent applications, you have a <strong className="text-foreground">78% higher</strong> success rate
-                                    with roles that emphasize <strong className="text-foreground">React</strong> and <strong className="text-foreground">TypeScript</strong>.
-                                    Consider optimizing your resume to highlight these skills more prominently.
-                                </p>
-                                <Link href="/resumes" className="inline-flex items-center gap-1 mt-3 text-sm font-medium text-blue-500 hover:text-blue-400">
-                                    Optimize Resume <ArrowRight size={14} />
-                                </Link>
+                            <span className="text-xs font-medium text-green-600 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                                {stat.change}
+                            </span>
+                        </div>
+                        <div className="text-3xl font-bold mb-1">{stat.value}</div>
+                        <div className="text-sm text-muted-foreground">{stat.label}</div>
+                    </motion.div>
+                ))}
+            </motion.div>
+
+            <div className="grid lg:grid-cols-3 gap-8">
+                {/* Main Content */}
+                <div className="lg:col-span-2 space-y-8">
+                    {/* AI Insights */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="apple-card p-6"
+                    >
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+                                <Sparkles className="w-5 h-5 text-primary-foreground" />
+                            </div>
+                            <div>
+                                <h2 className="font-semibold">AI Insights</h2>
+                                <p className="text-sm text-muted-foreground">Personalized recommendations</p>
                             </div>
                         </div>
-                    </div>
+                        <div className="space-y-4">
+                            <div className="p-4 rounded-xl bg-secondary/50 flex items-start gap-4">
+                                <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="font-medium text-sm mb-1">Your resume is well-optimized</p>
+                                    <p className="text-sm text-muted-foreground">85% match rate with your target roles. Consider adding more quantified achievements.</p>
+                                </div>
+                            </div>
+                            <div className="p-4 rounded-xl bg-secondary/50 flex items-start gap-4">
+                                <Target className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="font-medium text-sm mb-1">12 new jobs match your profile</p>
+                                    <p className="text-sm text-muted-foreground">Based on your skills and preferences. <Link href="/jobs" className="text-primary hover:underline">View matches →</Link></p>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Recent Activity */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.3 }}
+                        className="apple-card p-6"
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-lg font-semibold">Recent Activity</h2>
+                            <Link href="/jobs" className="text-sm text-primary hover:underline flex items-center gap-1">
+                                View all <ArrowUpRight size={14} />
+                            </Link>
+                        </div>
+                        <div className="space-y-4">
+                            {recentActivity.map((activity, index) => (
+                                <motion.div
+                                    key={index}
+                                    whileHover={{ x: 4 }}
+                                    className="flex items-center justify-between p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center font-bold text-primary">
+                                            {activity.company.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-sm">{activity.role}</p>
+                                            <p className="text-sm text-muted-foreground">{activity.company}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${activity.status === "Applied" ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30" :
+                                            activity.status === "Scheduled" ? "bg-green-50 text-green-600 dark:bg-green-900/30" :
+                                                "bg-orange-50 text-orange-600 dark:bg-orange-900/30"
+                                            }`}>
+                                            {activity.status}
+                                        </span>
+                                        <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </motion.div>
                 </div>
 
-                {/* Right Sidebar */}
+                {/* Sidebar */}
                 <div className="space-y-6">
-                    <h2 className="text-2xl font-bold">Quick Actions</h2>
-                    <div className="grid grid-cols-1 gap-4">
-                        <ActionCard
-                            icon={<FileText size={20} />}
-                            title="Resume Studio"
-                            description="AI-powered resume optimization"
-                            href="/resumes"
-                            color="blue"
-                        />
-                        <ActionCard
-                            icon={<Target size={20} />}
-                            title="Job Analyzer"
-                            description="Paste URL to extract requirements"
-                            href="/jobs"
-                            color="purple"
-                        />
-                        <ActionCard
-                            icon={<Zap size={20} />}
-                            title="Outreach Studio"
-                            description="Generate emails & LinkedIn messages"
-                            href="/communication"
-                            color="green"
-                        />
-                        <ActionCard
-                            icon={<CheckCircle2 size={20} />}
-                            title="Profile Setup"
-                            description="Complete your career profile"
-                            href="/profile"
-                            color="orange"
-                        />
-                    </div>
+                    {/* Quick Actions */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.4 }}
+                        className="apple-card p-6"
+                    >
+                        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+                        <div className="space-y-3">
+                            {quickActions.map((action, index) => (
+                                <Link key={index} href={action.href}>
+                                    <motion.div
+                                        whileHover={{ x: 4 }}
+                                        className="flex items-center gap-4 p-3 rounded-xl hover:bg-secondary/50 transition-colors cursor-pointer"
+                                    >
+                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                            <action.icon className="w-5 h-5 text-primary" />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-sm">{action.label}</p>
+                                            <p className="text-xs text-muted-foreground">{action.desc}</p>
+                                        </div>
+                                    </motion.div>
+                                </Link>
+                            ))}
+                        </div>
+                    </motion.div>
 
                     {/* Upcoming */}
-                    <div className="p-6 rounded-3xl border border-border bg-secondary/20">
-                        <h3 className="font-bold mb-4 flex items-center gap-2">
-                            <Calendar size={18} />
-                            Upcoming
-                        </h3>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.5 }}
+                        className="apple-card p-6"
+                    >
+                        <div className="flex items-center gap-2 mb-4">
+                            <Calendar className="w-5 h-5 text-primary" />
+                            <h2 className="text-lg font-semibold">Upcoming</h2>
+                        </div>
                         <div className="space-y-4">
-                            <UpcomingItem
-                                title="Apple Interview"
-                                subtitle="Technical Round"
-                                time="Tomorrow, 2:00 PM"
-                            />
-                            <UpcomingItem
-                                title="Follow-up: Stripe"
-                                subtitle="Send thank you email"
-                                time="In 3 days"
+                            <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                                <p className="font-medium text-sm text-green-700 dark:text-green-400">Interview with Apple</p>
+                                <p className="text-xs text-green-600 dark:text-green-500 mt-1">Tomorrow at 2:00 PM PST</p>
+                            </div>
+                            <div className="p-4 rounded-xl bg-secondary/30">
+                                <p className="font-medium text-sm">Follow up with Meta</p>
+                                <p className="text-xs text-muted-foreground mt-1">Due in 2 days</p>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Profile Completion */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.6 }}
+                        className="apple-card p-6"
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="font-semibold">Profile Strength</h2>
+                            <span className="text-2xl font-bold text-primary">85%</span>
+                        </div>
+                        <div className="h-2 bg-secondary rounded-full overflow-hidden mb-4">
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: "85%" }}
+                                transition={{ duration: 1, delay: 0.8 }}
+                                className="h-full bg-primary rounded-full"
                             />
                         </div>
-                    </div>
+                        <Link href="/profile">
+                            <button className="w-full apple-button-secondary text-sm py-2.5">
+                                Complete Profile
+                            </button>
+                        </Link>
+                    </motion.div>
                 </div>
             </div>
-        </div>
-    );
-}
-
-function StatsCard({ label, value, icon, change, color }: { label: string, value: string, icon: React.ReactNode, change: string, color: string }) {
-    const colorClasses: Record<string, string> = {
-        blue: "from-blue-600 to-blue-400",
-        purple: "from-purple-600 to-purple-400",
-        green: "from-green-600 to-green-400",
-        orange: "from-orange-600 to-orange-400",
-    };
-
-    return (
-        <motion.div
-            whileHover={{ y: -5, scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 300 }}
-            className="p-6 rounded-3xl bg-secondary/30 border border-border space-y-4 hover:border-foreground/20 transition-colors"
-        >
-            <div className="flex items-center justify-between">
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${colorClasses[color]} text-white shadow-lg`}>
-                    {icon}
-                </div>
-                <span className="text-xs font-medium text-green-500 bg-green-500/10 px-2 py-1 rounded-full">
-                    {change}
-                </span>
-            </div>
-            <div>
-                <p className="text-sm text-muted-foreground">{label}</p>
-                <p className="text-3xl font-bold">{value}</p>
-            </div>
-        </motion.div>
-    );
-}
-
-function ApplicationRow({ company, role, status, match, date }: { company: string, role: string, status: string, match: number, date: string }) {
-    const statusColors: Record<string, string> = {
-        'Interviewing': 'bg-blue-500/10 text-blue-500',
-        'Applied': 'bg-yellow-500/10 text-yellow-500',
-        'Rejected': 'bg-destructive/10 text-destructive',
-        'Offered': 'bg-green-500/10 text-green-500',
-    };
-
-    const matchColor = match >= 90 ? 'text-green-500' : match >= 80 ? 'text-blue-500' : match >= 70 ? 'text-yellow-500' : 'text-destructive';
-
-    return (
-        <tr className="hover:bg-secondary/20 transition-colors cursor-pointer">
-            <td className="px-6 py-4 font-medium">{company}</td>
-            <td className="px-6 py-4 text-sm text-muted-foreground">{role}</td>
-            <td className="px-6 py-4">
-                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusColors[status] || 'bg-secondary text-foreground'}`}>
-                    {status}
-                </span>
-            </td>
-            <td className="px-6 py-4">
-                <span className={`font-bold ${matchColor}`}>{match}%</span>
-            </td>
-            <td className="px-6 py-4 text-sm text-muted-foreground">{date}</td>
-        </tr>
-    );
-}
-
-function ActionCard({ icon, title, description, href, color }: { icon: React.ReactNode, title: string, description: string, href: string, color: string }) {
-    const colorClasses: Record<string, string> = {
-        blue: "from-blue-600 to-blue-400",
-        purple: "from-purple-600 to-purple-400",
-        green: "from-green-600 to-green-400",
-        orange: "from-orange-600 to-orange-400",
-    };
-
-    return (
-        <Link href={href}>
-            <div className="p-4 rounded-2xl glass border border-border hover:border-foreground/20 transition-all group flex items-center gap-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${colorClasses[color]} text-white shadow-lg group-hover:scale-110 transition-transform`}>
-                    {icon}
-                </div>
-                <div className="flex-1">
-                    <h3 className="font-bold text-sm">{title}</h3>
-                    <p className="text-xs text-muted-foreground">{description}</p>
-                </div>
-                <ArrowRight size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-            </div>
-        </Link>
-    );
-}
-
-function UpcomingItem({ title, subtitle, time }: { title: string, subtitle: string, time: string }) {
-    return (
-        <div className="flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-secondary">
-                <Clock size={14} className="text-muted-foreground" />
-            </div>
-            <div className="flex-1">
-                <p className="font-medium text-sm">{title}</p>
-                <p className="text-xs text-muted-foreground">{subtitle}</p>
-            </div>
-            <span className="text-[10px] font-medium text-muted-foreground">{time}</span>
         </div>
     );
 }

@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Use Inter as it's closest to Apple's SF Pro available on Google Fonts
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -40,13 +37,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col pt-24`}
+        className={`${inter.variable} font-sans antialiased min-h-screen flex flex-col`}
         suppressHydrationWarning
       >
         <Navbar />
-        <main className="max-w-7xl mx-auto px-6 pb-12 flex-1">
+        <main className="flex-1 pt-20">
           {children}
         </main>
         <Footer />

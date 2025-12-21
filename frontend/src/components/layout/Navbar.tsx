@@ -3,59 +3,128 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Briefcase, FileText, Mail, LayoutDashboard, User } from "lucide-react";
+import { Sparkles, Menu, X } from "lucide-react";
+import { useState } from "react";
 
 const navItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Jobs", href: "/jobs", icon: Briefcase },
-  { name: "Resumes", href: "/resumes", icon: FileText },
-  { name: "Communication", href: "/communication", icon: Mail },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/profile", label: "Profile" },
+  { href: "/jobs", label: "Jobs" },
+  { href: "/resumes", label: "Resumes" },
+  { href: "/communication", label: "Messages" },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 flex justify-center p-6">
-      <motion.div
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="glass rounded-full px-6 py-3 flex items-center gap-8 subtle-shadow"
-      >
-        <Link href="/" className="flex items-center gap-2 font-bold text-xl mr-4">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
-            <span className="text-white text-xs font-bold">CP</span>
-          </div>
-          <span className="hidden md:block tracking-tight">CareerAgentPro</span>
-        </Link>
-
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="relative flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-1 px-2"
+    <motion.nav
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="fixed top-0 left-0 right-0 z-50 apple-glass border-b border-border/50"
+    >
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="flex items-center justify-between h-14">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 group">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"
             >
-              <item.icon size={18} />
-              <span className="hidden sm:block">{item.name}</span>
-              {isActive && (
-                <motion.div
-                  layoutId="active-nav"
-                  className="absolute -bottom-1 left-0 right-0 h-0.5 bg-foreground"
-                />
-              )}
+              <Sparkles className="w-4 h-4 text-primary-foreground" />
+            </motion.div>
+            <span className="text-lg font-semibold tracking-tight">
+              CareerAgent<span className="text-primary">Pro</span>
+            </span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-1">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link key={item.href} href={item.href}>
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors relative ${isActive
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                      }`}
+                  >
+                    {item.label}
+                    {isActive && (
+                      <motion.div
+                        layoutId="navbar-indicator"
+                        className="absolute inset-0 bg-primary/10 rounded-full -z-10"
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                  </motion.div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* CTA Button - Desktop */}
+          <div className="hidden md:block">
+            <Link href="/profile">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="apple-button-primary text-sm px-5 py-2"
+              >
+                Get Started
+              </motion.button>
             </Link>
-          );
-        })}
+          </div>
 
-        <div className="w-px h-6 bg-border mx-2" />
+          {/* Mobile Menu Toggle */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+      </div>
 
-        <Link href="/profile" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-          <User size={18} />
-          <span className="hidden sm:block">Profile</span>
-        </Link>
-      </motion.div>
-    </nav>
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="md:hidden border-t border-border/50 bg-background"
+        >
+          <div className="px-6 py-4 space-y-2">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground hover:bg-secondary"
+                    }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+            <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
+              <button className="w-full apple-button-primary text-sm px-5 py-3 mt-2">
+                Get Started
+              </button>
+            </Link>
+          </div>
+        </motion.div>
+      )}
+    </motion.nav>
   );
 }

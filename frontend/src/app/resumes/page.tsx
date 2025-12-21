@@ -1,425 +1,286 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { FileUp, FileText, Download, Sparkles, AlertCircle, CheckCircle2, Code, Brain, ArrowRight, Target, Zap } from "lucide-react";
-import axios from "axios";
-import API_URL from "@/lib/api";
-import Link from "next/link";
+import { FileText, Sparkles, Download, Eye, CheckCircle2, AlertCircle, RefreshCw, Plus, Trash2, Edit3 } from "lucide-react";
 
-interface Experience {
-    company: string;
-    role: string;
-    duration: string;
-    description: string;
-}
-
-interface Education {
-    institution: string;
-    degree: string;
-    graduation_year: number;
-}
-
-interface ResumeData {
+interface Resume {
+    id: string;
     name: string;
-    email: string;
-    phone: string;
-    linkedin: string;
-    summary: string;
-    experience: Experience[];
-    education: Education[];
-    skills: string[];
-    targetTitle?: string;
-    lastModified?: string;
+    lastUpdated: string;
+    score: number;
+    status: "optimized" | "needs-work" | "draft";
 }
 
-// Mock AI feedback for when API is unavailable
-const AI_FEEDBACK = {
-    positive: [
-        "Strong keyword alignment with target role requirements",
-        "Quantified achievements demonstrate clear impact",
-        "Technical skills section is well-organized and comprehensive"
-    ],
-    warnings: [
-        "Consider adding more metrics to your experience descriptions",
-        "LinkedIn profile URL could be more prominent",
-        "Summary could be tailored more specifically to the target role"
-    ],
-    suggestions: [
-        "Add 2-3 more relevant technical skills",
-        "Include a projects section to showcase hands-on work",
-        "Emphasize leadership and collaboration experiences"
-    ]
+const mockResumes: Resume[] = [
+    { id: "1", name: "Software Engineer Resume", lastUpdated: "2 days ago", score: 92, status: "optimized" },
+    { id: "2", name: "Product Manager Resume", lastUpdated: "1 week ago", score: 78, status: "needs-work" },
+    { id: "3", name: "Full Stack Developer", lastUpdated: "3 days ago", score: 85, status: "optimized" },
+];
+
+const fadeIn = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.5, ease: "easeOut" as const },
 };
 
 export default function ResumesPage() {
-    const [activeResume, setActiveResume] = useState<ResumeData | null>(null);
-    const [isEnhancing, setIsEnhancing] = useState(false);
-    const [score, setScore] = useState(0);
-    const [aiSource, setAiSource] = useState<"api" | "local" | null>(null);
-    const [feedback, setFeedback] = useState<typeof AI_FEEDBACK | null>(null);
+    const [resumes] = useState<Resume[]>(mockResumes);
+    const [isOptimizing, setIsOptimizing] = useState(false);
+    const [selectedResume, setSelectedResume] = useState<string | null>("1");
 
-    const mockResume: ResumeData = {
-        name: "Mangesh Raut",
-        email: "mbr63drexel@gmail.com",
-        phone: "+1 (609) 505-3500",
-        linkedin: "linkedin.com/in/mangeshraut71298",
-        summary: "Results-driven Software Engineer with 3+ years of experience building scalable web applications. Expert in React, TypeScript, Python, and cloud technologies. Proven track record of delivering high-impact features and optimizing system performance.",
-        experience: [
-            {
-                company: "Customized Energy Solutions",
-                role: "Software Engineer",
-                duration: "2024 - Present",
-                description: "Led full-stack development of energy trading platforms, improving system performance by 40% and reducing deployment time by 60% through CI/CD automation."
-            },
-            {
-                company: "Drexel University",
-                role: "Graduate Research Assistant",
-                duration: "2022 - 2024",
-                description: "Developed machine learning models for energy consumption prediction achieving 92% accuracy. Published research on sustainable computing."
-            },
-        ],
-        education: [
-            { institution: "Drexel University", degree: "MS Computer Science", graduation_year: 2024 },
-            { institution: "Mumbai University", degree: "BE Information Technology", graduation_year: 2019 }
-        ],
-        skills: ["React", "TypeScript", "Python", "Java", "Docker", "AWS", "Node.js", "PostgreSQL", "GraphQL"]
-    };
-
-    const handleEnhance = async () => {
-        setIsEnhancing(true);
-        setAiSource(null);
-
-        try {
-            const response = await axios.post(`${API_URL}/enhance-resume`, {
-                resume_data: mockResume,
-                job_description: {
-                    title: "Senior Software Engineer",
-                    company: "Target Company",
-                    description: "Looking for an experienced engineer with expertise in React, Python, and cloud technologies."
-                }
-            });
-
-            const data = response.data;
-            setScore(data.score || 92);
-            setActiveResume({
-                ...mockResume,
-                summary: data.tailored_summary || data.enhanced_resume?.summary || mockResume.summary,
-                targetTitle: "Senior Software Engineer",
-                lastModified: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            });
-            setAiSource("api");
-            setFeedback(AI_FEEDBACK);
-        } catch (error) {
-            console.log("Using local AI simulation:", error);
-            // Simulate AI enhancement
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            const simulatedScore = Math.floor(Math.random() * 10) + 85;
-            setScore(simulatedScore);
-            setActiveResume({
-                ...mockResume,
-                summary: "Innovative Software Engineer with proven expertise in building high-performance web applications using React, TypeScript, and Python. Track record of optimizing system performance and leading cross-functional development initiatives.",
-                targetTitle: "Senior Software Engineer",
-                lastModified: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            });
-            setAiSource("local");
-            setFeedback(AI_FEEDBACK);
-        } finally {
-            setIsEnhancing(false);
-        }
-    };
-
-    const handleExport = async (format: string) => {
-        try {
-            const response = await axios.post(`${API_URL}/export/${format}`, mockResume, {
-                responseType: format === 'latex' ? 'text' : 'blob'
-            });
-
-            if (format === 'latex') {
-                const blob = new Blob([response.data], { type: 'text/plain' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${mockResume.name}_resume.tex`;
-                a.click();
-            } else {
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${mockResume.name}_resume.${format}`;
-                a.click();
-            }
-        } catch (error) {
-            console.log("Export error:", error);
-            alert(`Export to ${format.toUpperCase()} feature requires backend connection.`);
-        }
+    const handleOptimize = async () => {
+        setIsOptimizing(true);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        setIsOptimizing(false);
     };
 
     return (
-        <div className="space-y-12 pb-20">
+        <div className="max-w-6xl mx-auto px-6 py-8">
             {/* Header */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 text-xs font-bold text-purple-400 mb-3">
-                        <Brain size={12} />
-                        AI-Powered Resume Optimization
-                    </div>
-                    <h1 className="text-4xl font-bold tracking-tight">Resume Studio</h1>
-                    <p className="text-muted-foreground mt-2">Upload, manage, and AI-enhance your resumes for specific job roles.</p>
-                </div>
-                <div className="flex gap-4">
-                    <button className="bg-secondary text-foreground px-6 py-3 rounded-full font-bold flex items-center gap-2 hover:bg-secondary/80 transition-colors">
-                        <FileUp size={18} />
-                        Upload PDF
-                    </button>
-                    <button
-                        onClick={handleEnhance}
-                        disabled={isEnhancing}
-                        className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 shadow-lg shadow-purple-500/25"
-                    >
-                        {isEnhancing ? <Sparkles size={18} className="animate-pulse" /> : <Sparkles size={18} />}
-                        {isEnhancing ? "Enhancing..." : "Auto-Optimize"}
-                    </button>
-                </div>
-            </header>
+            <motion.div {...fadeIn} className="mb-8">
+                <h1 className="text-4xl font-bold tracking-tight mb-2">Resume Studio</h1>
+                <p className="text-lg text-muted-foreground">Create and optimize AI-powered resumes</p>
+            </motion.div>
 
-            {/* Target Info Bar */}
-            <div className="flex flex-wrap gap-4 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                <div className="px-4 py-2 bg-secondary rounded-lg flex items-center gap-2">
-                    <Target size={14} />
-                    Target: {activeResume?.targetTitle || "Software Engineer"}
-                </div>
-                <div className="px-4 py-2 bg-secondary rounded-lg flex items-center gap-2">
-                    <Sparkles size={14} />
-                    Modified: {activeResume?.lastModified || "Not optimized yet"}
-                </div>
-                {aiSource && (
-                    <div className={`px-4 py-2 rounded-lg flex items-center gap-2 ${aiSource === "api"
-                        ? "bg-green-500/10 text-green-500"
-                        : "bg-blue-500/10 text-blue-500"
-                        }`}>
-                        <Zap size={14} />
-                        {aiSource === "api" ? "Gemini AI Enhanced" : "Smart Optimization"}
+            <div className="grid lg:grid-cols-3 gap-8">
+                {/* Resume List */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                    className="lg:col-span-1 space-y-4"
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold">My Resumes</h2>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground"
+                        >
+                            <Plus size={18} />
+                        </motion.button>
                     </div>
-                )}
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column: Preview */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold">Resume Preview</h2>
-                        <div className="flex gap-2">
-                            <ExportButton icon={<Download size={14} />} label="PDF" onClick={() => handleExport('pdf')} />
-                            <ExportButton icon={<FileText size={14} />} label="DOCX" onClick={() => handleExport('docx')} />
-                            <ExportButton icon={<Code size={14} />} label="LaTeX" onClick={() => handleExport('latex')} />
+                    {resumes.map((resume) => (
+                        <motion.div
+                            key={resume.id}
+                            whileHover={{ x: 4 }}
+                            onClick={() => setSelectedResume(resume.id)}
+                            className={`apple-card p-4 cursor-pointer transition-all ${selectedResume === resume.id ? 'ring-2 ring-primary' : ''
+                                }`}
+                        >
+                            <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <FileText className="w-5 h-5 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-medium text-sm truncate">{resume.name}</h3>
+                                    <p className="text-xs text-muted-foreground">{resume.lastUpdated}</p>
+                                </div>
+                                <div className="text-right">
+                                    <span className={`text-lg font-bold ${resume.score >= 90 ? 'text-green-500' :
+                                        resume.score >= 80 ? 'text-primary' : 'text-orange-500'
+                                        }`}>
+                                        {resume.score}%
+                                    </span>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))}
+                </motion.div>
+
+                {/* Resume Editor */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="lg:col-span-2"
+                >
+                    <div className="apple-card overflow-hidden">
+                        {/* Toolbar */}
+                        <div className="p-4 border-b border-border flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                    <FileText className="w-4 h-4 text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="font-medium text-sm">Software Engineer Resume</h3>
+                                    <p className="text-xs text-muted-foreground">Last edited 2 days ago</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="apple-button-secondary text-sm px-4 py-2"
+                                >
+                                    <Eye size={14} />
+                                    Preview
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={handleOptimize}
+                                    disabled={isOptimizing}
+                                    className="apple-button-primary text-sm px-4 py-2"
+                                >
+                                    {isOptimizing ? (
+                                        <RefreshCw size={14} className="animate-spin" />
+                                    ) : (
+                                        <Sparkles size={14} />
+                                    )}
+                                    {isOptimizing ? "Optimizing..." : "AI Optimize"}
+                                </motion.button>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="bg-white dark:bg-zinc-900 border border-border rounded-3xl p-12 min-h-[800px] shadow-2xl relative overflow-hidden group">
-                        <div className="absolute inset-0 japanese-dot-grid opacity-10 pointer-events-none" />
+                        {/* Score & Feedback */}
+                        <div className="p-6 border-b border-border bg-secondary/30">
+                            <div className="flex items-center gap-6">
+                                {/* Score Circle */}
+                                <div className="relative w-24 h-24">
+                                    <svg className="w-24 h-24 transform -rotate-90">
+                                        <circle
+                                            cx="48"
+                                            cy="48"
+                                            r="40"
+                                            stroke="currentColor"
+                                            strokeWidth="8"
+                                            fill="none"
+                                            className="text-secondary"
+                                        />
+                                        <motion.circle
+                                            cx="48"
+                                            cy="48"
+                                            r="40"
+                                            stroke="currentColor"
+                                            strokeWidth="8"
+                                            fill="none"
+                                            className="text-green-500"
+                                            strokeLinecap="round"
+                                            initial={{ strokeDasharray: "0 251" }}
+                                            animate={{ strokeDasharray: "231 251" }}
+                                            transition={{ duration: 1, delay: 0.5 }}
+                                        />
+                                    </svg>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-2xl font-bold">92%</span>
+                                    </div>
+                                </div>
 
-                        <div className="relative z-10 space-y-10">
+                                {/* Feedback */}
+                                <div className="flex-1 space-y-3">
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                        <span>Strong technical skills section</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                        <span>Quantified achievements included</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <AlertCircle className="w-4 h-4 text-orange-500" />
+                                        <span>Add more keywords for ATS optimization</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Resume Content Preview */}
+                        <div className="p-6 space-y-6 min-h-[400px]">
                             {/* Header */}
-                            <div className="space-y-3 pb-6 border-b border-border">
-                                <h1 className="text-4xl font-bold tracking-tight">{mockResume.name}</h1>
-                                <p className="text-muted-foreground text-sm flex flex-wrap gap-4">
-                                    <span>{mockResume.email}</span>
-                                    <span>{mockResume.phone}</span>
-                                    <span>{mockResume.linkedin}</span>
-                                </p>
+                            <div className="pb-4 border-b border-border">
+                                <h2 className="text-xl font-bold mb-1">John Doe</h2>
+                                <p className="text-sm text-muted-foreground">Senior Software Engineer • San Francisco, CA</p>
+                                <p className="text-sm text-muted-foreground">john.doe@email.com • (555) 123-4567 • linkedin.com/in/johndoe</p>
                             </div>
 
                             {/* Summary */}
-                            <div className="space-y-3">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Professional Summary</h3>
-                                <p className="text-base leading-relaxed">{activeResume?.summary || mockResume.summary}</p>
+                            <div>
+                                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2">Summary</h3>
+                                <p className="text-sm leading-relaxed">
+                                    Results-driven software engineer with 5+ years of experience building scalable web applications.
+                                    Expert in React, TypeScript, and Node.js with a track record of delivering high-impact projects.
+                                </p>
                             </div>
 
                             {/* Experience */}
-                            <div className="space-y-6">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground border-b border-border pb-2">Experience</h3>
-                                {mockResume.experience.map((exp, i) => (
-                                    <div key={i} className="space-y-1">
-                                        <div className="flex justify-between items-baseline">
-                                            <h4 className="text-lg font-bold">{exp.role}</h4>
-                                            <span className="text-sm text-muted-foreground font-medium">{exp.duration}</span>
+                            <div>
+                                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Experience</h3>
+                                <div className="space-y-4">
+                                    <div className="flex gap-4">
+                                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center font-bold text-sm shrink-0">G</div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <div>
+                                                    <h4 className="font-medium text-sm">Senior Software Engineer</h4>
+                                                    <p className="text-xs text-muted-foreground">Google • Mountain View, CA</p>
+                                                </div>
+                                                <span className="text-xs text-muted-foreground">2021 - Present</span>
+                                            </div>
+                                            <ul className="text-sm text-muted-foreground space-y-1 mt-2">
+                                                <li>• Led development of core platform features serving 10M+ users</li>
+                                                <li>• Reduced page load time by 40% through performance optimization</li>
+                                            </ul>
                                         </div>
-                                        <p className="text-muted-foreground font-medium">{exp.company}</p>
-                                        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{exp.description}</p>
                                     </div>
-                                ))}
-                            </div>
-
-                            {/* Education */}
-                            <div className="space-y-4">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground border-b border-border pb-2">Education</h3>
-                                {mockResume.education.map((edu, i) => (
-                                    <div key={i} className="flex justify-between items-baseline">
-                                        <div>
-                                            <h4 className="font-bold">{edu.degree}</h4>
-                                            <p className="text-sm text-muted-foreground">{edu.institution}</p>
-                                        </div>
-                                        <span className="text-sm text-muted-foreground">{edu.graduation_year}</span>
-                                    </div>
-                                ))}
+                                </div>
                             </div>
 
                             {/* Skills */}
-                            <div className="space-y-3">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground border-b border-border pb-2">Technical Skills</h3>
+                            <div>
+                                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Skills</h3>
                                 <div className="flex flex-wrap gap-2">
-                                    {mockResume.skills.map((skill, i) => (
-                                        <span key={i} className="px-3 py-1 bg-secondary rounded-lg text-sm font-medium">{skill}</span>
+                                    {["React", "TypeScript", "Node.js", "Python", "AWS", "PostgreSQL", "GraphQL", "Docker"].map((skill) => (
+                                        <span key={skill} className="apple-pill text-xs">{skill}</span>
                                     ))}
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                {/* Right Column: AI Analysis & Feedback */}
-                <div className="space-y-8">
-                    <div className="space-y-4">
-                        <h2 className="text-2xl font-bold">Optimization Engine</h2>
-                        <div className="glass rounded-3xl p-8 border border-border space-y-6">
-                            {/* Score Circle */}
-                            <div className="text-center space-y-2">
-                                <div className="relative inline-flex items-center justify-center">
-                                    <svg className="w-32 h-32 transform -rotate-90">
-                                        <circle className="text-secondary" strokeWidth="8" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64" />
-                                        <motion.circle
-                                            initial={{ strokeDasharray: "0 364.4" }}
-                                            animate={{ strokeDasharray: `${(score / 100) * 364.4} 364.4` }}
-                                            transition={{ duration: 1, type: "spring" }}
-                                            className={score >= 85 ? "text-green-500" : score >= 70 ? "text-yellow-500" : "text-red-500"}
-                                            strokeWidth="8"
-                                            strokeLinecap="round"
-                                            stroke="currentColor"
-                                            fill="transparent"
-                                            r="58"
-                                            cx="64"
-                                            cy="64"
-                                        />
-                                    </svg>
-                                    <span className="absolute text-3xl font-bold">{score || '--'}</span>
-                                </div>
-                                <p className="text-sm font-bold uppercase tracking-widest">Match Score</p>
-                                {score > 0 && (
-                                    <p className="text-xs text-muted-foreground">
-                                        {score >= 85 ? "Excellent match! Ready to apply." : score >= 70 ? "Good match. Minor improvements suggested." : "Needs optimization."}
-                                    </p>
-                                )}
+                        {/* Export Actions */}
+                        <div className="p-4 border-t border-border bg-secondary/30 flex justify-between items-center">
+                            <div className="flex gap-2">
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2"
+                                >
+                                    <Edit3 size={14} />
+                                    Edit
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="flex items-center gap-2 text-sm text-red-500 hover:text-red-600 transition-colors px-3 py-2"
+                                >
+                                    <Trash2 size={14} />
+                                    Delete
+                                </motion.button>
                             </div>
-
-                            {/* AI Feedback */}
-                            {feedback && (
-                                <div className="space-y-4">
-                                    <FeedbackItem
-                                        type="positive"
-                                        icon={<CheckCircle2 size={16} />}
-                                        text={feedback.positive[0]}
-                                    />
-                                    <FeedbackItem
-                                        type="warning"
-                                        icon={<AlertCircle size={16} />}
-                                        text={feedback.warnings[0]}
-                                    />
-                                    <FeedbackItem
-                                        type="info"
-                                        icon={<Sparkles size={16} />}
-                                        text={feedback.suggestions[0]}
-                                    />
-                                </div>
-                            )}
-
-                            {!feedback && (
-                                <p className="text-center text-muted-foreground text-sm py-4">
-                                    Click &quot;Auto-Optimize&quot; to get AI feedback
-                                </p>
-                            )}
-
-                            {/* Smart Suggestions */}
-                            <div className="pt-4 space-y-3">
-                                <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Smart Suggestions</h4>
-                                <div className="space-y-2">
-                                    <SuggestionToggle label="Use Action Verbs" checked={true} />
-                                    <SuggestionToggle label="Quantify Achievements" checked={score > 0} />
-                                    <SuggestionToggle label="Tailor to Job" checked={activeResume != null} />
-                                </div>
+                            <div className="flex gap-2">
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="apple-button-secondary text-sm px-4 py-2"
+                                >
+                                    <Download size={14} />
+                                    PDF
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="apple-button-secondary text-sm px-4 py-2"
+                                >
+                                    <Download size={14} />
+                                    DOCX
+                                </motion.button>
                             </div>
                         </div>
                     </div>
-
-                    {/* Quick Actions */}
-                    <Link href="/jobs">
-                        <ActionItem
-                            icon={<Target size={20} />}
-                            title="Analyze Job Posting"
-                            description="Match resume to specific requirements"
-                        />
-                    </Link>
-                    <Link href="/communication">
-                        <ActionItem
-                            icon={<Sparkles size={20} />}
-                            title="Generate Cover Letter"
-                            description="AI-powered personalized letters"
-                        />
-                    </Link>
-                </div>
+                </motion.div>
             </div>
         </div>
-    );
-}
-
-function FeedbackItem({ type, icon, text }: { type: string, icon: React.ReactNode, text: string }) {
-    const styles: Record<string, string> = {
-        positive: 'text-green-500 bg-green-500/5',
-        warning: 'text-yellow-500 bg-yellow-500/5',
-        info: 'text-blue-500 bg-blue-500/5',
-    };
-    return (
-        <div className={`p-4 rounded-2xl flex gap-3 text-sm leading-relaxed ${styles[type]}`}>
-            <span className="mt-0.5 shrink-0">{icon}</span>
-            {text}
-        </div>
-    );
-}
-
-function SuggestionToggle({ label, checked }: { label: string, checked: boolean }) {
-    return (
-        <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground font-medium">{label}</span>
-            <div className={`w-8 h-4 rounded-full relative transition-colors ${checked ? 'bg-green-500' : 'bg-secondary'}`}>
-                <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform ${checked ? 'left-[18px]' : 'left-0.5'}`} />
-            </div>
-        </div>
-    );
-}
-
-function ActionItem({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
-    return (
-        <div className="p-6 rounded-3xl glass border border-border flex items-center gap-4 hover:border-foreground/20 transition-colors cursor-pointer group">
-            <div className="p-3 bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl text-white group-hover:scale-110 transition-transform shadow-lg">
-                {icon}
-            </div>
-            <div className="flex-1">
-                <h3 className="font-bold text-sm tracking-tight">{title}</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-            </div>
-            <ArrowRight size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-        </div>
-    );
-}
-
-function ExportButton({ icon, label, onClick }: { icon: React.ReactNode, label: string, onClick: () => void }) {
-    return (
-        <button
-            onClick={onClick}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-bold hover:bg-secondary transition-colors"
-        >
-            {icon}
-            {label}
-        </button>
     );
 }

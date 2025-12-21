@@ -1,73 +1,136 @@
 "use client";
 
 import Link from "next/link";
-import { Github, Linkedin, Mail, Heart } from "lucide-react";
+import { motion } from "framer-motion";
+import { Sparkles, Github, Linkedin, Twitter } from "lucide-react";
+
+const footerLinks = {
+    product: [
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Profile", href: "/profile" },
+        { label: "Jobs", href: "/jobs" },
+        { label: "Resumes", href: "/resumes" },
+    ],
+    resources: [
+        { label: "Documentation", href: "#" },
+        { label: "API Reference", href: "#" },
+        { label: "Changelog", href: "#" },
+    ],
+    company: [
+        { label: "About", href: "#" },
+        { label: "Blog", href: "#" },
+        { label: "Careers", href: "#" },
+    ],
+};
+
+const socialLinks = [
+    { icon: Github, href: "https://github.com/mangeshraut712", label: "GitHub" },
+    { icon: Linkedin, href: "https://linkedin.com/in/mangeshraut71298", label: "LinkedIn" },
+    { icon: Twitter, href: "#", label: "Twitter" },
+];
 
 export function Footer() {
-    const currentYear = new Date().getFullYear();
-
     return (
-        <footer className="mt-auto border-t border-border bg-background/50 backdrop-blur-sm">
-            <div className="max-w-7xl mx-auto px-6 py-12">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <footer className="border-t border-border bg-secondary/30">
+            <div className="max-w-6xl mx-auto px-6 py-16">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-8 lg:gap-12">
                     {/* Brand */}
-                    <div className="space-y-4">
-                        <h3 className="text-xl font-bold">CareerAgentPro</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                            Your AI-powered career co-pilot. Automate your job search and land your dream role.
+                    <div className="col-span-2">
+                        <Link href="/" className="flex items-center gap-2 mb-4">
+                            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                                <Sparkles className="w-4 h-4 text-primary-foreground" />
+                            </div>
+                            <span className="text-lg font-semibold tracking-tight">
+                                CareerAgent<span className="text-primary">Pro</span>
+                            </span>
+                        </Link>
+                        <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mb-6">
+                            Your AI-powered career platform. Optimize resumes, find matching jobs, and land your dream role.
                         </p>
-                        <div className="flex gap-4">
-                            <a href="https://github.com/mangeshraut712" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-                                <Github size={20} />
-                            </a>
-                            <a href="https://linkedin.com/in/mangeshraut71298" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-                                <Linkedin size={20} />
-                            </a>
-                            <a href="mailto:mbr63drexel@gmail.com" className="text-muted-foreground hover:text-foreground transition-colors">
-                                <Mail size={20} />
-                            </a>
+                        {/* Social Links */}
+                        <div className="flex gap-3">
+                            {socialLinks.map((social) => (
+                                <motion.a
+                                    key={social.label}
+                                    href={social.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors"
+                                >
+                                    <social.icon size={16} />
+                                </motion.a>
+                            ))}
                         </div>
                     </div>
 
-                    {/* Product */}
-                    <div className="space-y-4">
-                        <h4 className="font-semibold">Product</h4>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li><Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link></li>
-                            <li><Link href="/resumes" className="hover:text-foreground transition-colors">Resume Studio</Link></li>
-                            <li><Link href="/jobs" className="hover:text-foreground transition-colors">Job Analysis</Link></li>
-                            <li><Link href="/communication" className="hover:text-foreground transition-colors">Outreach Studio</Link></li>
+                    {/* Links */}
+                    <div>
+                        <h4 className="text-sm font-semibold mb-4">Product</h4>
+                        <ul className="space-y-3">
+                            {footerLinks.product.map((link) => (
+                                <li key={link.label}>
+                                    <Link
+                                        href={link.href}
+                                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        {link.label}
+                                    </Link>
+                                </li>
+                            ))}
                         </ul>
                     </div>
 
-                    {/* Resources */}
-                    <div className="space-y-4">
-                        <h4 className="font-semibold">Resources</h4>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li><a href="https://github.com/mangeshraut712/AIJobHelper" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a></li>
-                            <li><a href="https://github.com/mangeshraut712/AIJobHelper#-api-endpoints" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">API Docs</a></li>
-                            <li><a href="https://github.com/mangeshraut712/AIJobHelper/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Contributing</a></li>
+                    <div>
+                        <h4 className="text-sm font-semibold mb-4">Resources</h4>
+                        <ul className="space-y-3">
+                            {footerLinks.resources.map((link) => (
+                                <li key={link.label}>
+                                    <Link
+                                        href={link.href}
+                                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        {link.label}
+                                    </Link>
+                                </li>
+                            ))}
                         </ul>
                     </div>
 
-                    {/* Legal */}
-                    <div className="space-y-4">
-                        <h4 className="font-semibold">Legal</h4>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li><Link href="#" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
-                            <li><Link href="#" className="hover:text-foreground transition-colors">Terms of Service</Link></li>
-                            <li><a href="https://github.com/mangeshraut712/AIJobHelper/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">MIT License</a></li>
+                    <div>
+                        <h4 className="text-sm font-semibold mb-4">Company</h4>
+                        <ul className="space-y-3">
+                            {footerLinks.company.map((link) => (
+                                <li key={link.label}>
+                                    <Link
+                                        href={link.href}
+                                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        {link.label}
+                                    </Link>
+                                </li>
+                            ))}
                         </ul>
                     </div>
                 </div>
 
-                <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-sm text-muted-foreground flex items-center gap-1" suppressHydrationWarning>
-                        © {currentYear} CareerAgentPro. Built with <Heart size={14} className="text-red-500" /> by Mangesh Raut
+                {/* Bottom */}
+                <div className="mt-16 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
+                    <p className="text-sm text-muted-foreground" suppressHydrationWarning>
+                        © {new Date().getFullYear()} CareerAgentPro. All rights reserved.
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                        Powered by Next.js, FastAPI & Gemini AI
-                    </p>
+                    <div className="flex gap-6">
+                        <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                            Privacy
+                        </Link>
+                        <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                            Terms
+                        </Link>
+                        <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                            Cookies
+                        </Link>
+                    </div>
                 </div>
             </div>
         </footer>
