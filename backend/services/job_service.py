@@ -2,14 +2,13 @@ import trafilatura
 import httpx
 import re
 import json
-import html
 from typing import Optional
 from urllib.parse import urlparse
 from schemas import JobDescription
 from services.ai_service import AIService
 
 # Allowed domains for job extraction (SSRF protection)
-ALLOWED_DOMAINS = [
+ALLOWED_DOMAINS = frozenset([
     "linkedin.com", "www.linkedin.com",
     "indeed.com", "www.indeed.com",
     "glassdoor.com", "www.glassdoor.com",
@@ -24,8 +23,7 @@ ALLOWED_DOMAINS = [
     "microsoft.com", "careers.microsoft.com",
     "apple.com", "jobs.apple.com",
     "meta.com", "www.metacareers.com",
-    "httpbin.org",  # For testing
-]
+])
 
 class JobService:
     def __init__(self, ai_service: AIService):
@@ -35,21 +33,23 @@ class JobService:
         """Validate URL against allowlist to prevent SSRF attacks"""
         try:
             parsed = urlparse(url)
+            # Only allow http/https schemes
             if parsed.scheme not in ("http", "https"):
                 return False
             domain = parsed.netloc.lower()
-            # Check if domain matches any allowed domain
+            # Strict allowlist check - no exceptions
             for allowed in ALLOWED_DOMAINS:
                 if domain == allowed or domain.endswith("." + allowed):
                     return True
-            # For demo purposes, allow any domain but log a warning
-            print(f"Warning: Domain {domain} not in allowlist, proceeding with caution")
-            return True  # In production, return False
+            return False  # Reject unlisted domains
         except Exception:
             return False
     
     async def _fetch_with_httpx(self, url: str) -> Optional[str]:
-        """Fetch URL content using httpx with browser-like headers"""
+        """Fetch URL content using httpx with browser-like headers.
+        
+        Security: URL must be pre-validated by _is_allowed_url before calling this.
+        """
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -60,17 +60,14 @@ class JobService:
                 response = await client.get(url, headers=headers)
                 response.raise_for_status()
                 return response.text
-        except httpx.HTTPError as e:
-            print(f"HTTP fetch failed: {type(e).__name__}")
+        except httpx.HTTPError:
             return None
-        except Exception as e:
-            print(f"Fetch failed: {type(e).__name__}")
+        except Exception:
             return None
     
     def _extract_text_from_html(self, html_content: str) -> str:
         """Extract readable text from HTML using trafilatura"""
         try:
-            # Use trafilatura for safe HTML extraction
             text = trafilatura.extract(html_content, include_comments=False, include_tables=True)
             if text:
                 return text[:10000]
@@ -107,40 +104,43 @@ class JobService:
             return ""
 
     async def extract_from_url(self, url: str) -> JobDescription:
-        """Extract job details from a URL"""
-        # Security: Validate URL
+        """Extract job details from a URL.
+        
+        Security: Only allowed domains can be fetched (SSRF protection).
+        """
+        # Security: Validate URL against allowlist
         if not self._is_allowed_url(url):
             return JobDescription(
-                title="Invalid URL",
+                title="Unsupported Job Board",
                 company="Unknown",
-                description="The provided URL is not from a supported job board.",
-                requirements=[],
-                responsibilities=[],
+                description="This job board is not currently supported. Please copy and paste the job description manually, or use a supported job board (LinkedIn, Indeed, Glassdoor, Lever, Greenhouse, etc.).",
+                requirements=["Manual entry required"],
+                responsibilities=["Manual entry required"],
                 url=url
             )
         
         content = None
         
-        # Method 1: Try trafilatura's fetch
+        # Method 1: Try trafilatura's fetch (uses allowlisted URL)
         try:
             downloaded = trafilatura.fetch_url(url)
             if downloaded:
                 content = trafilatura.extract(downloaded)
         except Exception:
-            pass  # Silently continue to fallback
+            pass
         
-        # Method 2: Fallback to httpx
+        # Method 2: Fallback to httpx (URL already validated above)
         if not content:
             html_content = await self._fetch_with_httpx(url)
             if html_content:
                 content = self._extract_text_from_html(html_content)
         
-        # If still no content, return partial data with URL
+        # If still no content, return helpful message
         if not content or len(content.strip()) < 50:
             return JobDescription(
                 title="Job from URL",
                 company=self._extract_company_from_url(url),
-                description=f"Please visit the job posting directly: {url}",
+                description=f"Could not extract content. Please visit: {url}",
                 requirements=["See job posting for requirements"],
                 responsibilities=["See job posting for responsibilities"],
                 url=url
@@ -186,9 +186,9 @@ Return ONLY valid JSON with these fields:
                 url=url
             )
         except json.JSONDecodeError:
-            pass  # Fall through to fallback
+            pass
         except Exception:
-            pass  # Fall through to fallback
+            pass
         
         # Fallback with extracted content
         return JobDescription(
