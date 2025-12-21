@@ -124,7 +124,7 @@ ${profile?.summary || "Throughout my career, I have developed a strong foundatio
 The ${jobTitle} role particularly appeals to me because it aligns perfectly with my career goals and allows me to leverage my skills in ${skills}. I am excited about the opportunity to bring my experience to ${company} and contribute to your continued success.
 
 Key qualifications I bring to this role:
-${currentJob.requirements?.slice(0, 3).map(req => `• ${req}`).join("\n") || "• Strong technical skills\n• Team collaboration\n• Problem-solving abilities"}
+${currentJob?.requirements?.slice(0, 3).map(req => `• ${req}`).join("\n") || "• Strong technical skills\n• Team collaboration\n• Problem-solving abilities"}
 
 I would welcome the opportunity to discuss how my background and skills would benefit your team. Thank you for considering my application.
 
