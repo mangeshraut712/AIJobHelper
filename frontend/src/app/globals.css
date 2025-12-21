@@ -6,7 +6,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", var(--font-inter), "Helvetica Neue", "Helvetica", "Arial", sans-serif;
   --font-mono: "SF Mono", "Fira Code", "Fira Mono", "Menlo", "Monaco", monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -134,6 +134,12 @@
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
     font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
     letter-spacing: -0.022em;
+  }
+
+  /* Apple Selection Style */
+  ::selection {
+    background-color: var(--primary);
+    color: white;
   }
 
   h1 {
