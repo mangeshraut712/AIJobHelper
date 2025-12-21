@@ -2,14 +2,14 @@
 
 <div align="center">
 
-![CareerAgentPro](https://img.shields.io/badge/CareerAgentPro-AI%20Career%20Platform-blue?style=for-the-badge)
-[![Next.js](https://img.shields.io/badge/Next.js-15+-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+![CareerAgentPro](https://img.shields.io/badge/CareerAgentPro-AI%20Career%20Platform-0071e3?style=for-the-badge)
+[![Next.js](https://img.shields.io/badge/Next.js-15+-000000?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python)](https://python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-**Your AI-Powered Career Co-Pilot** — From resume optimization to intelligent job matching, CareerAgentPro automates and elevates your entire job search journey.
+**Your AI-Powered Career Co-Pilot** — From resume optimization to intelligent job matching, CareerAgentPro automates and elevates your entire job search journey with a premium Apple-style aesthetic.
 
 [Live Demo](https://ai-job-helper-steel.vercel.app/) • [Documentation](#-documentation) • [Features](#-core-features) • [Quick Start](#-quick-start)
 
@@ -19,23 +19,28 @@
 
 ## ✨ Core Features
 
-### 🧠 AI Job Analyst
-Paste any job URL and instantly extract key requirements, salary information, and responsibilities using advanced AI parsing.
+### 🎨 Premium Apple-Style Design
+A completely redesigned user interface featuring glassmorphism, smooth Framer Motion animations, SF Pro-style typography, and a clean, distraction-free aesthetic.
 
-### 🎨 Resume Studio
-Real-time AI optimization with compatibility scoring against job descriptions. Get actionable feedback to improve your resume.
+### 👤 Advanced Profile Hub
+Full CRUD profile management with local persistence. Includes sections for:
+- **Resume Parsing**: Drag & drop PDF/DOCX parsing (works offline!).
+- **Experience & Education**: Rich card-based editing with company logos.
+- **Skills Matrix**: Tag-based skills with "preferred" toggles.
+- **Profile Strength**: Visual progress tracking and completion checklist.
 
-### 📄 Multi-Format Export
-Professional exports in PDF, DOCX, and LaTeX (Overleaf-ready) formats with ATS-optimized templates.
+### 🧠 Hybrid AI Engine
+- **Online Mode**: Uses OpenRouter (Gemini 2.0 Flash) for advanced analysis and content generation.
+- **Offline Mode**: Robust regex-based fallback for resume parsing and basic features—no API key required for local dev!
 
-### 🤖 Smart Autofill Agent
-Dynamic form filling with intelligent label matching. Supports Greenhouse, Lever, Workday, and more.
+### 🎯 Job Match & Analysis
+Paste any job URL to extract key requirements. The system scores your fit and highlights missing skills.
 
-### � Outreach Studio
-Generate personalized LinkedIn messages, cold emails, and follow-up templates tailored to each opportunity.
+### 📝 Resume Studio & Export
+Real-time optimization feedback. Export your tailored resumes to **PDF**, **DOCX**, and **LaTeX** formats.
 
-### 📊 Application Tracker
-Organize and track all your job applications with status updates and interview scheduling.
+### 💬 Outreach Generator
+Generate personalized LinkedIn messages, cold emails, and follow-up notes tailored to specific job roles and companies.
 
 ---
 
@@ -43,11 +48,11 @@ Organize and track all your job applications with status updates and interview s
 
 | Layer | Technologies |
 |-------|-------------|
-| **Frontend** | Next.js 15+, React 19, TypeScript 5, Tailwind CSS v4, Framer Motion |
-| **Backend** | FastAPI, Python 3.11+, Pydantic, SQLAlchemy |
-| **AI/ML** | OpenRouter (Gemini 2.0 Flash), Custom Resume Parser |
-| **Database** | SQLite (dev) / PostgreSQL (prod) |
-| **Deployment** | Vercel (Frontend), Railway/Render (Backend) |
+| **Frontend** | Next.js 15+, React 19, TypeScript 5, Tailwind CSS v4, Framer Motion, Lucide Icons |
+| **Backend** | FastAPI, Python 3.11+, Pydantic, Uvicorn |
+| **AI/ML** | OpenRouter (Gemini 2.0 Flash), Custom Regex Parsing Engine |
+| **Storage** | LocalStorage (Client-side), In-memory (Backend), SQLite (Planned) |
+| **Deployment** | Vercel (Frontend & Backend via Serverless Functions) |
 
 ---
 
@@ -56,7 +61,7 @@ Organize and track all your job applications with status updates and interview s
 ### Prerequisites
 - Node.js 18+ and npm
 - Python 3.11+
-- OpenRouter API Key ([Get one here](https://openrouter.ai/))
+- (Optional) OpenRouter API Key for advanced AI features
 
 ### 1. Clone the Repository
 ```bash
@@ -65,27 +70,26 @@ cd AIJobHelper
 ```
 
 ### 2. Backend Setup
+The backend facilitates AI parsing and file exports.
 ```bash
 cd backend
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Create .env file
-echo "OPENROUTER_API_KEY=your_api_key_here" > .env
-
-# Run the server
+# Run the server (No .env needed for local mode!)
 python main.py
 ```
-Backend will be available at `http://localhost:8000`
+Backend runs at `http://localhost:8000`
 
 ### 3. Frontend Setup
+The modern Next.js interface.
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev -- --port 3001
 ```
-Frontend will be available at `http://localhost:3000`
+Frontend runs at `http://localhost:3001`
 
 ---
 
@@ -94,33 +98,31 @@ Frontend will be available at `http://localhost:3000`
 ```
 AIJobHelper/
 ├── 📁 backend/                 # FastAPI Server
-│   ├── main.py                 # API entry point
-│   ├── schemas.py              # Pydantic models
-│   ├── database.py             # Database configuration
-│   ├── db_models.py            # SQLAlchemy models
+│   ├── main.py                 # API entry point & routes
+│   ├── schemas.py              # Pydantic data models
+│   ├── requirements.txt        # Python dependencies
 │   └── 📁 services/
-│       ├── ai_service.py       # AI/LLM integration
-│       ├── job_service.py      # Job extraction logic
-│       ├── export_service.py   # PDF/DOCX/LaTeX export
-│       ├── autofill_service.py # Form autofill scripts
-│       └── resume_parser.py    # Resume text extraction
+│       ├── ai_service.py       # Hybrid AI/Regex logic
+│       ├── job_service.py      # Job extraction
+│       ├── export_service.py   # PDF/DOCX/LaTeX generation
+│       └── resume_parser.py    # Text extraction util
 │
 ├── 📁 frontend/                # Next.js Application
-│   └── 📁 src/
-│       ├── 📁 app/             # App Router pages
-│       │   ├── page.tsx        # Landing page
-│       │   ├── dashboard/      # Main dashboard
-│       │   ├── jobs/           # Job analysis
-│       │   ├── resumes/        # Resume studio
-│       │   ├── profile/        # User profile
-│       │   └── communication/  # Outreach studio
-│       ├── 📁 components/      # Reusable components
-│       └── 📁 lib/             # Utilities
+│   ├── 📁 src/
+│   │   ├── 📁 app/             # App Router pages
+│   │   │   ├── layout.tsx      # Global layout & fonts
+│   │   │   ├── globals.css     # Apple design system variables
+│   │   │   ├── page.tsx        # Landing page
+│   │   │   ├── dashboard/      # User dashboard
+│   │   │   ├── jobs/           # Job search & match
+│   │   │   ├── resumes/        # Editor & export
+│   │   │   ├── profile/        # Profile management
+│   │   │   └── communication/  # Message generator
+│   │   ├── 📁 components/      # UI components (Navbar, Footer)
+│   │   └── 📁 lib/             # API utilities
 │
-├── 📁 storage/                 # Generated assets
 ├── 📁 .github/                 # CI/CD workflows
-├── vercel.json                 # Vercel configuration
-└── process_application.py      # CLI automation script
+└── vercel.json                 # Deployment config
 ```
 
 ---
@@ -129,56 +131,37 @@ AIJobHelper/
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/health` | Health check |
-| `POST` | `/parse-resume` | Extract data from resume PDF/DOCX |
-| `POST` | `/extract-job` | Parse job posting from URL |
-| `POST` | `/enhance-resume` | AI-powered resume optimization |
-| `POST` | `/generate-cover-letter` | Generate tailored cover letter |
-| `POST` | `/generate-communication` | Create outreach messages |
-| `POST` | `/export/pdf` | Export resume as PDF |
-| `POST` | `/export/docx` | Export resume as DOCX |
-| `POST` | `/export/latex` | Export resume as LaTeX |
-| `POST` | `/generate-autofill` | Generate autofill scripts |
+| `GET` | `/health` | Check backend status |
+| `POST` | `/parse-resume` | Extract data from uploads (PDF/DOCX/TXT) |
+| `POST` | `/enhance-resume` | AI optimization (Requires API Key) |
+| `POST` | `/generate-cover-letter` | Create tailored cover letters |
+| `POST` | `/generate-communication` | Generate emails/LinkedIn messages |
+| `POST` | `/export/{format}` | Export to pdf, docx, or latex |
 
 ---
 
 ## 🔧 Environment Variables
 
-### Backend (.env)
+### Backend (Optional)
+Create a `.env` file in `backend/` only if you want full AI features locally.
 ```env
-OPENROUTER_API_KEY=your_openrouter_api_key
-DATABASE_URL=sqlite:///./career_agent.db  # Optional
+OPENROUTER_API_KEY=your_key_here
 ```
-
-### Frontend (.env.local)
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
+*If omitted, the system gracefully falls back to regex parsing and mock responses.*
 
 ---
 
 ## 🚢 Deployment
 
-### Vercel (Recommended)
-1. Push to GitHub
-2. Import project in [Vercel](https://vercel.com)
-3. Configure environment variables
-4. Deploy!
+The project is optimized for **Vercel** deployment with a single repository structure.
+
+1. Push to GitHub.
+2. Import project in [Vercel](https://vercel.com).
+3. Vercel automatically detects the Next.js frontend.
+4. The `vercel.json` configures the FastAPI backend as Serverless Functions.
+5. Add `OPENROUTER_API_KEY` in Vercel project settings.
 
 **Live URL**: [ai-job-helper-steel.vercel.app](https://ai-job-helper-steel.vercel.app/)
-
-### Docker (Coming Soon)
-```bash
-docker-compose up -d
-```
-
----
-
-## 📖 Documentation
-
-- [API Documentation](http://localhost:8000/docs) - Interactive Swagger UI
-- [Frontend Storybook](docs/storybook.md) - Component library *(coming soon)*
-- [Contributing Guide](CONTRIBUTING.md) - How to contribute
 
 ---
 
