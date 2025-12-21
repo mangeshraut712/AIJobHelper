@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Sparkles, Menu, X } from "lucide-react";
+import { Sparkles, Menu, X, Link2, User, FileText, MessageSquare, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/profile", label: "Profile" },
-  { href: "/jobs", label: "Jobs" },
-  { href: "/resumes", label: "Resumes" },
-  { href: "/communication", label: "Messages" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/jobs", label: "Analyze Job", icon: Link2 },
+  { href: "/profile", label: "My Profile", icon: User },
+  { href: "/resumes", label: "Resumes", icon: FileText },
+  { href: "/communication", label: "Messages", icon: MessageSquare },
 ];
 
 export function Navbar() {
@@ -50,11 +50,12 @@ export function Navbar() {
                   <motion.div
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors relative ${isActive
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors relative flex items-center gap-1.5 ${isActive
                       ? "text-primary"
                       : "text-muted-foreground hover:text-foreground"
                       }`}
                   >
+                    <item.icon size={14} />
                     {item.label}
                     {isActive && (
                       <motion.div
@@ -71,13 +72,14 @@ export function Navbar() {
 
           {/* CTA Button - Desktop */}
           <div className="hidden md:block">
-            <Link href="/profile">
+            <Link href="/jobs">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="apple-button-primary text-sm px-5 py-2"
               >
-                Get Started
+                <Link2 size={14} />
+                Analyze Job
               </motion.button>
             </Link>
           </div>
@@ -108,18 +110,20 @@ export function Navbar() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
                     ? "bg-primary/10 text-primary"
                     : "text-foreground hover:bg-secondary"
                     }`}
                 >
+                  <item.icon size={16} />
                   {item.label}
                 </Link>
               );
             })}
-            <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
-              <button className="w-full apple-button-primary text-sm px-5 py-3 mt-2">
-                Get Started
+            <Link href="/jobs" onClick={() => setMobileMenuOpen(false)}>
+              <button className="w-full apple-button-primary text-sm px-5 py-3 mt-2 flex items-center justify-center gap-2">
+                <Link2 size={14} />
+                Analyze Job
               </button>
             </Link>
           </div>

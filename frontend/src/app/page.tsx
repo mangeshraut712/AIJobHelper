@@ -7,105 +7,77 @@ import {
   ArrowRight,
   Sparkles,
   FileText,
-  Target,
+  Link2,
   MessageSquare,
   Zap,
   Shield,
-  Users,
   CheckCircle2,
-  Briefcase,
+  Target,
   TrendingUp,
-  Bot,
-  Wand2,
   Upload,
   Star,
+  LayoutDashboard,
+  ClipboardCheck,
+  PenTool,
 } from "lucide-react";
 
 const features = [
   {
-    icon: FileText,
-    title: "Smart Resume Builder",
-    description: "AI-powered resume optimization that gets you noticed by recruiters and passes ATS systems.",
+    icon: Link2,
+    title: "Analyze Any Job Posting",
+    description: "Paste any job URL and our AI instantly extracts requirements, skills, and company details.",
     gradient: "from-blue-500 to-cyan-400",
   },
   {
     icon: Target,
-    title: "Intelligent Job Matching",
-    description: "Find perfect job matches with skill-based analysis and compatibility scoring.",
+    title: "Smart Resume Scoring",
+    description: "Get a REAL match score based on your skills vs job requirements. No fake numbers.",
     gradient: "from-purple-500 to-pink-400",
   },
   {
-    icon: MessageSquare,
-    title: "AI Cover Letters",
-    description: "Generate personalized, compelling cover letters tailored to each position.",
+    icon: FileText,
+    title: "Resume Enhancement",
+    description: "AI suggestions to tailor your resume for each specific job application.",
     gradient: "from-orange-500 to-red-400",
   },
   {
-    icon: Bot,
-    title: "Auto-Fill Applications",
-    description: "Let AI handle the tedious form filling. One click to apply anywhere.",
+    icon: MessageSquare,
+    title: "Cover Letters & Messages",
+    description: "Generate personalized cover letters, LinkedIn messages, and follow-up emails.",
     gradient: "from-green-500 to-emerald-400",
   },
   {
-    icon: TrendingUp,
-    title: "Career Analytics",
-    description: "Track your applications, get insights, and optimize your job search strategy.",
+    icon: LayoutDashboard,
+    title: "Application Tracker",
+    description: "Track all the jobs you're applying to in one place with status updates.",
     gradient: "from-indigo-500 to-violet-400",
   },
   {
-    icon: Wand2,
-    title: "Resume Enhancement",
-    description: "AI suggestions to improve your resume for specific job requirements.",
+    icon: ClipboardCheck,
+    title: "Skills Gap Analysis",
+    description: "See which skills you have and which ones you need to develop for each role.",
     gradient: "from-pink-500 to-rose-400",
-  },
-];
-
-const stats = [
-  { value: "50K+", label: "Active Users" },
-  { value: "85%", label: "Success Rate" },
-  { value: "10x", label: "Faster Applications" },
-  { value: "500+", label: "Companies Trust Us" },
-];
-
-const testimonials = [
-  {
-    name: "Sarah Chen",
-    role: "Software Engineer at Google",
-    content: "CareerAgentPro helped me land my dream job at Google. The AI-optimized resume got me 3x more interviews!",
-    avatar: "SC",
-  },
-  {
-    name: "Michael Rodriguez",
-    role: "Product Manager at Meta",
-    content: "The auto-fill feature saved me hours every day. I could focus on preparing for interviews instead of copying data.",
-    avatar: "MR",
-  },
-  {
-    name: "Emily Johnson",
-    role: "Data Scientist at Netflix",
-    content: "The job matching algorithm is incredible. Every suggestion was spot-on for my skills and career goals.",
-    avatar: "EJ",
   },
 ];
 
 const steps = [
   {
     step: "01",
-    title: "Upload Your Resume",
-    description: "Simply upload your existing resume or start fresh. Our AI extracts and organizes your information instantly.",
-    icon: Upload,
+    title: "Paste Job URL",
+    description: "Copy any job posting URL from LinkedIn, Indeed, Greenhouse, or any job board.",
+    icon: Link2,
   },
   {
     step: "02",
-    title: "Discover Opportunities",
-    description: "Browse AI-curated job recommendations perfectly matched to your skills, experience, and preferences.",
-    icon: Briefcase,
+    title: "AI Analyzes",
+    description: "Our AI extracts requirements, skills needed, company details, and more.",
+    icon: Target,
   },
   {
     step: "03",
-    title: "Apply with Confidence",
-    description: "Generate tailored resumes and cover letters for each application with one click.",
-    icon: CheckCircle2,
+    title: "Enhance & Apply",
+    description: "Get a tailored resume, cover letter, and messages ready to send.",
+    icon: PenTool,
   },
 ];
 
@@ -176,9 +148,8 @@ export default function Home() {
               <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary/10 to-purple-500/10 border border-primary/20 text-sm font-medium backdrop-blur-sm">
                 <Sparkles size={16} className="text-primary animate-pulse" />
                 <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent font-semibold">
-                  AI-Powered Career Platform
+                  Job Application Helper
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs">New</span>
               </span>
             </motion.div>
 
@@ -189,9 +160,9 @@ export default function Home() {
               transition={{ delay: 0.3, duration: 0.8 }}
               className="text-5xl sm:text-6xl lg:text-8xl font-bold tracking-tight mb-8 leading-[0.95]"
             >
-              Your career journey,
+              Apply smarter,
               <br />
-              <GradientText>supercharged by AI</GradientText>
+              <GradientText>not harder</GradientText>
             </motion.h1>
 
             {/* Subheading */}
@@ -201,8 +172,8 @@ export default function Home() {
               transition={{ delay: 0.4, duration: 0.8 }}
               className="text-xl sm:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed"
             >
-              Stop spending hours on applications. Let AI optimize your resume,
-              find perfect matches, and land your dream job <span className="text-foreground font-medium">10x faster</span>.
+              Paste any job URL → Get AI-analyzed requirements →
+              <span className="text-foreground font-medium"> Tailored resume & cover letter in seconds</span>
             </motion.p>
 
             {/* CTA Buttons */}
@@ -212,50 +183,50 @@ export default function Home() {
               transition={{ delay: 0.5, duration: 0.8 }}
               className="flex flex-wrap justify-center gap-4 mb-16"
             >
-              <Link href="/profile">
+              <Link href="/jobs">
                 <motion.button
                   whileHover={{ scale: 1.02, boxShadow: "0 20px 40px -10px rgba(0,113,227,0.4)" }}
                   whileTap={{ scale: 0.98 }}
                   className="group relative inline-flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-primary to-blue-600 text-white font-semibold text-lg shadow-lg shadow-primary/25 overflow-hidden"
                 >
-                  <span className="relative z-10">Get Started Free</span>
-                  <ArrowRight size={20} className="relative z-10 group-hover:translate-x-1 transition-transform" />
+                  <span className="relative z-10">Analyze a Job</span>
+                  <Link2 size={20} className="relative z-10 group-hover:rotate-12 transition-transform" />
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                 </motion.button>
               </Link>
-              <Link href="/dashboard">
+              <Link href="/profile">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="group inline-flex items-center gap-2 px-8 py-4 rounded-full bg-secondary/80 backdrop-blur-sm border border-border/50 font-semibold text-lg hover:bg-secondary transition-colors"
                 >
-                  <span>Watch Demo</span>
-                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <ArrowRight size={14} className="text-primary" />
-                  </div>
+                  <span>Upload Resume</span>
+                  <Upload size={18} />
                 </motion.button>
               </Link>
             </motion.div>
 
-            {/* Stats */}
+            {/* Trust Badges */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto"
+              className="flex flex-wrap justify-center gap-8"
             >
-              {stats.map((stat, index) => (
+              {[
+                { icon: Zap, text: "Works with any job board" },
+                { icon: Shield, text: "Your data stays private" },
+                { icon: Star, text: "Real match scores, no BS" },
+              ].map((item, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.7 + index * 0.1, duration: 0.5 }}
-                  className="text-center"
+                  className="flex items-center gap-2 text-sm text-muted-foreground"
                 >
-                  <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
+                  <item.icon size={16} className="text-primary" />
+                  {item.text}
                 </motion.div>
               ))}
             </motion.div>
@@ -283,69 +254,6 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-32 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-secondary/30 to-background" />
-
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-20"
-          >
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-              <Zap size={14} />
-              Powerful Features
-            </span>
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-              Everything you need to
-              <br />
-              <GradientText>land your dream job</GradientText>
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Powerful AI tools designed to streamline your job search and maximize your success rate.
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-              >
-                <motion.div
-                  whileHover={{ y: -8, scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="group relative h-full p-8 rounded-3xl bg-card border border-border/50 hover:border-primary/30 overflow-hidden transition-colors"
-                >
-                  {/* Gradient Background on Hover */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity`} />
-
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 shadow-lg`}>
-                    <feature.icon className="w-7 h-7 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-                  <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    whileHover={{ opacity: 1, x: 0 }}
-                    className="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <ArrowRight className="w-5 h-5 text-primary" />
-                  </motion.div>
-                </motion.div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* How It Works */}
       <section className="py-32 relative overflow-hidden">
         {/* Background Elements */}
@@ -362,15 +270,13 @@ export default function Home() {
           >
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-600 text-sm font-medium mb-6">
               <CheckCircle2 size={14} />
-              Simple Process
+              Dead Simple
             </span>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-              Get started in
-              <br />
-              <GradientText>three simple steps</GradientText>
+              How it works
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              From upload to offer, we&apos;ve streamlined the entire job search journey.
+              From job URL to application-ready in 3 steps
             </p>
           </motion.div>
 
@@ -412,9 +318,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Features Section */}
       <section className="py-32 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/30 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-secondary/30 to-background" />
 
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <motion.div
@@ -424,51 +330,50 @@ export default function Home() {
             transition={{ duration: 0.8 }}
             className="text-center mb-20"
           >
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 text-yellow-600 text-sm font-medium mb-6">
-              <Star size={14} />
-              Success Stories
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+              <Zap size={14} />
+              Everything You Need
             </span>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-              Loved by professionals
+              Tools that actually
               <br />
-              <GradientText>worldwide</GradientText>
+              <GradientText>help you get hired</GradientText>
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Join thousands of professionals who have transformed their job search with CareerAgentPro.
+              No fluff, no fake scores. Just practical tools to make your job applications better.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.6, delay: index * 0.15 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
               >
                 <motion.div
-                  whileHover={{ y: -4 }}
-                  className="h-full p-8 rounded-3xl bg-card border border-border/50 hover:border-primary/20 transition-colors"
+                  whileHover={{ y: -8, scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  className="group relative h-full p-8 rounded-3xl bg-card border border-border/50 hover:border-primary/30 overflow-hidden transition-colors"
                 >
-                  {/* Stars */}
-                  <div className="flex gap-1 mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} size={18} className="fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
+                  {/* Gradient Background on Hover */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity`} />
 
-                  <p className="text-lg mb-8 leading-relaxed">&ldquo;{testimonial.content}&rdquo;</p>
-
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-white font-semibold">
-                      {testimonial.avatar}
-                    </div>
-                    <div>
-                      <div className="font-semibold">{testimonial.name}</div>
-                      <div className="text-sm text-muted-foreground">{testimonial.role}</div>
-                    </div>
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 shadow-lg`}>
+                    <feature.icon className="w-7 h-7 text-white" />
                   </div>
+                  <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    whileHover={{ opacity: 1, x: 0 }}
+                    className="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ArrowRight className="w-5 h-5 text-primary" />
+                  </motion.div>
                 </motion.div>
               </motion.div>
             ))}
@@ -500,37 +405,34 @@ export default function Home() {
               transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
               className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/10 backdrop-blur-sm mb-8"
             >
-              <Sparkles className="w-10 h-10 text-white" />
+              <Link2 className="w-10 h-10 text-white" />
             </motion.div>
 
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-8 text-white">
-              Ready to accelerate
-              <br />
-              your career?
+              Ready to apply smarter?
             </h2>
             <p className="text-xl text-white/80 mb-12 max-w-2xl mx-auto">
-              Join over 50,000 professionals who have already transformed their job search.
-              Start for free, no credit card required.
+              Paste your first job URL and see the magic. No signup required.
             </p>
 
             <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/profile">
+              <Link href="/jobs">
                 <motion.button
                   whileHover={{ scale: 1.02, boxShadow: "0 20px 40px -10px rgba(0,0,0,0.3)" }}
                   whileTap={{ scale: 0.98 }}
                   className="group inline-flex items-center gap-2 px-10 py-5 rounded-full bg-white text-primary font-semibold text-lg shadow-xl hover:bg-white/95 transition-colors"
                 >
-                  Start Free Today
+                  Analyze a Job Now
                   <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </motion.button>
               </Link>
-              <Link href="/jobs">
+              <Link href="/dashboard">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="inline-flex items-center gap-2 px-10 py-5 rounded-full bg-white/10 backdrop-blur-sm text-white font-semibold text-lg border border-white/20 hover:bg-white/20 transition-colors"
                 >
-                  Browse Jobs
+                  View Dashboard
                 </motion.button>
               </Link>
             </div>
@@ -544,9 +446,9 @@ export default function Home() {
               className="flex flex-wrap justify-center gap-8 mt-16"
             >
               {[
-                { icon: Zap, text: "Instant Setup" },
-                { icon: Shield, text: "Enterprise Security" },
-                { icon: Users, text: "24/7 Support" },
+                { icon: Zap, text: "Works Instantly" },
+                { icon: Shield, text: "100% Private" },
+                { icon: Star, text: "Free to Use" },
               ].map((item, index) => (
                 <div key={index} className="flex items-center gap-2 text-white/80">
                   <item.icon size={18} />
