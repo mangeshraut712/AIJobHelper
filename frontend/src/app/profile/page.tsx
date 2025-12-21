@@ -173,16 +173,18 @@ function PersonalInfoSection({ data, onChange }: { data: ProfileData, onChange: 
 function InputField({ icon, label, name, value, onChange }: { icon: React.ReactNode, label: string, name: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void }) {
     return (
         <div className="space-y-2">
-            <label className="text-sm font-bold text-muted-foreground ml-1">{label}</label>
+            <label htmlFor={name} className="text-sm font-bold text-muted-foreground ml-1">{label}</label>
             <div className="relative group">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-foreground transition-colors">
                     {icon}
                 </div>
                 <input
                     type="text"
+                    id={name}
                     name={name}
                     value={value}
                     onChange={onChange}
+                    autoComplete={name === "email" ? "email" : name === "phone" ? "tel" : name === "name" ? "name" : "off"}
                     className="w-full bg-secondary/30 border border-border rounded-2xl py-3 pl-12 pr-4 focus:outline-hidden focus:ring-2 focus:ring-foreground/10 transition-all font-medium"
                 />
             </div>
@@ -271,6 +273,7 @@ function SkillsSection({ skills, summary, onChange }: { skills: string[], summar
                     Professional Summary
                 </h2>
                 <textarea
+                    id="summary"
                     name="summary"
                     value={summary}
                     onChange={onChange}

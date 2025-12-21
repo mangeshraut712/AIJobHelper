@@ -101,6 +101,8 @@ export default function CommunicationPage() {
                 <div className="relative group">
                     <div className="absolute inset-0 japanese-dot-grid opacity-10 pointer-events-none rounded-3xl" />
                     <textarea
+                        id="message-content"
+                        name="message-content"
                         value={content}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
                         placeholder="Select a type and click Generate..."

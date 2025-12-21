@@ -40,9 +40,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col pt-24`}
+        suppressHydrationWarning
       >
         <Navbar />
         <main className="max-w-7xl mx-auto px-6 pb-12 flex-1">

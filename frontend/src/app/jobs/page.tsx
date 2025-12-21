@@ -59,10 +59,13 @@ export default function JobsPage() {
                 </div>
                 <input
                     type="url"
+                    id="job-url"
+                    name="job-url"
                     value={url}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
                     placeholder="https://linkedin.com/jobs/..."
                     className="w-full bg-secondary/50 border border-border rounded-full py-6 pl-16 pr-40 text-lg focus:outline-hidden focus:ring-2 focus:ring-foreground/10 transition-all subtle-shadow"
+                    autoComplete="url"
                     required
                 />
                 <button

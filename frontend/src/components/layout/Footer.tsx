@@ -62,7 +62,7 @@ export function Footer() {
                 </div>
 
                 <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <p className="text-sm text-muted-foreground flex items-center gap-1" suppressHydrationWarning>
                         © {currentYear} CareerAgentPro. Built with <Heart size={14} className="text-red-500" /> by Mangesh Raut
                     </p>
                     <p className="text-xs text-muted-foreground">
