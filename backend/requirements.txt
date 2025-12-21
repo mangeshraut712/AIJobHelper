@@ -15,5 +15,6 @@ python-slugify==8.0.4
 trafilatura==1.12.2
 beautifulsoup4==4.12.3
 lxml==5.3.0
+lxml_html_clean==0.4.1
 fpdf2==2.8.2
 cryptography==44.0.0
