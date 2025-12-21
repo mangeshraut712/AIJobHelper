@@ -140,7 +140,12 @@ export default function ProfilePage() {
             toast("Resume parsed successfully!", "success");
         } catch (error) {
             console.error("Parse error:", error);
-            toast("Failed to parse resume. Please try again.", "error");
+            // Extract detailed error message from API response
+            let errorMessage = "Failed to parse resume. Please try again.";
+            if (axios.isAxiosError(error) && error.response?.data?.detail) {
+                errorMessage = error.response.data.detail;
+            }
+            toast(errorMessage, "error");
         } finally {
             setIsParsing(false);
             if (fileInputRef.current) fileInputRef.current.value = "";

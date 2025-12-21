@@ -34,18 +34,44 @@ export_service = ExportService()
 
 @app.post("/parse-resume")
 async def parse_resume(file: UploadFile = File(...)):
+    """Parse resume file and extract structured data."""
     try:
+        # Read file content
         content = await file.read()
-        text = ResumeParser.extract_text(content, file.filename)
-        if not text.strip():
-            raise HTTPException(status_code=400, detail="Could not extract text from resume.")
+        filename = file.filename or "unknown.pdf"
         
-        parsed_data = await ai_service.parse_resume(text)
-        return parsed_data
+        # Extract text from file
+        try:
+            text = ResumeParser.extract_text(content, filename)
+        except Exception as extract_err:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Could not read file. Supported formats: PDF, DOCX, TXT. Error: {type(extract_err).__name__}"
+            )
+        
+        if not text or not text.strip():
+            raise HTTPException(
+                status_code=400, 
+                detail="Could not extract text from resume. Please ensure the file contains readable text."
+            )
+        
+        # Parse the extracted text
+        try:
+            parsed_data = await ai_service.parse_resume(text)
+            return parsed_data
+        except Exception as parse_err:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Error parsing resume content: {type(parse_err).__name__}"
+            )
+            
     except HTTPException:
         raise  # Re-raise HTTP exceptions as-is
-    except Exception:
-        raise HTTPException(status_code=500, detail="Failed to parse resume. Please try a different file format.")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Unexpected error processing resume: {type(e).__name__}"
+        )
 
 @app.get("/health")
 async def health():

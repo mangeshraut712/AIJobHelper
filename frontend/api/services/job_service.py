@@ -9,6 +9,7 @@ from services.ai_service import AIService
 
 # Allowed domains for job extraction (SSRF protection)
 ALLOWED_DOMAINS = frozenset([
+    # Major job boards
     "linkedin.com", "www.linkedin.com",
     "indeed.com", "www.indeed.com",
     "glassdoor.com", "www.glassdoor.com",
@@ -18,11 +19,29 @@ ALLOWED_DOMAINS = frozenset([
     "monster.com", "www.monster.com",
     "ziprecruiter.com", "www.ziprecruiter.com",
     "angel.co", "wellfound.com",
-    "careers.google.com",
-    "amazon.jobs",
+    # Big tech companies
+    "careers.google.com", "google.com",
+    "amazon.jobs", "amazon.com",
     "microsoft.com", "careers.microsoft.com",
     "apple.com", "jobs.apple.com",
     "meta.com", "www.metacareers.com",
+    # Autonomous/Robotics companies
+    "wing.com", "www.wing.com",
+    "waymo.com", "www.waymo.com",
+    "cruise.com", "www.getcruise.com",
+    "aurora.tech", "www.aurora.tech",
+    # Other tech companies
+    "uber.com", "www.uber.com",
+    "lyft.com", "www.lyft.com",
+    "airbnb.com", "careers.airbnb.com",
+    "stripe.com", "www.stripe.com",
+    "openai.com", "www.openai.com",
+    "anthropic.com", "www.anthropic.com",
+    "nvidia.com", "www.nvidia.com",
+    "tesla.com", "www.tesla.com",
+    # Startups & others
+    "ycombinator.com", "www.ycombinator.com",
+    "levels.fyi", "www.levels.fyi",
 ])
 
 class JobService:
