@@ -1,101 +1,109 @@
 # Contributing to CareerAgentPro
 
-Thank you for your interest in contributing to CareerAgentPro! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to CareerAgentPro! 🎉
 
-## 🌟 Ways to Contribute
+## 🚀 Quick Start
 
-- **Bug Reports**: Found a bug? Open an issue with detailed reproduction steps.
-- **Feature Requests**: Have an idea? We'd love to hear it!
-- **Code Contributions**: Submit a PR with your improvements.
-- **Documentation**: Help us improve our docs.
+### Prerequisites
+- Node.js 20+
+- Python 3.12+
+- Git
 
-## 🚀 Getting Started
-
-### 1. Fork and Clone
+### Setup
 ```bash
-git clone https://github.com/YOUR_USERNAME/AIJobHelper.git
+# Clone the repository
+git clone https://github.com/mangeshraut712/AIJobHelper.git
 cd AIJobHelper
-```
 
-### 2. Set Up Development Environment
-
-**Backend:**
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # Add your API keys
-```
-
-**Frontend:**
-```bash
+# Setup Frontend
 cd frontend
 npm install
+npm run dev
+
+# Setup Backend (in another terminal)
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
 ```
 
-### 3. Create a Branch
+## 📝 Development Guidelines
+
+### Code Style
+- **Frontend**: Follow ESLint configuration, use TypeScript
+- **Backend**: Follow PEP 8, use type hints where possible
+- **Components**: Use the established Apple Design System patterns
+
+### Commit Messages
+We use semantic commit messages:
+- `✨ feat:` New feature
+- `🐛 fix:` Bug fix
+- `📝 docs:` Documentation
+- `🎨 style:` Formatting, styling
+- `♻️ refactor:` Code refactoring
+- `🔧 chore:` Maintenance tasks
+- `⚡ perf:` Performance improvements
+
+### Branching Strategy
+- `main` - Production-ready code
+- `feature/*` - New features
+- `fix/*` - Bug fixes
+- `docs/*` - Documentation updates
+
+## 🧪 Testing
+
+### Frontend
 ```bash
-git checkout -b feature/your-feature-name
+cd frontend
+npm run lint      # Lint check
+npm run build     # Build check
 ```
 
-## 📝 Code Style Guidelines
+### Backend
+```bash
+cd backend
+python -m py_compile main.py  # Syntax check
+```
 
-### TypeScript/React (Frontend)
-- Use functional components with hooks
-- Follow the existing component structure
-- Use TypeScript interfaces for props
-- Prefer named exports for components
+## 📋 Pull Request Process
 
-### Python (Backend)
-- Follow PEP 8 style guidelines
-- Use type hints for function parameters
-- Write docstrings for functions and classes
-- Use async/await for I/O operations
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes with semantic commit messages
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request using the PR template
+6. Wait for CI checks to pass
+7. Request review from maintainers
 
-## ✅ Pull Request Checklist
+## 🏗️ Project Structure
 
-Before submitting a PR, ensure:
+```
+AIJobHelper/
+├── frontend/           # Next.js application
+│   ├── src/
+│   │   ├── app/       # App router pages
+│   │   ├── components/# React components
+│   │   └── lib/       # Utilities and constants
+│   └── package.json
+├── backend/            # FastAPI application
+│   ├── main.py        # Main API entry point
+│   ├── services/      # Business logic
+│   └── requirements.txt
+├── .github/           # GitHub configurations
+└── vercel.json        # Deployment configuration
+```
 
-- [ ] Code follows the project's style guidelines
-- [ ] All tests pass (`npm run lint` for frontend)
-- [ ] New features include appropriate tests
-- [ ] Documentation is updated if needed
-- [ ] Commit messages are clear and descriptive
+## 🎨 Design System
 
-## 🔄 Pull Request Process
+We follow an Apple-inspired design system:
+- Use `AppleCard` for card components
+- Use `AppleButton` for buttons
+- Use constants from `lib/constants.ts`
+- Follow the color palette defined in `globals.css`
 
-1. Update the README.md with details of changes if applicable
-2. Ensure all CI checks pass
-3. Request review from maintainers
-4. Once approved, your PR will be merged
+## 📫 Questions?
 
-## 📋 Issue Templates
-
-When creating an issue, please include:
-
-### Bug Report
-- **Description**: Clear description of the bug
-- **Steps to Reproduce**: How to trigger the bug
-- **Expected Behavior**: What should happen
-- **Actual Behavior**: What actually happens
-- **Environment**: OS, browser, Node/Python version
-
-### Feature Request
-- **Description**: Clear description of the feature
-- **Use Case**: Why this feature would be helpful
-- **Proposed Solution**: Your suggested implementation
-
-## 💬 Communication
-
-- Open an issue for any questions
-- Be respectful and constructive in discussions
-- Follow our Code of Conduct
-
-## 📄 License
-
-By contributing, you agree that your contributions will be licensed under the MIT License.
+Feel free to open an issue or reach out to the maintainers!
 
 ---
 
-Thank you for contributing to CareerAgentPro! 🚀
+Thank you for contributing! 🙏
