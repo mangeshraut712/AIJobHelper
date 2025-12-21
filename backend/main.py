@@ -42,8 +42,10 @@ async def parse_resume(file: UploadFile = File(...)):
         
         parsed_data = await ai_service.parse_resume(text)
         return parsed_data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to parse resume. Please try a different file format.")
 
 @app.get("/health")
 async def health():
