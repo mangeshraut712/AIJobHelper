@@ -16,7 +16,7 @@ from services.autofill_service import AutofillService
 
 load_dotenv()
 
-app = FastAPI(title="AIJobHelper API")
+app = FastAPI(title="CareerAgentPro API")
 
 # Configure CORS
 app.add_middleware(

@@ -1,6 +1,6 @@
-# AIJobHelper - All-in-One AI Career Ecosystem 🚀
+# CareerAgentPro - All-in-One AI Career Ecosystem 🚀
 
-AIJobHelper is a production-ready, minimalist AI agent designed to automate and architect your job search process. From job analysis to auto-filling forms and generating tailored resumes, it is your personal career co-pilot.
+CareerAgentPro is a production-ready, minimalist AI agent designed to automate and architect your job search process. From job analysis to auto-filling forms and generating tailored resumes, it is your personal career co-pilot.
 
 ## ✨ Core Features
 
