@@ -191,3 +191,23 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 </div>
  
+
+## ☁️ Vercel Deployment
+
+This project uses a hybrid **Next.js + Python** setup configured via `vercel.json` and a `frontend` folder rewrite bypass.
+
+### **Manual Settings (Vercel Dashboard)**
+To ensure perfect deployment, verify these settings in your Vercel Project Dashboard:
+
+1.  **Project Settings > Build & Development Settings**:
+    *   **Framework Preset**: `Other` (Do not change this to Next.js; `vercel.json` handles the build).
+    *   **Root Directory**: `.` (Leave empty/default).
+    *   **Build Command**: `Override` = **OFF** (Empty).
+    *   **Output Directory**: `Override` = **OFF** (Empty).
+    *   **Install Command**: `Override` = **OFF** (Empty).
+
+2.  **Environment Variables**:
+    *   Add `OPENROUTER_API_KEY`: Your OpenRouter API key.
+
+### **Why "Other"?**
+The project uses `vercel.json` to define two separate builds (`frontend` and `backend`). This legacy mode appears as "Other" in Vercel but correctly builds both applications. Changing the preset to "Next.js" will break the Python backend build.
