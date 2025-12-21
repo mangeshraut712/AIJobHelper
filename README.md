@@ -38,9 +38,11 @@ npm run dev
 
 ## 🌐 Deployment (Vercel)
 
+Official Live Link: [ai-job-helper-steel.vercel.app](https://ai-job-helper-steel.vercel.app/)
+
 This project is configured for **Vercel** monorepo deployment.
 1.  Push to GitHub.
-2.  Import to Vercel.
+2.  Import to Vercel (Project Name: `ai-job-helper`).
 3.  Set environment variables:
     *   `OPENROUTER_API_KEY`: Your OpenRouter API Key.
     *   `NEXT_PUBLIC_API_URL`: Path to your backend (default included in `vercel.json`).
