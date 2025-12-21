@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,19 +22,19 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
     const [toasts, setToasts] = useState<Toast[]>([]);
 
-    const toast = (message: string, type: ToastType = "info") => {
-        const id = Math.random().toString(36).substring(7);
+    const removeToast = useCallback((id: string) => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, []);
+
+    const toast = useCallback((message: string, type: ToastType = "info") => {
+        const id = crypto.randomUUID();
         setToasts((prev) => [...prev, { id, message, type }]);
 
         // Auto dismiss
         setTimeout(() => {
             removeToast(id);
         }, 3000);
-    };
-
-    const removeToast = (id: string) => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-    };
+    }, [removeToast]);
 
     return (
         <ToastContext.Provider value={{ toast }}>

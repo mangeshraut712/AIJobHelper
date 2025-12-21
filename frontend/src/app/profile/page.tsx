@@ -10,7 +10,6 @@ import {
 import axios from "axios";
 import API_URL from "@/lib/api";
 import { AppleCard } from "@/components/ui/AppleCard";
-import { AppleButton } from "@/components/ui/AppleButton";
 import { useToast } from "@/components/ui/Toast";
 
 interface Experience {
