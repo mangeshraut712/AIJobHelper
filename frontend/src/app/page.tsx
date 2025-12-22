@@ -13,7 +13,6 @@ import {
   Shield,
   CheckCircle2,
   Target,
-  TrendingUp,
   Upload,
   Star,
   LayoutDashboard,

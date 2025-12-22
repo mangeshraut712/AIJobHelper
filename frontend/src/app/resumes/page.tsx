@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import {
     FileText, Sparkles, Download, CheckCircle2, AlertCircle,
     RefreshCw, Target, ArrowRight, Briefcase, Link2,
-    AlertTriangle, TrendingUp, Copy, Eye, BarChart2, Wrench,
+    AlertTriangle, Copy, Eye, BarChart2, Wrench,
     Edit2, Trash2, Plus, Save
 } from "lucide-react";
 
@@ -130,8 +130,8 @@ export default function ResumesPage() {
 
         setIsEnhancing(true);
         try {
-            // Call AI enhancement API - Use local Next.js route for better reliability
-            const response = await axios.post('/api/enhance-resume', {
+            // Call AI enhancement API
+            const response = await axios.post(`${API_URL}/enhance-resume`, {
                 resume_data: {
                     name: profile.name || "Name",
                     email: profile.email || "email@example.com",
