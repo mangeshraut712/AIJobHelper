@@ -125,7 +125,9 @@ async function parseResumeText(text: string) {
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
     try {
         // Dynamic import for pdf-parse to avoid issues with SSR
-        const pdfParse = (await import('pdf-parse')).default;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pdfParseModule = await import('pdf-parse') as any;
+        const pdfParse = pdfParseModule.default ?? pdfParseModule;
         const data = await pdfParse(Buffer.from(buffer));
         return data.text;
     } catch (error) {
@@ -133,6 +135,8 @@ async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
         throw new Error('Failed to parse PDF file');
     }
 }
+
+
 
 export async function POST(request: NextRequest) {
     try {

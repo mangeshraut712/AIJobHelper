@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     Link2, Search, Building2, MapPin, DollarSign, Clock,
@@ -23,14 +23,26 @@ interface AnalyzedJob {
     location: string;
     salary: string;
     jobType: string;
+    workArrangement?: string;
+    experienceLevel?: string;
+    // Structured sections
+    aboutJob?: string;
+    responsibilities: string[];
+    minimumQualifications: string[];
+    preferredQualifications: string[];
+    aboutCompany?: string;
+    whyJoin?: string;
+    // Legacy
     description: string;
     requirements: string[];
-    responsibilities: string[];
     skills: string[];
     benefits: string[];
+    jobInfo?: Record<string, string>;
+    source?: string;
     analyzedAt: string;
     matchScore?: number;
 }
+
 
 const FADE_IN = {
     initial: { opacity: 0, y: 20 },
@@ -43,6 +55,7 @@ export default function AnalyzeJobPage() {
     const [jobUrl, setJobUrl] = useState("");
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [currentJob, setCurrentJob] = useState<AnalyzedJob | null>(null);
+    const [isMounted, setIsMounted] = useState(false);
     const [savedJobs, setSavedJobs] = useState<AnalyzedJob[]>(() => {
         if (typeof window !== "undefined") {
             const saved = localStorage.getItem("analyzedJobs");
@@ -50,6 +63,31 @@ export default function AnalyzeJobPage() {
         }
         return [];
     });
+
+    const [profile, setProfile] = useState<any>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("userProfile");
+            return saved ? JSON.parse(saved) : null;
+        }
+        return null;
+    });
+
+    // Set mounted state after component mounts
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+
+    const calculateMatchScore = (jobSkills: string[]) => {
+        if (!jobSkills?.length || !profile?.skills?.length) return 0;
+        const matched = jobSkills.filter(skill =>
+            profile.skills.some((us: string) =>
+                us.toLowerCase().includes(skill.toLowerCase()) ||
+                skill.toLowerCase().includes(us.toLowerCase())
+            )
+        );
+        return Math.round((matched.length / jobSkills.length) * 100);
+    };
 
     const analyzeJob = async () => {
         if (!jobUrl.trim()) {
@@ -62,21 +100,42 @@ export default function AnalyzeJobPage() {
             const response = await axios.post(`${API_URL}/extract-job`, { url: jobUrl });
             const data = response.data;
 
+            if (data.title === "Unsupported Job Board") {
+                toast("This job board isn't fully supported yet, but we've extracted what we could.", "info");
+            }
+
             const analyzedJob: AnalyzedJob = {
                 id: Date.now().toString(),
                 url: jobUrl,
                 title: data.title || "Job Title",
                 company: data.company || "Company",
                 location: data.location || "Location not specified",
-                salary: data.salary || "Not specified",
+                salary: data.salary_range || "Not specified",
                 jobType: data.job_type || "Full-time",
-                description: data.description || "",
-                requirements: data.requirements || [],
+                workArrangement: data.work_arrangement,
+                experienceLevel: data.experience_level,
+                // Structured sections
+                aboutJob: data.about_job,
                 responsibilities: data.responsibilities || [],
+                minimumQualifications: data.minimum_qualifications || [],
+                preferredQualifications: data.preferred_qualifications || [],
+                aboutCompany: data.about_company,
+                whyJoin: data.why_join,
+                // Legacy
+                description: data.description || data.about_job || "",
+                requirements: data.requirements || data.minimum_qualifications || [],
                 skills: data.skills || [],
                 benefits: data.benefits || [],
+                jobInfo: data.job_info || {},
+                source: data.source,
                 analyzedAt: new Date().toISOString(),
             };
+
+
+            // Calculate match score if profile exists
+            if (profile) {
+                analyzedJob.matchScore = calculateMatchScore(analyzedJob.skills);
+            }
 
             setCurrentJob(analyzedJob);
             toast("Job analyzed successfully!", "success");
@@ -90,12 +149,11 @@ export default function AnalyzeJobPage() {
 
     const saveJob = () => {
         if (!currentJob) return;
-
         const updatedJobs = [currentJob, ...savedJobs.filter(j => j.url !== currentJob.url)];
         setSavedJobs(updatedJobs);
         localStorage.setItem("analyzedJobs", JSON.stringify(updatedJobs));
         localStorage.setItem("currentJobForResume", JSON.stringify(currentJob));
-        toast("Job saved! You can now enhance your resume for this position.", "success");
+        toast("Job saved!", "success");
     };
 
     const loadSavedJob = (job: AnalyzedJob) => {
@@ -107,9 +165,7 @@ export default function AnalyzeJobPage() {
         const updatedJobs = savedJobs.filter(j => j.id !== jobId);
         setSavedJobs(updatedJobs);
         localStorage.setItem("analyzedJobs", JSON.stringify(updatedJobs));
-        if (currentJob?.id === jobId) {
-            setCurrentJob(null);
-        }
+        if (currentJob?.id === jobId) setCurrentJob(null);
         toast("Job removed", "info");
     };
 
@@ -199,6 +255,14 @@ export default function AnalyzeJobPage() {
                                                     <MapPin size={14} />
                                                     {currentJob.location}
                                                 </span>
+                                                {currentJob.matchScore !== undefined && (
+                                                    <span className={`flex items-center gap-1 font-semibold ${currentJob.matchScore > 70 ? "text-green-500" :
+                                                        currentJob.matchScore > 40 ? "text-yellow-500" : "text-red-500"
+                                                        }`}>
+                                                        <Target size={14} />
+                                                        {currentJob.matchScore}% Match
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -242,39 +306,77 @@ export default function AnalyzeJobPage() {
                                 </div>
                             </div>
 
-                            {/* Job Details */}
-                            <div className="p-6 space-y-6">
-                                {/* Description */}
-                                {currentJob.description && (
+                            {/* Job Details - All Structured Sections */}
+                            <div className="p-6 space-y-6 max-h-[600px] overflow-y-auto">
+                                {/* About the Job / Description */}
+                                {(currentJob.aboutJob || currentJob.description) && (
                                     <div>
-                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                                            Description
+                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                                            <FileText size={14} />
+                                            About the Job
                                         </h3>
-                                        <p className="text-sm leading-relaxed whitespace-pre-line">
-                                            {currentJob.description.slice(0, 500)}
-                                            {currentJob.description.length > 500 && "..."}
+                                        <p className="text-sm leading-relaxed whitespace-pre-line bg-secondary/50 p-4 rounded-xl">
+                                            {(currentJob.aboutJob || currentJob.description).slice(0, 800)}
+                                            {(currentJob.aboutJob || currentJob.description).length > 800 && "..."}
                                         </p>
                                     </div>
                                 )}
 
-                                {/* Requirements */}
-                                {currentJob.requirements.length > 0 && (
+                                {/* Responsibilities */}
+                                {currentJob.responsibilities.length > 0 && (
                                     <div>
-                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                                            Requirements
+                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                                            <Briefcase size={14} />
+                                            Responsibilities
                                         </h3>
                                         <ul className="space-y-2">
-                                            {currentJob.requirements.slice(0, 6).map((req, idx) => (
+                                            {currentJob.responsibilities.slice(0, 10).map((resp, idx) => (
                                                 <li key={idx} className="flex items-start gap-2 text-sm">
-                                                    <CheckCircle2 size={14} className="text-green-500 mt-0.5 shrink-0" />
-                                                    <span>{req}</span>
+                                                    <span className="text-primary mt-1">•</span>
+                                                    <span>{resp}</span>
                                                 </li>
                                             ))}
                                         </ul>
                                     </div>
                                 )}
 
-                                {/* Skills */}
+                                {/* Minimum Qualifications */}
+                                {currentJob.minimumQualifications.length > 0 && (
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                                            <CheckCircle2 size={14} className="text-green-500" />
+                                            Minimum Qualifications
+                                        </h3>
+                                        <ul className="space-y-2">
+                                            {currentJob.minimumQualifications.slice(0, 10).map((qual, idx) => (
+                                                <li key={idx} className="flex items-start gap-2 text-sm">
+                                                    <CheckCircle2 size={14} className="text-green-500 mt-0.5 shrink-0" />
+                                                    <span>{qual}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {/* Preferred Qualifications */}
+                                {currentJob.preferredQualifications.length > 0 && (
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                                            <Star size={14} className="text-yellow-500" />
+                                            Preferred Qualifications
+                                        </h3>
+                                        <ul className="space-y-2">
+                                            {currentJob.preferredQualifications.slice(0, 8).map((qual, idx) => (
+                                                <li key={idx} className="flex items-start gap-2 text-sm">
+                                                    <Star size={14} className="text-yellow-500 mt-0.5 shrink-0" />
+                                                    <span>{qual}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {/* Required Skills */}
                                 {currentJob.skills.length > 0 && (
                                     <div>
                                         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
@@ -282,9 +384,55 @@ export default function AnalyzeJobPage() {
                                         </h3>
                                         <div className="flex flex-wrap gap-2">
                                             {currentJob.skills.map((skill, idx) => (
-                                                <span key={idx} className="apple-pill bg-primary/10 text-primary">
+                                                <span key={idx} className="apple-pill bg-primary/10 text-primary font-medium">
                                                     {skill}
                                                 </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* About the Company */}
+                                {currentJob.aboutCompany && (
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                                            <Building2 size={14} />
+                                            About {currentJob.company}
+                                        </h3>
+                                        <p className="text-sm leading-relaxed bg-secondary/50 p-4 rounded-xl">
+                                            {currentJob.aboutCompany.slice(0, 500)}
+                                            {currentJob.aboutCompany.length > 500 && "..."}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Why Join Us */}
+                                {currentJob.whyJoin && (
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                                            <Sparkles size={14} className="text-primary" />
+                                            Why Join Us
+                                        </h3>
+                                        <p className="text-sm leading-relaxed bg-primary/5 p-4 rounded-xl border border-primary/10">
+                                            {currentJob.whyJoin.slice(0, 500)}
+                                            {currentJob.whyJoin.length > 500 && "..."}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Job Information */}
+                                {currentJob.jobInfo && Object.keys(currentJob.jobInfo).length > 0 && (
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                                            <AlertCircle size={14} />
+                                            Job Information
+                                        </h3>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {Object.entries(currentJob.jobInfo).map(([key, value]) => (
+                                                <div key={key} className="bg-secondary/50 p-3 rounded-lg">
+                                                    <span className="text-xs text-muted-foreground">{key}</span>
+                                                    <p className="text-sm font-medium">{value}</p>
+                                                </div>
                                             ))}
                                         </div>
                                     </div>
@@ -293,13 +441,14 @@ export default function AnalyzeJobPage() {
                                 {/* Benefits */}
                                 {currentJob.benefits.length > 0 && (
                                     <div>
-                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                                        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                                            <Star size={14} className="text-yellow-500" />
                                             Benefits
                                         </h3>
                                         <div className="flex flex-wrap gap-2">
-                                            {currentJob.benefits.slice(0, 6).map((benefit, idx) => (
-                                                <span key={idx} className="apple-pill">
-                                                    <Star size={10} className="text-yellow-500" />
+                                            {currentJob.benefits.map((benefit, idx) => (
+                                                <span key={idx} className="apple-pill bg-green-500/10 text-green-600 dark:text-green-400">
+                                                    <CheckCircle2 size={10} />
                                                     {benefit}
                                                 </span>
                                             ))}
@@ -307,6 +456,7 @@ export default function AnalyzeJobPage() {
                                     </div>
                                 )}
                             </div>
+
 
                             {/* Actions */}
                             <div className="p-6 border-t border-border bg-secondary/30">
@@ -364,10 +514,19 @@ export default function AnalyzeJobPage() {
                     <AppleCard className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="font-semibold">Saved Jobs</h2>
-                            <span className="text-xs text-muted-foreground">{savedJobs.length} saved</span>
+                            <span className="text-xs text-muted-foreground">
+                                {isMounted ? `${savedJobs.length} saved` : '0 saved'}
+                            </span>
                         </div>
 
-                        {savedJobs.length > 0 ? (
+                        {!isMounted ? (
+                            <div className="text-center py-8">
+                                <div className="w-8 h-8 mx-auto mb-2 animate-pulse bg-muted-foreground/20 rounded-full" />
+                                <p className="text-sm text-muted-foreground">
+                                    Loading...
+                                </p>
+                            </div>
+                        ) : savedJobs.length > 0 ? (
                             <div className="space-y-3 max-h-[400px] overflow-y-auto">
                                 {savedJobs.map((job) => (
                                     <motion.div
@@ -375,8 +534,8 @@ export default function AnalyzeJobPage() {
                                         whileHover={{ x: 4 }}
                                         onClick={() => loadSavedJob(job)}
                                         className={`p-3 rounded-xl cursor-pointer transition-colors border ${currentJob?.id === job.id
-                                                ? "border-primary bg-primary/5"
-                                                : "border-transparent hover:bg-secondary/50"
+                                            ? "border-primary bg-primary/5"
+                                            : "border-transparent hover:bg-secondary/50"
                                             }`}
                                     >
                                         <div className="flex items-start gap-3">

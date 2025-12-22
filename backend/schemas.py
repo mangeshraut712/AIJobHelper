@@ -1,15 +1,40 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 class JobDescription(BaseModel):
+    # Basic Info
     title: str
     company: str
     location: Optional[str] = None
     salary_range: Optional[str] = None
-    description: str
-    requirements: List[str]
-    responsibilities: List[str]
+    job_type: Optional[str] = None  # Full-time, Part-time, Contract, etc.
+    work_arrangement: Optional[str] = None  # Remote, Hybrid, On-site
+    experience_level: Optional[str] = None  # Entry, Mid, Senior, Lead
+    posted_date: Optional[str] = None
+    
+    # Structured Content Sections
+    about_job: Optional[str] = None  # Full job description / About the role
+    responsibilities: List[str] = []  # Key responsibilities
+    minimum_qualifications: List[str] = []  # Required qualifications
+    preferred_qualifications: List[str] = []  # Nice to have
+    about_company: Optional[str] = None  # Company description
+    why_join: Optional[str] = None  # Why join us section
+    
+    # Legacy fields for compatibility
+    description: str = ""  # Combined description (fallback)
+    requirements: List[str] = []  # Combined requirements (legacy)
+    
+    # Skills and Benefits
+    skills: List[str] = []  # Required skills
+    benefits: List[str] = []  # Company benefits
+    
+    # Job Info Dict (for additional structured data)
+    job_info: Dict[str, str] = {}  # e.g., {"Team": "Engineering", "Reports To": "VP"}
+    
+    # Source
     url: Optional[str] = None
+    source: Optional[str] = None  # linkedin, indeed, glassdoor, etc.
+
 
 class ResumeData(BaseModel):
     # Personal Info

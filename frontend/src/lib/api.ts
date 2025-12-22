@@ -2,9 +2,12 @@
 // Works with both localhost development and Vercel production
 
 const getApiUrl = (): string => {
-    // Check for environment variable first
-    if (process.env.NEXT_PUBLIC_API_URL) {
-        return process.env.NEXT_PUBLIC_API_URL;
+    // ALWAYS check for environment variable first (highest priority)
+    // This allows local dev to use Vercel backend when .env.local is configured
+    const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (envApiUrl) {
+        console.log('[API] Using configured API URL:', envApiUrl);
+        return envApiUrl;
     }
 
     // In browser, detect based on current location
@@ -16,8 +19,9 @@ const getApiUrl = (): string => {
             return '/api';
         }
 
-        // Local development
+        // Local development - default to local backend
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            console.log('[API] Using local backend: http://localhost:8000');
             return 'http://localhost:8000';
         }
     }
@@ -31,6 +35,7 @@ const getApiUrl = (): string => {
 };
 
 const API_URL = getApiUrl();
+console.log('[API] Final API URL:', API_URL);
 
 export default API_URL;
 

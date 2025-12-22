@@ -126,6 +126,29 @@ export default function ProfilePage() {
             formData.append("file", file);
             const response = await axios.post(`${API_URL}/parse-resume`, formData);
             const parsed = response.data;
+
+            // Map experience from backend format to frontend format
+            const mappedExperience: Experience[] = (parsed.experience || []).map((exp: any) => ({
+                id: generateId(),
+                company: exp.company || "",
+                role: exp.role || exp.title || "",
+                location: exp.location || "",
+                startDate: exp.duration?.split(" - ")[0] || exp.start_date || "",
+                endDate: exp.duration?.split(" - ")[1] || exp.end_date || "Present",
+                type: "Full-time",
+                description: exp.description || ""
+            }));
+
+            // Map education from backend format to frontend format
+            const mappedEducation: Education[] = (parsed.education || []).map((edu: any) => ({
+                id: generateId(),
+                institution: edu.institution || edu.school || "",
+                degree: edu.degree || "",
+                field: edu.field || edu.major || "",
+                startDate: "",
+                endDate: edu.graduation_year || edu.year || ""
+            }));
+
             setProfile(prev => ({
                 ...prev,
                 name: parsed.name || prev.name,
@@ -134,10 +157,20 @@ export default function ProfilePage() {
                 location: parsed.location || prev.location,
                 linkedin: parsed.linkedin || prev.linkedin,
                 github: parsed.github || prev.github,
+                portfolio: parsed.website || prev.portfolio,
                 skills: parsed.skills?.length ? parsed.skills : prev.skills,
                 summary: parsed.summary || prev.summary,
+                experience: mappedExperience.length ? mappedExperience : prev.experience,
+                education: mappedEducation.length ? mappedEducation : prev.education,
             }));
-            toast("Resume parsed successfully!", "success");
+
+            const itemsFound = [];
+            if (parsed.name) itemsFound.push("name");
+            if (parsed.experience?.length) itemsFound.push(`${parsed.experience.length} experience(s)`);
+            if (parsed.education?.length) itemsFound.push(`${parsed.education.length} education(s)`);
+            if (parsed.skills?.length) itemsFound.push(`${parsed.skills.length} skills`);
+
+            toast(`Resume parsed! Found: ${itemsFound.join(", ") || "basic info"}`, "success");
         } catch (error) {
             console.error("Parse error:", error);
             // Extract detailed error message from API response
@@ -148,6 +181,7 @@ export default function ProfilePage() {
             toast(errorMessage, "error");
         } finally {
             setIsParsing(false);
+
             if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
