@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import {
     Link2, Search, Building2, MapPin, DollarSign, Clock,
     Briefcase, CheckCircle2, AlertCircle, Sparkles, Copy,
-    FileText, MessageSquare, ArrowRight, Loader2, ExternalLink,
+    FileText, MessageSquare, Loader2, ExternalLink,
     Target, Star, Bookmark, Plus
 } from "lucide-react";
 import { AppleCard } from "@/components/ui/AppleCard";
@@ -43,6 +43,11 @@ interface AnalyzedJob {
     matchScore?: number;
 }
 
+interface UserProfile {
+    skills: string[];
+    // Add other fields if needed for calculateMatchScore
+}
+
 
 const FADE_IN = {
     initial: { opacity: 0, y: 20 },
@@ -64,7 +69,7 @@ export default function AnalyzeJobPage() {
         return [];
     });
 
-    const [profile, setProfile] = useState<any>(() => {
+    const [profile] = useState<UserProfile | null>(() => {
         if (typeof window !== "undefined") {
             const saved = localStorage.getItem("userProfile");
             return saved ? JSON.parse(saved) : null;

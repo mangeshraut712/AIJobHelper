@@ -49,6 +49,27 @@ interface ProfileData {
     summary: string;
 }
 
+interface ParsedExperience {
+    company?: string;
+    role?: string;
+    title?: string;
+    location?: string;
+    duration?: string;
+    start_date?: string;
+    end_date?: string;
+    description?: string;
+}
+
+interface ParsedEducation {
+    institution?: string;
+    school?: string;
+    degree?: string;
+    field?: string;
+    major?: string;
+    graduation_year?: string;
+    year?: string;
+}
+
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const EMPTY_PROFILE: ProfileData = {
@@ -128,7 +149,7 @@ export default function ProfilePage() {
             const parsed = response.data;
 
             // Map experience from backend format to frontend format
-            const mappedExperience: Experience[] = (parsed.experience || []).map((exp: any) => ({
+            const mappedExperience: Experience[] = (parsed.experience || []).map((exp: ParsedExperience) => ({
                 id: generateId(),
                 company: exp.company || "",
                 role: exp.role || exp.title || "",
@@ -140,7 +161,7 @@ export default function ProfilePage() {
             }));
 
             // Map education from backend format to frontend format
-            const mappedEducation: Education[] = (parsed.education || []).map((edu: any) => ({
+            const mappedEducation: Education[] = (parsed.education || []).map((edu: ParsedEducation) => ({
                 id: generateId(),
                 institution: edu.institution || edu.school || "",
                 degree: edu.degree || "",

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import {
     Mail, Linkedin, MessageSquare, Sparkles, Copy,
     CheckCircle2, RefreshCw, Send, FileText, Link2,
-    Building2, Briefcase
+    Building2
 } from "lucide-react";
 import { AppleCard } from "@/components/ui/AppleCard";
 import { AppleButton } from "@/components/ui/AppleButton";

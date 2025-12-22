@@ -52,37 +52,42 @@ export default function DashboardPage() {
     const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening";
 
     useEffect(() => {
-        try {
-            // Load tracked jobs from localStorage
-            const savedJobs = localStorage.getItem("analyzedJobs");
-            if (savedJobs) {
-                const jobs = JSON.parse(savedJobs);
-                if (Array.isArray(jobs)) {
-                    setTrackedJobs(jobs.map((job: any) => ({
-                        id: job.id || Math.random().toString(),
-                        title: job.title || "Unknown Job",
-                        company: job.company || "Unknown Company",
-                        url: job.url || "",
-                        status: "analyzing",
-                        createdAt: job.analyzedAt || new Date().toISOString(),
-                    })));
+        // Use requestAnimationFrame to avoid synchronous state update warning
+        const loadData = () => {
+            try {
+                // Load tracked jobs from localStorage
+                const savedJobs = localStorage.getItem("analyzedJobs");
+                if (savedJobs) {
+                    const jobs = JSON.parse(savedJobs);
+                    if (Array.isArray(jobs)) {
+                        setTrackedJobs(jobs.map((job: { id: string; title: string; company: string; url: string; analyzedAt: string }) => ({
+                            id: job.id || Math.random().toString(),
+                            title: job.title || "Unknown Job",
+                            company: job.company || "Unknown Company",
+                            url: job.url || "",
+                            status: "analyzing",
+                            createdAt: job.analyzedAt || new Date().toISOString(),
+                        })));
+                    }
                 }
-            }
 
-            // Calculate profile completeness
-            const profile = localStorage.getItem("careerAgentProfile");
-            if (profile) {
-                const data = JSON.parse(profile);
-                let score = 0;
-                if (data.name && data.email) score += 25;
-                if (data.experience?.length > 0) score += 25;
-                if (data.education?.length > 0) score += 25;
-                if (data.skills?.length >= 3) score += 25;
-                setProfileComplete(score);
+                // Calculate profile completeness
+                const profile = localStorage.getItem("careerAgentProfile");
+                if (profile) {
+                    const data = JSON.parse(profile);
+                    let score = 0;
+                    if (data.name && data.email) score += 25;
+                    if (data.experience?.length > 0) score += 25;
+                    if (data.education?.length > 0) score += 25;
+                    if (data.skills?.length >= 3) score += 25;
+                    setProfileComplete(score);
+                }
+            } catch (error) {
+                console.error("Failed to load dashboard data:", error);
             }
-        } catch (error) {
-            console.error("Failed to load dashboard data:", error);
-        }
+        };
+
+        requestAnimationFrame(loadData);
     }, []);
 
     const updateJobStatus = (jobId: string, status: TrackedJob["status"]) => {
