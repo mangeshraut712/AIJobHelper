@@ -5,8 +5,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import {
     Link2, FileText, MessageSquare, Target, TrendingUp,
-    CheckCircle2, ArrowUpRight, Sparkles, Calendar, Clock,
-    Briefcase, Plus, ExternalLink, Edit3, Trash2, Building2
+    Briefcase, Plus, ExternalLink, Trash2, Building2,
+    Sparkles, Clock
 } from "lucide-react";
 import { AppleCard } from "@/components/ui/AppleCard";
 import { AppleButton } from "@/components/ui/AppleButton";
@@ -52,30 +52,36 @@ export default function DashboardPage() {
     const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening";
 
     useEffect(() => {
-        // Load tracked jobs from localStorage
-        const savedJobs = localStorage.getItem("analyzedJobs");
-        if (savedJobs) {
-            const jobs = JSON.parse(savedJobs);
-            setTrackedJobs(jobs.map((job: { id: string; title: string; company: string; url: string; analyzedAt: string }) => ({
-                id: job.id,
-                title: job.title,
-                company: job.company,
-                url: job.url,
-                status: "analyzing",
-                createdAt: job.analyzedAt,
-            })));
-        }
+        try {
+            // Load tracked jobs from localStorage
+            const savedJobs = localStorage.getItem("analyzedJobs");
+            if (savedJobs) {
+                const jobs = JSON.parse(savedJobs);
+                if (Array.isArray(jobs)) {
+                    setTrackedJobs(jobs.map((job: any) => ({
+                        id: job.id || Math.random().toString(),
+                        title: job.title || "Unknown Job",
+                        company: job.company || "Unknown Company",
+                        url: job.url || "",
+                        status: "analyzing",
+                        createdAt: job.analyzedAt || new Date().toISOString(),
+                    })));
+                }
+            }
 
-        // Calculate profile completeness
-        const profile = localStorage.getItem("careerAgentProfile");
-        if (profile) {
-            const data = JSON.parse(profile);
-            let score = 0;
-            if (data.name && data.email) score += 25;
-            if (data.experience?.length > 0) score += 25;
-            if (data.education?.length > 0) score += 25;
-            if (data.skills?.length >= 3) score += 25;
-            setProfileComplete(score);
+            // Calculate profile completeness
+            const profile = localStorage.getItem("careerAgentProfile");
+            if (profile) {
+                const data = JSON.parse(profile);
+                let score = 0;
+                if (data.name && data.email) score += 25;
+                if (data.experience?.length > 0) score += 25;
+                if (data.education?.length > 0) score += 25;
+                if (data.skills?.length >= 3) score += 25;
+                setProfileComplete(score);
+            }
+        } catch (error) {
+            console.error("Failed to load dashboard data:", error);
         }
     }, []);
 
@@ -200,7 +206,7 @@ export default function DashboardPage() {
                                                     ))}
                                                 </select>
                                                 <a
-                                                    href={job.url}
+                                                    href={job.url.startsWith('http') ? job.url : '#'}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="p-2 rounded-lg hover:bg-background transition-colors"

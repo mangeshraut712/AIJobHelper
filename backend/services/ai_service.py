@@ -41,9 +41,7 @@ class AIService:
         self.is_configured = bool(self.api_key and len(self.api_key) > 20)
         self.temperature = temperature
         
-        # Debug logging
-        api_key_preview = f"{self.api_key[:8]}...{self.api_key[-4:]}" if len(self.api_key) > 12 else "NOT_SET"
-        print(f"🔑 [AIService Init] API Key: {api_key_preview}")
+        # Debug logging (Safe)
         print(f"🔧 [AIService Init] Is Configured: {self.is_configured}")
         print(f"🤖 [AIService Init] Model: {model_name}")
         

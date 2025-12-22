@@ -85,14 +85,6 @@ interface EnhancementResult {
     section_improvements: SectionImprovements;
 }
 
-// Editable bullet interface
-interface EditableBullet {
-    text: string;
-    isEditing: boolean;
-    experienceIndex: number;
-    bulletIndex: number;
-}
-
 const FADE_IN = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
@@ -138,8 +130,8 @@ export default function ResumesPage() {
 
         setIsEnhancing(true);
         try {
-            // Call AI enhancement API
-            const response = await axios.post(`${API_URL}/enhance-resume`, {
+            // Call AI enhancement API - Use local Next.js route for better reliability
+            const response = await axios.post('/api/enhance-resume', {
                 resume_data: {
                     name: profile.name || "Name",
                     email: profile.email || "email@example.com",
@@ -498,17 +490,7 @@ export default function ResumesPage() {
         toast("Summary updated!", "success");
     };
 
-    const addProjectSuggestion = () => {
-        if (!profile || !currentJob) return;
 
-        const suggestedProject = {
-            name: `${currentJob.title} Relevant Project`,
-            description: `Project utilizing ${currentJob.skills?.slice(0, 3).join(", ") || "relevant technologies"} to solve real-world problems. Demonstrates skills directly applicable to ${currentJob.company || "target company"}.`,
-        };
-
-        // If profile has projects array, add to it; otherwise suggest going to profile
-        toast("Go to Profile to add projects that showcase relevant skills", "info");
-    };
 
 
     const buildResumeData = () => {

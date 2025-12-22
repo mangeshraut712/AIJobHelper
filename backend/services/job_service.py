@@ -595,32 +595,33 @@ Return ONLY valid JSON with these fields:
         return []
     
     def _detect_job_source(self, url: str) -> str:
-        """Detect the job board source from URL"""
-        url_lower = url.lower()
-        if 'linkedin.com' in url_lower:
-            return 'linkedin'
-        elif 'indeed.com' in url_lower:
-            return 'indeed'
-        elif 'glassdoor.com' in url_lower:
-            return 'glassdoor'
-        elif 'lever.co' in url_lower:
-            return 'lever'
-        elif 'greenhouse.io' in url_lower:
-            return 'greenhouse'
-        elif 'ashbyhq.com' in url_lower:
-            return 'ashby'
-        elif 'jobright' in url_lower:
-            return 'jobright'
-        elif 'simplify' in url_lower:
-            return 'simplify'
-        elif 'wellfound.com' in url_lower or 'angel.co' in url_lower:
-            return 'wellfound'
-        else:
+        """Detect the job board source from URL using secure domain parsing"""
+        try:
+            parsed = urlparse(url)
+            domain = parsed.netloc.lower().replace("www.", "")
+            
+            if domain == "linkedin.com" or domain.endswith(".linkedin.com"):
+                return 'linkedin'
+            elif domain == "indeed.com" or domain.endswith(".indeed.com"):
+                return 'indeed'
+            elif domain == "glassdoor.com" or domain.endswith(".glassdoor.com"):
+                return 'glassdoor'
+            elif domain == "lever.co" or domain.endswith(".lever.co"):
+                return 'lever'
+            elif domain == "greenhouse.io" or domain.endswith(".boards.greenhouse.io"):
+                return 'greenhouse'
+            elif domain == "ashbyhq.com" or domain.endswith(".ashbyhq.com"):
+                return 'ashby'
+            elif domain == "jobright.ai" or domain.endswith(".jobright.ai"):
+                return 'jobright'
+            elif domain == "simplify.jobs" or domain.endswith(".simplify.jobs"):
+                return 'simplify'
+            elif domain in ["wellfound.com", "angel.co"] or domain.endswith(".wellfound.com"):
+                return 'wellfound'
+            else:
+                return 'other'
+        except Exception:
             return 'other'
-
-
-
-
 
 
     def _extract_title_from_url(self, url: str) -> str:
@@ -634,16 +635,20 @@ Return ONLY valid JSON with these fields:
         except Exception: return ""
     
     def _extract_company_from_url(self, url: str) -> str:
-        """Extract company name from URL domain"""
+        """Extract company name from URL domain securely"""
         try:
             parsed = urlparse(url)
             domain = parsed.netloc.replace("www.", "")
-            # Special handling for job boards
-            if "ashbyhq.com" in domain or "lever.co" in domain or "greenhouse.io" in domain:
-                # Try to get company from path
+            
+            # Special handling for ATS subdomains
+            ats_domains = ["ashbyhq.com", "lever.co", "greenhouse.io"]
+            if any(ats in domain for ats in ats_domains):
+                # Try to get company from path first (ATS usually format: ats.com/company/job or company.ats.com)
                 path_parts = parsed.path.strip("/").split("/")
-                if path_parts and path_parts[0]:
-                    return path_parts[0].replace("-", " ").title()[:100]
+                if path_parts and path_parts[0] and len(path_parts[0]) > 2:
+                     return path_parts[0].replace("-", " ").title()[:100]
+            
+            # Default to domain name
             company = domain.split(".")[0]
             return company.title()[:100]
         except Exception:
