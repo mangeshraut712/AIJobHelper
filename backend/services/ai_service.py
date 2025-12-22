@@ -16,7 +16,7 @@ class AIService:
     # Based on OpenRouter free tier (models with :free suffix)
     AVAILABLE_MODELS = {
         # Top Tier - Best for resume enhancement (Grok is default for testing)
-        "grok": "x-ai/grok-3-fast-beta",  # Grok 3 Fast - excellent for creative content
+        "grok": "x-ai/grok-2-vision-1212",  # Grok 2 Vision - excellent for creative content
         "gemini": "google/gemini-2.0-flash-exp:free",  # Fast, reliable, good JSON
         "deepseek": "deepseek/deepseek-chat-v3-0324:free",  # Excellent reasoning
         
