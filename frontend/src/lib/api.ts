@@ -2,36 +2,36 @@
 // Works with both localhost development and Vercel production
 
 const getApiUrl = (): string => {
-    // ALWAYS check for environment variable first (highest priority)
-    // This allows local dev to use Vercel backend when .env.local is configured
+    // Check for explicit environment variable override
     const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (envApiUrl) {
         console.log('[API] Using configured API URL:', envApiUrl);
         return envApiUrl;
     }
 
-    // In browser, detect based on current location
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-
-        // Vercel deployment
-        if (hostname.includes('vercel.app') || hostname.includes('ai-job-helper')) {
-            return '/api';
-        }
-
-        // Local development - default to local backend
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            console.log('[API] Using local backend: http://localhost:8000');
-            return 'http://localhost:8000';
-        }
-    }
-
-    // Server-side rendering fallback
-    if (process.env.NODE_ENV === 'production') {
+    // On Vercel or production, use relative /api path
+    // This works because Next.js API routes are at /api/*
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+        console.log('[API] Production mode: Using /api');
         return '/api';
     }
 
-    return 'http://localhost:8000';
+    // In browser during development
+    if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+
+        // If running on Vercel preview/production
+        if (hostname.includes('vercel.app')) {
+            return '/api';
+        }
+
+        // Local development - use Next.js API routes (not Python backend)
+        console.log('[API] Local dev: Using /api (Next.js routes)');
+        return '/api';
+    }
+
+    // Server-side rendering fallback
+    return '/api';
 };
 
 const API_URL = getApiUrl();
