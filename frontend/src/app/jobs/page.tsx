@@ -281,9 +281,8 @@ export default function AnalyzeJobPage() {
                                         </motion.button>
                                         <button
                                             onClick={() => {
-                                                // Validate URL before opening
-                                                const url = currentJob.url;
-                                                if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+                                                const url = sanitizeUrl(currentJob.url);
+                                                if (url && url !== '#') {
                                                     window.open(url, '_blank', 'noopener,noreferrer');
                                                 }
                                             }}

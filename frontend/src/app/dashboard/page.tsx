@@ -92,12 +92,14 @@ export default function DashboardPage() {
             job.id === jobId ? { ...job, status } : job
         );
         setTrackedJobs(updated);
+        secureSet('analyzedJobs', updated);
         toast(`Status updated to ${STATUS_CONFIG[status].label}`, "success");
     };
 
     const deleteTrackedJob = (jobId: string) => {
         const updated = trackedJobs.filter(job => job.id !== jobId);
         setTrackedJobs(updated);
+        secureSet('analyzedJobs', updated);
         toast("Job removed from tracking", "info");
     };
 
