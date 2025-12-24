@@ -31,6 +31,41 @@ const ALLOWED_HOSTNAMES = [
     'www.metacareers.com', 'jobs.netflix.com',
 ] as const;
 
+// Map allowed hostnames to canonical origins so that outbound requests
+// always use a trusted, server-controlled base URL.
+const HOSTNAME_CANONICAL_ORIGINS: Record<string, string> = {
+    'www.linkedin.com': 'https://www.linkedin.com',
+    'linkedin.com': 'https://www.linkedin.com',
+    'www.indeed.com': 'https://www.indeed.com',
+    'indeed.com': 'https://www.indeed.com',
+    'boards.greenhouse.io': 'https://boards.greenhouse.io',
+    'greenhouse.io': 'https://boards.greenhouse.io',
+    'jobs.lever.co': 'https://jobs.lever.co',
+    'lever.co': 'https://jobs.lever.co',
+    'www.glassdoor.com': 'https://www.glassdoor.com',
+    'glassdoor.com': 'https://www.glassdoor.com',
+    'www.ziprecruiter.com': 'https://www.ziprecruiter.com',
+    'ziprecruiter.com': 'https://www.ziprecruiter.com',
+    'www.monster.com': 'https://www.monster.com',
+    'monster.com': 'https://www.monster.com',
+    'www.wellfound.com': 'https://www.wellfound.com',
+    'wellfound.com': 'https://www.wellfound.com',
+    'angel.co': 'https://angel.co',
+    'www.dice.com': 'https://www.dice.com',
+    'dice.com': 'https://www.dice.com',
+    'www.careerbuilder.com': 'https://www.careerbuilder.com',
+    'careerbuilder.com': 'https://www.careerbuilder.com',
+    'www.simplyhired.com': 'https://www.simplyhired.com',
+    'simplyhired.com': 'https://www.simplyhired.com',
+    'careers.google.com': 'https://careers.google.com',
+    'jobs.apple.com': 'https://jobs.apple.com',
+    'careers.microsoft.com': 'https://careers.microsoft.com',
+    'www.amazon.jobs': 'https://www.amazon.jobs',
+    'amazon.jobs': 'https://www.amazon.jobs',
+    'www.metacareers.com': 'https://www.metacareers.com',
+    'jobs.netflix.com': 'https://jobs.netflix.com',
+};
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
@@ -100,8 +135,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Construct a safe URL from validated components
-        // This is an absolute URL with validated protocol and hostname
-        const safeUrlString = `https://${hostname}${parsedUrl.pathname}${parsedUrl.search}`;
+        // Use a canonical, server-controlled origin for the allowed hostname
+        const canonicalOrigin =
+            HOSTNAME_CANONICAL_ORIGINS[hostname] ?? `https://${hostname}`;
+        const safeUrlString = `${canonicalOrigin}${parsedUrl.pathname}${parsedUrl.search}`;
 
         console.log('📥 [extract-job] Fetching validated URL:', safeUrlString);
 
