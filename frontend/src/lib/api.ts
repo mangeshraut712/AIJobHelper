@@ -1,51 +1,39 @@
-// API Configuration for CareerAgentPro
-// Works with both localhost development and Vercel production
+/**
+ * API Configuration for CareerAgentPro
+ * 
+ * Works seamlessly with:
+ * - Local development (Next.js dev server)
+ * - Vercel production deployment
+ * - Any environment with NEXT_PUBLIC_API_URL override
+ */
 
+// Determine the API base URL
 const getApiUrl = (): string => {
-    // Check for explicit environment variable override
-    const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (envApiUrl) {
-        console.log('[API] Using configured API URL:', envApiUrl);
-        return envApiUrl;
+    // Allow explicit override via environment variable
+    if (process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL;
     }
 
-    // On Vercel or production, use relative /api path
-    // This works because Next.js API routes are at /api/*
-    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
-        console.log('[API] Production mode: Using /api');
-        return '/api';
-    }
-
-    // In browser during development
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-
-        // If running on Vercel preview/production
-        if (hostname.includes('vercel.app')) {
-            return '/api';
-        }
-
-        // Local development - use Next.js API routes (not Python backend)
-        console.log('[API] Local dev: Using /api (Next.js routes)');
-        return '/api';
-    }
-
-    // Server-side rendering fallback
+    // All environments use relative /api path
+    // Next.js API routes handle everything
     return '/api';
 };
 
 const API_URL = getApiUrl();
-console.log('[API] Final API URL:', API_URL);
 
 export default API_URL;
 
-// Helper function to make API calls with error handling
+/**
+ * Generic API call helper with error handling
+ */
 export async function apiCall<T>(
     endpoint: string,
     options: RequestInit = {}
 ): Promise<{ data: T | null; error: string | null }> {
     try {
-        const response = await fetch(`${API_URL}${endpoint}`, {
+        const url = `${API_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+
+        const response = await fetch(url, {
             ...options,
             headers: {
                 'Content-Type': 'application/json',
@@ -54,13 +42,31 @@ export async function apiCall<T>(
         });
 
         if (!response.ok) {
-            throw new Error(`API Error: ${response.status} ${response.statusText}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || errorData.error || `API Error: ${response.status}`);
         }
 
         const data = await response.json();
         return { data, error: null };
     } catch (error) {
         console.error(`API call failed for ${endpoint}:`, error);
-        return { data: null, error: error instanceof Error ? error.message : 'Unknown error' };
+        return {
+            data: null,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        };
     }
 }
+
+/**
+ * API endpoints for the application
+ */
+export const endpoints = {
+    health: '/health',
+    parseResume: '/parse-resume',
+    enhanceResume: '/enhance-resume',
+    extractJob: '/extract-job',
+    generateCoverLetter: '/generate-cover-letter',
+    exportPdf: '/export/pdf',
+    exportDocx: '/export/docx',
+    exportLatex: '/export/latex',
+} as const;
