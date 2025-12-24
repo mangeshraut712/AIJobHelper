@@ -53,18 +53,60 @@ class JobService:
             return False
     
     async def _fetch_with_httpx(self, url: str) -> Optional[str]:
-        """Fetch URL content using httpx with browser-like headers.
+        """Fetch URL content using httpx with SSRF protection.
         
-        Security: URL must be pre-validated by _is_allowed_url before calling this.
+        This method performs inline URL validation for CodeQL compatibility.
         """
+        # Inline URL validation for CodeQL dataflow analysis
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return None
+            
+        # Only allow https scheme
+        if parsed.scheme != "https":
+            return None
+            
+        hostname = parsed.netloc.lower()
+        
+        # Block private IPs inline
+        if (hostname == "localhost" or 
+            hostname.startswith("127.") or
+            hostname.startswith("10.") or
+            hostname.startswith("192.168.") or
+            hostname.startswith("172.16.") or
+            hostname.startswith("172.17.") or
+            hostname.startswith("172.18.") or
+            hostname.startswith("172.19.") or
+            hostname.startswith("172.2") or
+            hostname.startswith("172.30.") or
+            hostname.startswith("172.31.") or
+            hostname == "0.0.0.0" or
+            hostname == "::1"):
+            return None
+        
+        # Check domain allowlist inline
+        is_allowed = False
+        for allowed in ALLOWED_DOMAINS:
+            if hostname == allowed or hostname.endswith("." + allowed):
+                is_allowed = True
+                break
+        
+        if not is_allowed:
+            return None
+        
+        # Reconstruct URL from validated components
+        safe_url = f"https://{hostname}{parsed.path}"
+        if parsed.query:
+            safe_url += f"?{parsed.query}"
+        
         headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
+            "User-Agent": "Mozilla/5.0 (compatible; JobHelper/1.0)",
+            "Accept": "text/html",
         }
         try:
-            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
-                response = await client.get(url, headers=headers)
+            async with httpx.AsyncClient(follow_redirects=False, timeout=30.0) as client:
+                response = await client.get(safe_url, headers=headers)
                 response.raise_for_status()
                 return response.text
         except httpx.HTTPError:

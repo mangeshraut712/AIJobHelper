@@ -279,14 +279,19 @@ export default function AnalyzeJobPage() {
                                         >
                                             <Bookmark size={18} />
                                         </motion.button>
-                                        <a
-                                            href={sanitizeUrl(currentJob.url)}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                        <button
+                                            onClick={() => {
+                                                // Validate URL before opening
+                                                const url = currentJob.url;
+                                                if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+                                                    window.open(url, '_blank', 'noopener,noreferrer');
+                                                }
+                                            }}
                                             className="p-2 rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                                            title="Open job posting"
                                         >
                                             <ExternalLink size={18} />
-                                        </a>
+                                        </button>
                                     </div>
                                 </div>
 
