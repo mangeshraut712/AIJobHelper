@@ -1,20 +1,21 @@
+# Vercel Python Serverless Function Requirements
+# These are the minimal dependencies needed for the Python API on Vercel
+
 fastapi==0.115.6
-uvicorn==0.34.0
-python-dotenv==1.0.1
 pydantic==2.10.3
 pydantic-settings==2.7.0
-openai==1.57.4
+python-dotenv==1.0.1
 httpx==0.28.1
 python-multipart==0.0.20
+
+# PDF/Document parsing
 PyPDF2==3.0.1
-python-docx==1.1.2
-sqlalchemy==2.0.36
-passlib[bcrypt]==1.7.4
-python-jose[cryptography]==3.3.0
-python-slugify==8.0.4
-trafilatura==1.12.2
+
+# Web scraping for job extraction
 beautifulsoup4==4.12.3
+trafilatura==1.12.2
 lxml==5.3.0
-lxml_html_clean==0.4.1
-fpdf2==2.8.2
-cryptography==44.0.0
+
+# AI/OpenRouter integration
+openai==1.57.4
+

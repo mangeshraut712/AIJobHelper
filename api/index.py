@@ -1,15 +1,19 @@
+"""
+Vercel Serverless Python Function for CareerAgentPro Backend.
+This file serves as the entry point for Python API routes on Vercel.
+"""
 import sys
 import os
 
-# Add project root to path
+# Add backend directory to Python path for imports
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+backend_path = os.path.join(project_root, 'backend')
 sys.path.insert(0, project_root)
-sys.path.insert(0, os.path.join(project_root, 'backend'))
-sys.path.insert(0, os.path.join(project_root, 'frontend', 'api'))
+sys.path.insert(0, backend_path)
 
-# Try to import from backend first, fallback to frontend/api
-try:
-    from backend.main import app
-except ImportError:
-    # Fallback to frontend/api/index.py for serverless
-    from frontend.api.index import app
+# Import the FastAPI app from backend
+from backend.main import app
+
+# Vercel expects a handler named 'app' for ASGI applications
+# The app is already a FastAPI instance which is ASGI-compatible
+
