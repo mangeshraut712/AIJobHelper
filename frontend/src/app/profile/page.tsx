@@ -11,6 +11,7 @@ import axios from "axios";
 import API_URL from "@/lib/api";
 import { AppleCard } from "@/components/ui/AppleCard";
 import { useToast } from "@/components/ui/Toast";
+import { secureGet, secureSet } from "@/lib/secureStorage";
 
 interface Experience {
     id: string;
@@ -114,13 +115,9 @@ export default function ProfilePage() {
     const [profile, setProfile] = useState<ProfileData>(EMPTY_PROFILE);
 
     useEffect(() => {
-        const saved = localStorage.getItem("careerAgentProfile");
+        const saved = secureGet<ProfileData>('profile');
         if (saved) {
-            try {
-                setProfile(JSON.parse(saved));
-            } catch {
-                console.log("Failed to load profile");
-            }
+            setProfile(saved);
         }
     }, []);
 
@@ -131,7 +128,7 @@ export default function ProfilePage() {
     const handleSave = async () => {
         setIsSaving(true);
         await new Promise(r => setTimeout(r, 500));
-        localStorage.setItem("careerAgentProfile", JSON.stringify(profile));
+        secureSet('profile', profile);
         toast("Profile saved successfully!", "success");
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);

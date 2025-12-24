@@ -16,6 +16,7 @@ import { useToast } from "@/components/ui/Toast";
 import axios from "axios";
 import API_URL from "@/lib/api";
 import Link from "next/link";
+import { secureGet, secureSet } from "@/lib/secureStorage";
 
 interface JobData {
     title: string;
@@ -109,16 +110,16 @@ export default function ResumesPage() {
 
 
     useEffect(() => {
-        // Load current job from localStorage
-        const savedJob = localStorage.getItem("currentJobForResume");
+        // Load current job from secure storage
+        const savedJob = secureGet<JobData>("currentJobForResume");
         if (savedJob) {
-            setCurrentJob(JSON.parse(savedJob));
+            setCurrentJob(savedJob);
         }
 
-        // Load profile
-        const savedProfile = localStorage.getItem("careerAgentProfile");
+        // Load profile from secure storage
+        const savedProfile = secureGet<ProfileData>("profile");
         if (savedProfile) {
-            setProfile(JSON.parse(savedProfile));
+            setProfile(savedProfile);
         }
     }, []);
 
@@ -299,7 +300,7 @@ export default function ResumesPage() {
         };
 
         setProfile(updatedProfile);
-        localStorage.setItem("careerAgentProfile", JSON.stringify(updatedProfile));
+        secureSet("profile", updatedProfile);
         setHasAppliedSuggestions(true);
         toast(`Added ${enhancement.suggestedSkillsToAdd.length} skills and enhanced summary!`, "success");
     };
@@ -314,7 +315,7 @@ export default function ResumesPage() {
                 skills: [...currentSkills, skill],
             };
             setProfile(updatedProfile);
-            localStorage.setItem("careerAgentProfile", JSON.stringify(updatedProfile));
+            secureSet("profile", updatedProfile);
             toast(`Added "${skill}" to your skills!`, "success");
         }
     };
@@ -327,7 +328,7 @@ export default function ResumesPage() {
             summary: enhancement.enhancedSummary,
         };
         setProfile(updatedProfile);
-        localStorage.setItem("careerAgentProfile", JSON.stringify(updatedProfile));
+        secureSet("profile", updatedProfile);
         toast("Summary updated with AI enhancement!", "success");
     };
 
@@ -358,7 +359,7 @@ export default function ResumesPage() {
         };
 
         setProfile(updatedProfile);
-        localStorage.setItem("careerAgentProfile", JSON.stringify(updatedProfile));
+        secureSet("profile", updatedProfile);
         toast(`Applied ${suggestedBullets.length} bullet points to "${currentExp.role}"!`, "success");
     };
 
@@ -387,7 +388,7 @@ export default function ResumesPage() {
         };
 
         setProfile(updatedProfile);
-        localStorage.setItem("careerAgentProfile", JSON.stringify(updatedProfile));
+        secureSet("profile", updatedProfile);
         toast("Applied AI improvements to all experiences!", "success");
     };
 
@@ -464,7 +465,7 @@ export default function ResumesPage() {
         };
 
         setProfile(updatedProfile);
-        localStorage.setItem("careerAgentProfile", JSON.stringify(updatedProfile));
+        secureSet("profile", updatedProfile);
         toast(`Applied ${bullets.length} customized bullet points!`, "success");
 
         // Clear editable state for this experience
@@ -485,7 +486,7 @@ export default function ResumesPage() {
         };
 
         setProfile(updatedProfile);
-        localStorage.setItem("careerAgentProfile", JSON.stringify(updatedProfile));
+        secureSet("profile", updatedProfile);
         setEditingSummary(false);
         toast("Summary updated!", "success");
     };

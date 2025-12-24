@@ -11,6 +11,7 @@ import {
 import { AppleCard } from "@/components/ui/AppleCard";
 import { AppleButton } from "@/components/ui/AppleButton";
 import { useToast } from "@/components/ui/Toast";
+import { secureGet, secureSet } from "@/lib/secureStorage";
 
 interface TrackedJob {
     id: string;
@@ -55,31 +56,27 @@ export default function DashboardPage() {
         // Use requestAnimationFrame to avoid synchronous state update warning
         const loadData = () => {
             try {
-                // Load tracked jobs from localStorage
-                const savedJobs = localStorage.getItem("analyzedJobs");
-                if (savedJobs) {
-                    const jobs = JSON.parse(savedJobs);
-                    if (Array.isArray(jobs)) {
-                        setTrackedJobs(jobs.map((job: { id: string; title: string; company: string; url: string; analyzedAt: string }) => ({
-                            id: job.id || Math.random().toString(),
-                            title: job.title || "Unknown Job",
-                            company: job.company || "Unknown Company",
-                            url: job.url || "",
-                            status: "analyzing",
-                            createdAt: job.analyzedAt || new Date().toISOString(),
-                        })));
-                    }
+                // Load tracked jobs from secure storage
+                const jobs = secureGet<Array<{ id: string; title: string; company: string; url: string; analyzedAt: string }>>('analyzedJobs');
+                if (jobs && Array.isArray(jobs)) {
+                    setTrackedJobs(jobs.map((job) => ({
+                        id: job.id || Math.random().toString(),
+                        title: job.title || "Unknown Job",
+                        company: job.company || "Unknown Company",
+                        url: job.url || "",
+                        status: "analyzing" as const,
+                        createdAt: job.analyzedAt || new Date().toISOString(),
+                    })));
                 }
 
-                // Calculate profile completeness
-                const profile = localStorage.getItem("careerAgentProfile");
-                if (profile) {
-                    const data = JSON.parse(profile);
+                // Calculate profile completeness from secure storage
+                const data = secureGet<{ name?: string; email?: string; experience?: unknown[]; education?: unknown[]; skills?: unknown[] }>('profile');
+                if (data) {
                     let score = 0;
                     if (data.name && data.email) score += 25;
-                    if (data.experience?.length > 0) score += 25;
-                    if (data.education?.length > 0) score += 25;
-                    if (data.skills?.length >= 3) score += 25;
+                    if (data.experience?.length && data.experience.length > 0) score += 25;
+                    if (data.education?.length && data.education.length > 0) score += 25;
+                    if (data.skills?.length && data.skills.length >= 3) score += 25;
                     setProfileComplete(score);
                 }
             } catch (error) {

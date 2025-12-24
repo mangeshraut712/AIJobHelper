@@ -25,45 +25,80 @@ interface ResumeData {
 }
 
 /**
+ * LaTeX special characters and their safe replacements
+ * Using explicit character-by-character mapping for complete safety
+ */
+const LATEX_ESCAPE_MAP: Map<string, string> = new Map([
+    ['\\', '\\textbackslash{}'],
+    ['&', '\\&'],
+    ['%', '\\%'],
+    ['$', '\\$'],
+    ['#', '\\#'],
+    ['_', '\\_'],
+    ['{', '\\{'],
+    ['}', '\\}'],
+    ['~', '\\textasciitilde{}'],
+    ['^', '\\textasciicircum{}'],
+    ['<', '\\textless{}'],
+    ['>', '\\textgreater{}'],
+    ['"', "''"],
+    ['|', '\\textbar{}'],
+]);
+
+/**
  * Escape text for safe inclusion in LaTeX documents
- * This prevents LaTeX injection and ensures proper rendering
+ * Uses character-by-character processing to avoid regex issues
  */
 function escapeLaTeX(str: string | undefined | null): string {
     if (!str) return '';
 
-    // Order matters - backslash must be escaped first
-    return str
-        // Escape backslash first (before we add more backslashes)
-        .replace(/\\/g, '\\textbackslash{}')
-        // Escape special characters that have meaning in LaTeX
-        .replace(/&/g, '\\&')
-        .replace(/%/g, '\\%')
-        .replace(/\$/g, '\\$')
-        .replace(/#/g, '\\#')
-        .replace(/_/g, '\\_')
-        .replace(/\{/g, '\\{')
-        .replace(/\}/g, '\\}')
-        // Escape tilde and caret
-        .replace(/~/g, '\\textasciitilde{}')
-        .replace(/\^/g, '\\textasciicircum{}')
-        // Escape less than and greater than
-        .replace(/</g, '\\textless{}')
-        .replace(/>/g, '\\textgreater{}')
-        // Escape quotes
-        .replace(/"/g, "''")
-        // Remove or escape any remaining problematic characters
-        .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
-        .trim();
+    const result: string[] = [];
+
+    for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+        const code = char.charCodeAt(0);
+
+        // Skip control characters (0x00-0x1F and 0x7F)
+        if (code < 32 || code === 127) {
+            continue;
+        }
+
+        // Check if this character needs escaping
+        const escaped = LATEX_ESCAPE_MAP.get(char);
+        if (escaped !== undefined) {
+            result.push(escaped);
+        } else {
+            result.push(char);
+        }
+    }
+
+    return result.join('').trim();
 }
 
 /**
- * Sanitize a string to only contain safe characters for LaTeX identifiers
+ * Sanitize a string to only contain safe characters for filenames
  */
 function sanitizeForFilename(str: string): string {
     if (!str) return 'resume';
-    return str
-        .replace(/[^a-zA-Z0-9_-]/g, '_')
-        .slice(0, 50);
+
+    const result: string[] = [];
+
+    for (let i = 0; i < str.length && result.length < 50; i++) {
+        const char = str[i];
+        const code = char.charCodeAt(0);
+
+        // Only allow alphanumeric, underscore, hyphen
+        if ((code >= 48 && code <= 57) ||  // 0-9
+            (code >= 65 && code <= 90) ||  // A-Z
+            (code >= 97 && code <= 122) || // a-z
+            code === 95 || code === 45) {  // _ -
+            result.push(char);
+        } else if (code === 32) {  // space -> underscore
+            result.push('_');
+        }
+    }
+
+    return result.length > 0 ? result.join('') : 'resume';
 }
 
 function generateLatex(resume: ResumeData): string {
@@ -73,31 +108,56 @@ function generateLatex(resume: ResumeData): string {
     const location = escapeLaTeX(resume.location);
     const summary = escapeLaTeX(resume.summary);
 
-    let experienceSection = '';
+    // Build experience section
+    const experienceParts: string[] = [];
     if (resume.experience && resume.experience.length > 0) {
-        experienceSection = resume.experience.map(exp => `
-\\subsection*{${escapeLaTeX(exp.role) || 'Position'}}
-\\textit{${escapeLaTeX(exp.company) || 'Company'}} \\hfill ${escapeLaTeX(exp.duration)}
+        for (const exp of resume.experience) {
+            const role = escapeLaTeX(exp.role) || 'Position';
+            const company = escapeLaTeX(exp.company) || 'Company';
+            const duration = escapeLaTeX(exp.duration);
+            const description = escapeLaTeX(exp.description);
 
-${escapeLaTeX(exp.description)}
-`).join('\n');
+            experienceParts.push(`
+\\subsection*{${role}}
+\\textit{${company}} \\hfill ${duration}
+
+${description}
+`);
+        }
     }
+    const experienceSection = experienceParts.join('\n');
 
-    let educationSection = '';
+    // Build education section
+    const educationParts: string[] = [];
     if (resume.education && resume.education.length > 0) {
-        educationSection = resume.education.map(edu => `
-\\textbf{${escapeLaTeX(edu.degree) || 'Degree'}} \\\\
-${escapeLaTeX(edu.institution) || 'Institution'} \\hfill ${escapeLaTeX(edu.graduation_year)}
-`).join('\n');
-    }
+        for (const edu of resume.education) {
+            const degree = escapeLaTeX(edu.degree) || 'Degree';
+            const institution = escapeLaTeX(edu.institution) || 'Institution';
+            const gradYear = escapeLaTeX(edu.graduation_year);
 
+            educationParts.push(`
+\\textbf{${degree}} \\\\
+${institution} \\hfill ${gradYear}
+`);
+        }
+    }
+    const educationSection = educationParts.join('\n');
+
+    // Build skills section
     let skillsSection = '';
     if (resume.skills && resume.skills.length > 0) {
-        skillsSection = resume.skills.map(s => escapeLaTeX(s)).join(', ');
+        const escapedSkills: string[] = [];
+        for (const skill of resume.skills) {
+            escapedSkills.push(escapeLaTeX(skill));
+        }
+        skillsSection = escapedSkills.join(', ');
     }
 
-    // Build contact line safely
-    const contactParts = [email, phone, location].filter(Boolean);
+    // Build contact line
+    const contactParts: string[] = [];
+    if (email) contactParts.push(email);
+    if (phone) contactParts.push(phone);
+    if (location) contactParts.push(location);
     const contactLine = contactParts.join(' | ');
 
     return `\\documentclass[11pt,a4paper]{article}
@@ -138,7 +198,7 @@ export async function POST(request: NextRequest) {
 
         const latexContent = generateLatex(resume);
 
-        // Sanitize filename to prevent header injection
+        // Sanitize filename
         const safeName = sanitizeForFilename(resume.name || 'resume');
 
         return new NextResponse(latexContent, {
@@ -152,7 +212,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('❌ [export/latex] Error:', error);
         return NextResponse.json(
-            { error: 'Failed to generate LaTeX', details: String(error) },
+            { error: 'Failed to generate LaTeX' },
             { status: 500 }
         );
     }

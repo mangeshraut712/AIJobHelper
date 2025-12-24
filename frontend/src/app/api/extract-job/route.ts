@@ -35,7 +35,7 @@ const ALLOWED_DOMAINS = new Set([
 ]);
 
 // Validate URL to prevent SSRF attacks
-function validateUrl(urlString: string): { isValid: boolean; error?: string } {
+function validateUrl(urlString: string): { isValid: boolean; safeUrl?: string; error?: string } {
     try {
         const url = new URL(urlString);
 
@@ -47,6 +47,11 @@ function validateUrl(urlString: string): { isValid: boolean; error?: string } {
         // Extract domain without subdomains for main check
         const hostname = url.hostname.toLowerCase();
 
+        // Block private/internal IPs (SSRF protection) - check FIRST
+        if (isPrivateOrLocalhost(hostname)) {
+            return { isValid: false, error: 'Private IP addresses are not allowed' };
+        }
+
         // Check against allowlist
         const isAllowed = Array.from(ALLOWED_DOMAINS).some(domain =>
             hostname === domain || hostname.endsWith(`.${domain}`)
@@ -55,15 +60,15 @@ function validateUrl(urlString: string): { isValid: boolean; error?: string } {
         if (!isAllowed) {
             // Allow if it's a common job board pattern
             const jobBoardPatterns = [
-                /^.*\.greenhouse\.io$/,
-                /^.*\.lever\.co$/,
-                /^.*\.workday\.com$/,
-                /^.*\.myworkdayjobs\.com$/,
-                /^careers?\./,
-                /^jobs?\./,
-                /^.*\.icims\.com$/,
-                /^.*\.taleo\.net$/,
-                /^.*\.smartrecruiters\.com$/,
+                /^[a-z0-9-]+\.greenhouse\.io$/,
+                /^[a-z0-9-]+\.lever\.co$/,
+                /^[a-z0-9-]+\.workday\.com$/,
+                /^[a-z0-9-]+\.myworkdayjobs\.com$/,
+                /^careers\.[a-z0-9-]+\.[a-z]+$/,
+                /^jobs\.[a-z0-9-]+\.[a-z]+$/,
+                /^[a-z0-9-]+\.icims\.com$/,
+                /^[a-z0-9-]+\.taleo\.net$/,
+                /^[a-z0-9-]+\.smartrecruiters\.com$/,
             ];
 
             const isJobBoard = jobBoardPatterns.some(pattern => pattern.test(hostname));
@@ -76,92 +81,105 @@ function validateUrl(urlString: string): { isValid: boolean; error?: string } {
             }
         }
 
-        // Block private/internal IPs (SSRF protection)
-        const privateIpPatterns = [
-            /^localhost$/i,
-            /^127\./,
-            /^10\./,
-            /^192\.168\./,
-            /^172\.(1[6-9]|2[0-9]|3[01])\./,
-            /^169\.254\./,
-            /^0\./,
-            /^\[::1\]$/,
-            /^\[fc/i,
-            /^\[fd/i,
-            /^\[fe80:/i,
-        ];
+        // Construct a safe URL from validated components only
+        const safeUrl = `${url.protocol}//${url.hostname}${url.pathname}${url.search}`;
 
-        if (privateIpPatterns.some(pattern => pattern.test(hostname))) {
-            return { isValid: false, error: 'Private IP addresses are not allowed' };
-        }
-
-        return { isValid: true };
+        return { isValid: true, safeUrl };
     } catch {
         return { isValid: false, error: 'Invalid URL format' };
     }
 }
 
-async function fetchJobPage(url: string): Promise<string> {
-    const response = await fetch(url, {
+// Check if hostname is localhost or private IP
+function isPrivateOrLocalhost(hostname: string): boolean {
+    const privatePatterns = [
+        /^localhost$/i,
+        /^127\.\d+\.\d+\.\d+$/,
+        /^10\.\d+\.\d+\.\d+$/,
+        /^192\.168\.\d+\.\d+$/,
+        /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/,
+        /^169\.254\.\d+\.\d+$/,
+        /^0\.\d+\.\d+\.\d+$/,
+        /^\[::1\]$/,
+        /^\[fc[0-9a-f]{2}:/i,
+        /^\[fd[0-9a-f]{2}:/i,
+        /^\[fe80:/i,
+        /^0\.0\.0\.0$/,
+        /^::1$/,
+    ];
+    return privatePatterns.some(pattern => pattern.test(hostname));
+}
+
+// Safe fetch wrapper that only fetches pre-validated URLs
+async function safeFetch(validatedUrl: string): Promise<Response> {
+    // This function ONLY accepts URLs that have already been validated
+    // by validateUrl(). The safeUrl is constructed from validated components.
+    return fetch(validatedUrl, {
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         },
-        // Prevent following redirects to potentially malicious URLs
-        redirect: 'manual',
+        redirect: 'error', // Don't follow redirects - they could be to malicious URLs
     });
-
-    // Handle redirects safely
-    if (response.status >= 300 && response.status < 400) {
-        const redirectUrl = response.headers.get('location');
-        if (redirectUrl) {
-            // Validate redirect URL too
-            const validation = validateUrl(redirectUrl);
-            if (!validation.isValid) {
-                throw new Error(`Redirect to unsafe URL blocked: ${validation.error}`);
-            }
-            // Follow the redirect safely
-            return fetchJobPage(redirectUrl);
-        }
-    }
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch job page: ${response.status}`);
-    }
-
-    return response.text();
 }
 
-// Secure text extraction using DOM-safe approach (not regex on untrusted input)
+// Secure text extraction - no regex on untrusted HTML for tag removal
 function extractTextContent(html: string): string {
-    // First remove dangerous content
-    let text = html;
+    // Create a simple state machine parser instead of regex
+    let text = '';
+    let inTag = false;
+    let inScript = false;
+    let inStyle = false;
+    let tagName = '';
 
-    // Remove script, style, and other dangerous tags completely
-    const dangerousTags = ['script', 'style', 'noscript', 'iframe', 'object', 'embed', 'form', 'input'];
-    for (const tag of dangerousTags) {
-        const regex = new RegExp(`<${tag}[^>]*>[\\s\\S]*?<\\/${tag}>`, 'gi');
-        text = text.replace(regex, '');
+    for (let i = 0; i < html.length; i++) {
+        const char = html[i];
+
+        if (char === '<') {
+            inTag = true;
+            tagName = '';
+            continue;
+        }
+
+        if (inTag && char === '>') {
+            inTag = false;
+            const lowerTag = tagName.toLowerCase().trim();
+
+            // Check for script/style start tags
+            if (lowerTag.startsWith('script')) inScript = true;
+            if (lowerTag.startsWith('style')) inStyle = true;
+            if (lowerTag.startsWith('/script')) inScript = false;
+            if (lowerTag.startsWith('/style')) inStyle = false;
+
+            // Add newlines for block elements
+            if (['br', '/p', '/div', '/li', '/h1', '/h2', '/h3', '/h4', '/h5', '/h6'].some(t => lowerTag.startsWith(t))) {
+                text += '\n';
+            }
+            continue;
+        }
+
+        if (inTag) {
+            tagName += char;
+            continue;
+        }
+
+        // Skip content inside script/style tags
+        if (inScript || inStyle) continue;
+
+        text += char;
     }
-
-    // Convert common block elements to newlines
-    text = text.replace(/<br\s*\/?>/gi, '\n');
-    text = text.replace(/<\/(p|div|li|h[1-6]|tr|section|article)>/gi, '\n');
-
-    // Remove all remaining HTML tags
-    text = text.replace(/<[^>]+>/g, ' ');
 
     // Decode HTML entities safely
     text = decodeHtmlEntities(text);
 
     // Clean up whitespace
-    text = text.replace(/\s+/g, ' ');
+    text = text.replace(/[ \t]+/g, ' ');
     text = text.replace(/\n\s*\n/g, '\n\n');
 
     return text.trim();
 }
 
-// Safe HTML entity decoder
+// Safe HTML entity decoder - explicit mapping only
 function decodeHtmlEntities(text: string): string {
     const entities: Record<string, string> = {
         '&nbsp;': ' ',
@@ -170,34 +188,42 @@ function decodeHtmlEntities(text: string): string {
         '&gt;': '>',
         '&quot;': '"',
         '&#39;': "'",
+        '&#x27;': "'",
         '&apos;': "'",
-        '&copy;': '©',
-        '&reg;': '®',
-        '&trade;': '™',
-        '&mdash;': '—',
-        '&ndash;': '–',
-        '&bull;': '•',
-        '&hellip;': '…',
+        '&copy;': String.fromCharCode(169),
+        '&reg;': String.fromCharCode(174),
+        '&trade;': String.fromCodePoint(8482),
+        '&mdash;': String.fromCharCode(8212),
+        '&ndash;': String.fromCharCode(8211),
+        '&bull;': String.fromCodePoint(8226),
+        '&hellip;': String.fromCodePoint(8230),
+        '&lsquo;': String.fromCharCode(8216),
+        '&rsquo;': String.fromCharCode(8217),
+        '&ldquo;': String.fromCharCode(8220),
+        '&rdquo;': String.fromCharCode(8221),
     };
 
     let result = text;
     for (const [entity, char] of Object.entries(entities)) {
-        result = result.split(entity).join(char);
+        // Use split/join instead of replace to avoid regex
+        const parts = result.split(entity);
+        result = parts.join(char);
     }
 
-    // Handle numeric entities
-    result = result.replace(/&#(\d+);/g, (_, num) => {
-        const code = parseInt(num, 10);
-        if (code > 0 && code < 0x10FFFF) {
-            return String.fromCodePoint(code);
+    // Handle numeric entities safely with bounds checking
+    result = result.replace(/&#(\d{1,7});/g, (_, numStr) => {
+        const num = parseInt(numStr, 10);
+        // Only allow valid Unicode code points, excluding control characters
+        if (num >= 32 && num < 0x10FFFF && !(num >= 127 && num < 160)) {
+            return String.fromCodePoint(num);
         }
         return '';
     });
 
-    result = result.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
-        const code = parseInt(hex, 16);
-        if (code > 0 && code < 0x10FFFF) {
-            return String.fromCodePoint(code);
+    result = result.replace(/&#x([0-9a-fA-F]{1,6});/g, (_, hexStr) => {
+        const num = parseInt(hexStr, 16);
+        if (num >= 32 && num < 0x10FFFF && !(num >= 127 && num < 160)) {
+            return String.fromCodePoint(num);
         }
         return '';
     });
@@ -218,69 +244,64 @@ function extractSkills(text: string): string[] {
     const foundSkills: string[] = [];
     const lowerText = text.toLowerCase();
 
-    commonSkills.forEach(skill => {
-        if (lowerText.includes(skill.toLowerCase())) {
+    for (const skill of commonSkills) {
+        const lowerSkill = skill.toLowerCase();
+        // Use indexOf instead of includes for simpler matching
+        if (lowerText.indexOf(lowerSkill) !== -1) {
             foundSkills.push(skill);
         }
-    });
+    }
 
+    // Deduplicate using Set
     return [...new Set(foundSkills)];
 }
 
 function extractJobDetails(text: string): JobExtractionResult {
-    // Try to find job title
-    const titlePatterns = [
-        /(?:job title|position|role):\s*([^\n]{5,80})/i,
-        /^([A-Z][^\n]{10,60})\s*(?:at|@)/m,
-    ];
-
+    // Simple pattern matching for job title
     let title = 'Untitled Position';
-    for (const pattern of titlePatterns) {
-        const match = text.match(pattern);
-        if (match) {
-            title = match[1].trim();
-            break;
-        }
+    const titleMatch = text.match(/(?:position|role|title):\s*([^\n]{5,80})/i);
+    if (titleMatch) {
+        title = titleMatch[1].trim();
     }
 
-    // Try to find company name
-    const companyPatterns = [
-        /(?:company|employer):\s*([^\n]{2,50})/i,
-        /(?:at|@)\s+([A-Z][A-Za-z0-9\s]{2,40}?)(?:\s|$|,)/,
-    ];
-
+    // Simple pattern matching for company
     let company = 'Unknown Company';
-    for (const pattern of companyPatterns) {
-        const match = text.match(pattern);
-        if (match) {
-            company = match[1].trim();
-            break;
-        }
+    const companyMatch = text.match(/(?:company|employer):\s*([^\n]{2,50})/i);
+    if (companyMatch) {
+        company = companyMatch[1].trim();
     }
 
     // Extract location
-    const locationMatch = text.match(/(?:location|based in|office in):\s*([^\n]{5,50})/i);
+    const locationMatch = text.match(/(?:location|based in|office):\s*([^\n]{5,50})/i);
     const location = locationMatch ? locationMatch[1].trim() : 'Location not specified';
 
     // Extract skills
     const skills = extractSkills(text);
 
-    // Create a clean description (truncate for safety)
-    const description = text.slice(0, 2000);
+    // Truncate description for safety
+    const description = text.substring(0, 2000);
 
     // Extract requirements and responsibilities
     const requirements: string[] = [];
     const responsibilities: string[] = [];
 
-    const lines = text.split('\n').filter(l => l.trim().length > 10);
-    lines.forEach(line => {
-        if (line.match(/required|must have|qualifications/i)) {
-            requirements.push(line.trim().slice(0, 200));
+    const lines = text.split('\n');
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.length < 10) continue;
+
+        const lowerLine = trimmedLine.toLowerCase();
+        if (lowerLine.indexOf('required') !== -1 || lowerLine.indexOf('must have') !== -1 || lowerLine.indexOf('qualification') !== -1) {
+            if (requirements.length < 10) {
+                requirements.push(trimmedLine.substring(0, 200));
+            }
         }
-        if (line.match(/responsibilities|duties|you will/i)) {
-            responsibilities.push(line.trim().slice(0, 200));
+        if (lowerLine.indexOf('responsibilit') !== -1 || lowerLine.indexOf('duties') !== -1 || lowerLine.indexOf('you will') !== -1) {
+            if (responsibilities.length < 10) {
+                responsibilities.push(trimmedLine.substring(0, 200));
+            }
         }
-    });
+    }
 
     return {
         title,
@@ -288,8 +309,8 @@ function extractJobDetails(text: string): JobExtractionResult {
         location,
         description,
         skills: skills.slice(0, 15),
-        requirements: requirements.slice(0, 10),
-        responsibilities: responsibilities.slice(0, 10),
+        requirements,
+        responsibilities,
     };
 }
 
@@ -305,19 +326,31 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Validate URL for SSRF protection
+        // Validate URL for SSRF protection - this returns a safe URL constructed from validated parts
         const validation = validateUrl(url);
-        if (!validation.isValid) {
+        if (!validation.isValid || !validation.safeUrl) {
             return NextResponse.json(
-                { error: validation.error },
+                { error: validation.error || 'Invalid URL' },
                 { status: 400 }
             );
         }
 
-        console.log('📥 [extract-job] Fetching URL:', url);
+        // Use the validated safe URL, not the original user input
+        const safeUrl = validation.safeUrl;
 
-        // Fetch the job page
-        const html = await fetchJobPage(url);
+        console.log('📥 [extract-job] Fetching validated URL:', safeUrl);
+
+        // Fetch using safe wrapper
+        const response = await safeFetch(safeUrl);
+
+        if (!response.ok) {
+            return NextResponse.json(
+                { error: `Failed to fetch job page: ${response.status}` },
+                { status: 400 }
+            );
+        }
+
+        const html = await response.text();
         const text = extractTextContent(html);
 
         if (!text || text.length < 100) {
@@ -337,7 +370,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('❌ [extract-job] Error:', error);
         return NextResponse.json(
-            { error: 'Failed to extract job details', details: String(error) },
+            { error: 'Failed to extract job details' },
             { status: 500 }
         );
     }
