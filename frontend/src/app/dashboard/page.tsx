@@ -11,7 +11,7 @@ import {
 import { AppleCard } from "@/components/ui/AppleCard";
 import { AppleButton } from "@/components/ui/AppleButton";
 import { useToast } from "@/components/ui/Toast";
-import { secureGet, secureSet } from "@/lib/secureStorage";
+import { secureGet, secureSet, sanitizeUrl } from "@/lib/secureStorage";
 
 interface TrackedJob {
     id: string;
@@ -208,7 +208,7 @@ export default function DashboardPage() {
                                                     ))}
                                                 </select>
                                                 <a
-                                                    href={job.url.startsWith('http') ? job.url : '#'}
+                                                    href={sanitizeUrl(job.url)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="p-2 rounded-lg hover:bg-background transition-colors"

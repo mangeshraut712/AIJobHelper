@@ -14,7 +14,7 @@ import { useToast } from "@/components/ui/Toast";
 import axios from "axios";
 import API_URL from "@/lib/api";
 import Link from "next/link";
-import { secureGet, secureSet } from "@/lib/secureStorage";
+import { secureGet, secureSet, sanitizeUrl } from "@/lib/secureStorage";
 
 interface AnalyzedJob {
     id: string;
@@ -280,7 +280,7 @@ export default function AnalyzeJobPage() {
                                             <Bookmark size={18} />
                                         </motion.button>
                                         <a
-                                            href={currentJob.url && (currentJob.url.startsWith('https://') || currentJob.url.startsWith('http://')) ? currentJob.url : '#'}
+                                            href={sanitizeUrl(currentJob.url)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="p-2 rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-colors"

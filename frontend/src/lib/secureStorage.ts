@@ -151,6 +151,31 @@ export function secureClear(): void {
 }
 
 /**
+ * Sanitize a URL to prevent XSS attacks via javascript: or data: URLs
+ * Only allows http:// and https:// URLs
+ * @param url - The URL to sanitize
+ * @param fallback - Fallback URL if sanitization fails (default: '#')
+ * @returns Sanitized URL or fallback
+ */
+export function sanitizeUrl(url: string | undefined | null, fallback: string = '#'): string {
+    if (!url || typeof url !== 'string') {
+        return fallback;
+    }
+
+    // Trim and check for valid URL protocols
+    const trimmedUrl = url.trim().toLowerCase();
+
+    // Only allow http and https
+    if (trimmedUrl.startsWith('https://') || trimmedUrl.startsWith('http://')) {
+        // Return the original (not lowercased) URL
+        return url.trim();
+    }
+
+    // Block dangerous protocols like javascript:, data:, vbscript:, etc.
+    return fallback;
+}
+
+/**
  * Legacy localStorage compatibility layer
  * For gradual migration from plain localStorage
  */
