@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
                 try {
                     const parsed = await parseResumeWithAI(text);
                     return NextResponse.json(parsed);
-                } catch (e) {
+                } catch {
                     console.error('Fallback to regex due to AI error');
                 }
             }

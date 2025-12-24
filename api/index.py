@@ -2,6 +2,14 @@ import sys
 import os
 
 # Add project root to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+sys.path.insert(0, os.path.join(project_root, 'backend'))
+sys.path.insert(0, os.path.join(project_root, 'frontend', 'api'))
 
-from backend.main import app
+# Try to import from backend first, fallback to frontend/api
+try:
+    from backend.main import app
+except ImportError:
+    # Fallback to frontend/api/index.py for serverless
+    from frontend.api.index import app

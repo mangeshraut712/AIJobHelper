@@ -25,3 +25,7 @@ storage/exports/
 *.txt
 !README.md
 !requirements.txt
+
+
+#Ignore cursor AI rules
+.cursor/rules/codacy.mdc
