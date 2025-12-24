@@ -1,6 +1,13 @@
 """
 Vercel Serverless Python Function for CareerAgentPro Backend.
 This file serves as the entry point for Python API routes on Vercel.
+
+Routes available:
+- GET /api/index (health check via FastAPI)
+- POST /api/index (various endpoints)
+
+Due to Vercel's serverless function routing, all requests to /api/python/*
+will be handled by the FastAPI app from backend/main.py
 """
 import sys
 import os
@@ -11,9 +18,21 @@ backend_path = os.path.join(project_root, 'backend')
 sys.path.insert(0, project_root)
 sys.path.insert(0, backend_path)
 
-# Import the FastAPI app from backend
-from backend.main import app
+# Try to import the FastAPI app from backend
+try:
+    from backend.main import app
+except ImportError as e:
+    # Fallback: create a minimal app if backend import fails
+    from fastapi import FastAPI
+    app = FastAPI(title="CareerAgentPro API (Fallback)")
+    
+    @app.get("/")
+    def root():
+        return {"error": "Backend import failed", "detail": str(e)}
+    
+    @app.get("/health")
+    def health():
+        return {"status": "error", "message": "Backend module not found"}
 
-# Vercel expects a handler named 'app' for ASGI applications
-# The app is already a FastAPI instance which is ASGI-compatible
+# For Vercel, the app object is exported and used as the ASGI handler
 
