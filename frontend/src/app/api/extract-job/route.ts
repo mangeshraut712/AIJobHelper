@@ -136,8 +136,7 @@ export async function POST(request: NextRequest) {
 
         // Construct a safe URL from validated components
         // Use a canonical, server-controlled origin for the allowed hostname
-        const canonicalOrigin =
-            HOSTNAME_CANONICAL_ORIGINS[hostname] ?? `https://${hostname}`;
+        const canonicalOrigin = HOSTNAME_CANONICAL_ORIGINS[hostname] ?? `https://${hostname}`;
         const safeUrlString = `${canonicalOrigin}${parsedUrl.pathname}${parsedUrl.search}`;
 
         console.log('📥 [extract-job] Fetching validated URL:', safeUrlString);
