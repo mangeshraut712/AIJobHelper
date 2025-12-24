@@ -12,7 +12,94 @@ interface JobExtractionResult {
     job_type?: string;
 }
 
-// Note: Future enhancement - add platform-specific parsing for LinkedIn, Greenhouse, etc.
+// Allowed domains for job extraction (SSRF protection)
+const ALLOWED_DOMAINS = new Set([
+    'linkedin.com', 'www.linkedin.com',
+    'indeed.com', 'www.indeed.com',
+    'greenhouse.io', 'boards.greenhouse.io',
+    'lever.co', 'jobs.lever.co',
+    'workday.com', 'myworkdayjobs.com',
+    'glassdoor.com', 'www.glassdoor.com',
+    'ziprecruiter.com', 'www.ziprecruiter.com',
+    'monster.com', 'www.monster.com',
+    'angel.co', 'www.wellfound.com', 'wellfound.com',
+    'dice.com', 'www.dice.com',
+    'careerbuilder.com', 'www.careerbuilder.com',
+    'simplyhired.com', 'www.simplyhired.com',
+    'google.com', 'careers.google.com',
+    'apple.com', 'jobs.apple.com',
+    'microsoft.com', 'careers.microsoft.com',
+    'amazon.jobs', 'www.amazon.jobs',
+    'meta.com', 'www.metacareers.com',
+    'netflix.com', 'jobs.netflix.com',
+]);
+
+// Validate URL to prevent SSRF attacks
+function validateUrl(urlString: string): { isValid: boolean; error?: string } {
+    try {
+        const url = new URL(urlString);
+
+        // Only allow HTTPS
+        if (url.protocol !== 'https:') {
+            return { isValid: false, error: 'Only HTTPS URLs are allowed' };
+        }
+
+        // Extract domain without subdomains for main check
+        const hostname = url.hostname.toLowerCase();
+
+        // Check against allowlist
+        const isAllowed = Array.from(ALLOWED_DOMAINS).some(domain =>
+            hostname === domain || hostname.endsWith(`.${domain}`)
+        );
+
+        if (!isAllowed) {
+            // Allow if it's a common job board pattern
+            const jobBoardPatterns = [
+                /^.*\.greenhouse\.io$/,
+                /^.*\.lever\.co$/,
+                /^.*\.workday\.com$/,
+                /^.*\.myworkdayjobs\.com$/,
+                /^careers?\./,
+                /^jobs?\./,
+                /^.*\.icims\.com$/,
+                /^.*\.taleo\.net$/,
+                /^.*\.smartrecruiters\.com$/,
+            ];
+
+            const isJobBoard = jobBoardPatterns.some(pattern => pattern.test(hostname));
+
+            if (!isJobBoard) {
+                return {
+                    isValid: false,
+                    error: 'This domain is not in our allowed job board list. Please use a direct link from LinkedIn, Indeed, Greenhouse, Lever, or other major job boards.'
+                };
+            }
+        }
+
+        // Block private/internal IPs (SSRF protection)
+        const privateIpPatterns = [
+            /^localhost$/i,
+            /^127\./,
+            /^10\./,
+            /^192\.168\./,
+            /^172\.(1[6-9]|2[0-9]|3[01])\./,
+            /^169\.254\./,
+            /^0\./,
+            /^\[::1\]$/,
+            /^\[fc/i,
+            /^\[fd/i,
+            /^\[fe80:/i,
+        ];
+
+        if (privateIpPatterns.some(pattern => pattern.test(hostname))) {
+            return { isValid: false, error: 'Private IP addresses are not allowed' };
+        }
+
+        return { isValid: true };
+    } catch {
+        return { isValid: false, error: 'Invalid URL format' };
+    }
+}
 
 async function fetchJobPage(url: string): Promise<string> {
     const response = await fetch(url, {
@@ -20,7 +107,23 @@ async function fetchJobPage(url: string): Promise<string> {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         },
+        // Prevent following redirects to potentially malicious URLs
+        redirect: 'manual',
     });
+
+    // Handle redirects safely
+    if (response.status >= 300 && response.status < 400) {
+        const redirectUrl = response.headers.get('location');
+        if (redirectUrl) {
+            // Validate redirect URL too
+            const validation = validateUrl(redirectUrl);
+            if (!validation.isValid) {
+                throw new Error(`Redirect to unsafe URL blocked: ${validation.error}`);
+            }
+            // Follow the redirect safely
+            return fetchJobPage(redirectUrl);
+        }
+    }
 
     if (!response.ok) {
         throw new Error(`Failed to fetch job page: ${response.status}`);
@@ -29,23 +132,77 @@ async function fetchJobPage(url: string): Promise<string> {
     return response.text();
 }
 
+// Secure text extraction using DOM-safe approach (not regex on untrusted input)
 function extractTextContent(html: string): string {
-    // Remove script and style tags
-    let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-    text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-    // Remove HTML tags but keep some structure
+    // First remove dangerous content
+    let text = html;
+
+    // Remove script, style, and other dangerous tags completely
+    const dangerousTags = ['script', 'style', 'noscript', 'iframe', 'object', 'embed', 'form', 'input'];
+    for (const tag of dangerousTags) {
+        const regex = new RegExp(`<${tag}[^>]*>[\\s\\S]*?<\\/${tag}>`, 'gi');
+        text = text.replace(regex, '');
+    }
+
+    // Convert common block elements to newlines
     text = text.replace(/<br\s*\/?>/gi, '\n');
-    text = text.replace(/<\/p>/gi, '\n\n');
-    text = text.replace(/<\/div>/gi, '\n');
-    text = text.replace(/<\/li>/gi, '\n');
+    text = text.replace(/<\/(p|div|li|h[1-6]|tr|section|article)>/gi, '\n');
+
+    // Remove all remaining HTML tags
     text = text.replace(/<[^>]+>/g, ' ');
+
+    // Decode HTML entities safely
+    text = decodeHtmlEntities(text);
+
     // Clean up whitespace
-    text = text.replace(/&nbsp;/g, ' ');
-    text = text.replace(/&amp;/g, '&');
-    text = text.replace(/&lt;/g, '<');
-    text = text.replace(/&gt;/g, '>');
     text = text.replace(/\s+/g, ' ');
+    text = text.replace(/\n\s*\n/g, '\n\n');
+
     return text.trim();
+}
+
+// Safe HTML entity decoder
+function decodeHtmlEntities(text: string): string {
+    const entities: Record<string, string> = {
+        '&nbsp;': ' ',
+        '&amp;': '&',
+        '&lt;': '<',
+        '&gt;': '>',
+        '&quot;': '"',
+        '&#39;': "'",
+        '&apos;': "'",
+        '&copy;': '©',
+        '&reg;': '®',
+        '&trade;': '™',
+        '&mdash;': '—',
+        '&ndash;': '–',
+        '&bull;': '•',
+        '&hellip;': '…',
+    };
+
+    let result = text;
+    for (const [entity, char] of Object.entries(entities)) {
+        result = result.split(entity).join(char);
+    }
+
+    // Handle numeric entities
+    result = result.replace(/&#(\d+);/g, (_, num) => {
+        const code = parseInt(num, 10);
+        if (code > 0 && code < 0x10FFFF) {
+            return String.fromCodePoint(code);
+        }
+        return '';
+    });
+
+    result = result.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+        const code = parseInt(hex, 16);
+        if (code > 0 && code < 0x10FFFF) {
+            return String.fromCodePoint(code);
+        }
+        return '';
+    });
+
+    return result;
 }
 
 function extractSkills(text: string): string[] {
@@ -108,7 +265,7 @@ function extractJobDetails(text: string): JobExtractionResult {
     // Extract skills
     const skills = extractSkills(text);
 
-    // Create a clean description
+    // Create a clean description (truncate for safety)
     const description = text.slice(0, 2000);
 
     // Extract requirements and responsibilities
@@ -148,12 +305,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Validate URL format
-        try {
-            new URL(url);
-        } catch {
+        // Validate URL for SSRF protection
+        const validation = validateUrl(url);
+        if (!validation.isValid) {
             return NextResponse.json(
-                { error: 'Invalid URL format' },
+                { error: validation.error },
                 { status: 400 }
             );
         }

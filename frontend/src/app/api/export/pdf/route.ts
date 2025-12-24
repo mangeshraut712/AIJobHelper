@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Note: Full PDF generation requires additional packages like @react-pdf/renderer
 // For Vercel, we'll return an HTML representation that can be printed as PDF
-// or provide instructions for PDF generation
 
 interface Experience {
     role?: string;
@@ -28,44 +27,83 @@ interface ResumeData {
     education?: Education[];
 }
 
-function generateResumeHTML(resume: ResumeData): string {
-    const name = resume.name || 'Your Name';
-    const email = resume.email || '';
-    const phone = resume.phone || '';
-    const location = resume.location || '';
-    const summary = resume.summary || '';
+/**
+ * Escape HTML special characters to prevent XSS attacks
+ * This is crucial for user-generated content in HTML output
+ */
+function escapeHtml(str: string | undefined | null): string {
+    if (!str) return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+        .replace(/\//g, '&#x2F;')
+        .replace(/`/g, '&#x60;')
+        .replace(/=/g, '&#x3D;');
+}
 
+/**
+ * Sanitize filename to prevent header injection
+ */
+function sanitizeFilename(str: string): string {
+    if (!str) return 'resume';
+    return str
+        .replace(/[^a-zA-Z0-9_\- ]/g, '')
+        .replace(/\s+/g, '_')
+        .slice(0, 50);
+}
+
+function generateResumeHTML(resume: ResumeData): string {
+    // Escape all user-provided content
+    const name = escapeHtml(resume.name) || 'Your Name';
+    const email = escapeHtml(resume.email);
+    const phone = escapeHtml(resume.phone);
+    const location = escapeHtml(resume.location);
+    const summary = escapeHtml(resume.summary);
+
+    // Build experience section with escaped content
     const experienceHTML = (resume.experience || []).map(exp => `
         <div style="margin-bottom: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <strong style="font-size: 14px;">${exp.role || 'Position'}</strong>
-                <span style="font-size: 12px; color: #666;">${exp.duration || ''}</span>
+                <strong style="font-size: 14px;">${escapeHtml(exp.role) || 'Position'}</strong>
+                <span style="font-size: 12px; color: #666;">${escapeHtml(exp.duration)}</span>
             </div>
-            <div style="font-style: italic; color: #333;">${exp.company || 'Company'}</div>
-            <p style="margin-top: 8px; font-size: 13px; line-height: 1.5;">${exp.description || ''}</p>
+            <div style="font-style: italic; color: #333;">${escapeHtml(exp.company) || 'Company'}</div>
+            <p style="margin-top: 8px; font-size: 13px; line-height: 1.5;">${escapeHtml(exp.description)}</p>
         </div>
     `).join('');
 
+    // Build education section with escaped content
     const educationHTML = (resume.education || []).map(edu => `
         <div style="margin-bottom: 12px;">
-            <strong>${edu.degree || 'Degree'}</strong>
-            <div>${edu.institution || 'Institution'} | ${edu.graduation_year || ''}</div>
+            <strong>${escapeHtml(edu.degree) || 'Degree'}</strong>
+            <div>${escapeHtml(edu.institution) || 'Institution'} | ${escapeHtml(edu.graduation_year)}</div>
         </div>
     `).join('');
 
+    // Build skills section with escaped content
     const skillsHTML = (resume.skills || []).map(skill =>
-        `<span style="display: inline-block; padding: 4px 12px; margin: 4px; background: #f0f0f0; border-radius: 16px; font-size: 12px;">${skill}</span>`
+        `<span style="display: inline-block; padding: 4px 12px; margin: 4px; background: #f0f0f0; border-radius: 16px; font-size: 12px;">${escapeHtml(skill)}</span>`
     ).join('');
 
+    // Build contact line
+    const contactParts = [email, phone, location].filter(Boolean);
+    const contactLine = contactParts.join(' | ');
+
     return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline';">
     <title>${name} - Resume</title>
     <style>
         @media print {
             body { margin: 0; padding: 20px; }
             @page { margin: 0.5in; }
+            .no-print { display: none; }
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -90,7 +128,7 @@ function generateResumeHTML(resume: ResumeData): string {
     <header style="text-align: center; margin-bottom: 24px;">
         <h1 style="margin: 0; font-size: 28px;">${name}</h1>
         <p style="color: #666; margin: 8px 0;">
-            ${[email, phone, location].filter(Boolean).join(' | ')}
+            ${contactLine}
         </p>
     </header>
 
@@ -122,10 +160,12 @@ function generateResumeHTML(resume: ResumeData): string {
     </section>
     ` : ''}
 
-    <script>
-        // Auto-trigger print dialog for PDF generation
-        // window.print();
-    </script>
+    <div class="no-print" style="margin-top: 40px; padding: 20px; background: #f5f5f5; border-radius: 8px; text-align: center;">
+        <p style="margin: 0 0 10px 0; color: #666;">To save as PDF, use <strong>Print → Save as PDF</strong> in your browser</p>
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 14px; cursor: pointer; background: #333; color: white; border: none; border-radius: 4px;">
+            Print Resume
+        </button>
+    </div>
 </body>
 </html>`;
 }
@@ -138,13 +178,18 @@ export async function POST(request: NextRequest) {
 
         const htmlContent = generateResumeHTML(resume);
 
+        // Sanitize filename to prevent header injection
+        const safeName = sanitizeFilename(resume.name || 'resume');
+
         // Return HTML that can be printed as PDF
-        // In production, you'd use a PDF library like puppeteer or @react-pdf/renderer
         return new NextResponse(htmlContent, {
             status: 200,
             headers: {
-                'Content-Type': 'text/html',
-                'Content-Disposition': `inline; filename="${resume.name || 'resume'}_resume.html"`,
+                'Content-Type': 'text/html; charset=utf-8',
+                'Content-Disposition': `inline; filename="${safeName}_resume.html"`,
+                // Security headers
+                'X-Content-Type-Options': 'nosniff',
+                'X-XSS-Protection': '1; mode=block',
             },
         });
 

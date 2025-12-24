@@ -24,47 +24,85 @@ interface ResumeData {
     education?: Education[];
 }
 
-function generateLatex(resume: ResumeData): string {
-    const escapeTex = (str: string): string => {
-        if (!str) return '';
-        return str
-            .replace(/\\/g, '\\textbackslash{}')
-            .replace(/[&%$#_{}]/g, '\\$&')
-            .replace(/~/g, '\\textasciitilde{}')
-            .replace(/\^/g, '\\textasciicircum{}');
-    };
+/**
+ * Escape text for safe inclusion in LaTeX documents
+ * This prevents LaTeX injection and ensures proper rendering
+ */
+function escapeLaTeX(str: string | undefined | null): string {
+    if (!str) return '';
 
-    const name = escapeTex(resume.name || 'Your Name');
-    const email = escapeTex(resume.email || '');
-    const phone = escapeTex(resume.phone || '');
-    const location = escapeTex(resume.location || '');
-    const summary = escapeTex(resume.summary || '');
+    // Order matters - backslash must be escaped first
+    return str
+        // Escape backslash first (before we add more backslashes)
+        .replace(/\\/g, '\\textbackslash{}')
+        // Escape special characters that have meaning in LaTeX
+        .replace(/&/g, '\\&')
+        .replace(/%/g, '\\%')
+        .replace(/\$/g, '\\$')
+        .replace(/#/g, '\\#')
+        .replace(/_/g, '\\_')
+        .replace(/\{/g, '\\{')
+        .replace(/\}/g, '\\}')
+        // Escape tilde and caret
+        .replace(/~/g, '\\textasciitilde{}')
+        .replace(/\^/g, '\\textasciicircum{}')
+        // Escape less than and greater than
+        .replace(/</g, '\\textless{}')
+        .replace(/>/g, '\\textgreater{}')
+        // Escape quotes
+        .replace(/"/g, "''")
+        // Remove or escape any remaining problematic characters
+        .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+        .trim();
+}
+
+/**
+ * Sanitize a string to only contain safe characters for LaTeX identifiers
+ */
+function sanitizeForFilename(str: string): string {
+    if (!str) return 'resume';
+    return str
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .slice(0, 50);
+}
+
+function generateLatex(resume: ResumeData): string {
+    const name = escapeLaTeX(resume.name) || 'Your Name';
+    const email = escapeLaTeX(resume.email);
+    const phone = escapeLaTeX(resume.phone);
+    const location = escapeLaTeX(resume.location);
+    const summary = escapeLaTeX(resume.summary);
 
     let experienceSection = '';
     if (resume.experience && resume.experience.length > 0) {
         experienceSection = resume.experience.map(exp => `
-\\subsection*{${escapeTex(exp.role || 'Position')}}
-\\textit{${escapeTex(exp.company || 'Company')}} \\hfill ${escapeTex(exp.duration || '')}
+\\subsection*{${escapeLaTeX(exp.role) || 'Position'}}
+\\textit{${escapeLaTeX(exp.company) || 'Company'}} \\hfill ${escapeLaTeX(exp.duration)}
 
-${escapeTex(exp.description || '')}
+${escapeLaTeX(exp.description)}
 `).join('\n');
     }
 
     let educationSection = '';
     if (resume.education && resume.education.length > 0) {
         educationSection = resume.education.map(edu => `
-\\textbf{${escapeTex(edu.degree || 'Degree')}} \\\\
-${escapeTex(edu.institution || 'Institution')} \\hfill ${escapeTex(edu.graduation_year || '')}
+\\textbf{${escapeLaTeX(edu.degree) || 'Degree'}} \\\\
+${escapeLaTeX(edu.institution) || 'Institution'} \\hfill ${escapeLaTeX(edu.graduation_year)}
 `).join('\n');
     }
 
     let skillsSection = '';
     if (resume.skills && resume.skills.length > 0) {
-        skillsSection = resume.skills.map(s => escapeTex(s)).join(', ');
+        skillsSection = resume.skills.map(s => escapeLaTeX(s)).join(', ');
     }
+
+    // Build contact line safely
+    const contactParts = [email, phone, location].filter(Boolean);
+    const contactLine = contactParts.join(' | ');
 
     return `\\documentclass[11pt,a4paper]{article}
 \\usepackage[utf8]{inputenc}
+\\usepackage[T1]{fontenc}
 \\usepackage[margin=1in]{geometry}
 \\usepackage{titlesec}
 \\usepackage{enumitem}
@@ -78,7 +116,7 @@ ${escapeTex(edu.institution || 'Institution')} \\hfill ${escapeTex(edu.graduatio
 \\begin{center}
 {\\LARGE\\bfseries ${name}}
 
-${email}${phone ? ` | ${phone}` : ''}${location ? ` | ${location}` : ''}
+${contactLine}
 \\end{center}
 
 ${summary ? `\\section*{Summary}\n${summary}` : ''}
@@ -100,11 +138,14 @@ export async function POST(request: NextRequest) {
 
         const latexContent = generateLatex(resume);
 
+        // Sanitize filename to prevent header injection
+        const safeName = sanitizeForFilename(resume.name || 'resume');
+
         return new NextResponse(latexContent, {
             status: 200,
             headers: {
-                'Content-Type': 'text/plain',
-                'Content-Disposition': `attachment; filename="${resume.name || 'resume'}_resume.tex"`,
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Content-Disposition': `attachment; filename="${safeName}_resume.tex"`,
             },
         });
 

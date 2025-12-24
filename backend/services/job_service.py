@@ -247,9 +247,13 @@ class JobService:
         
         # Special handling for LinkedIn URLs
         original_url = url
-        if "linkedin.com" in url:
+        if "linkedin.com" in url.lower():
             # Try to extract job ID and convert to direct job view URL
-            url = self._normalize_linkedin_url(url)
+            normalized_url = self._normalize_linkedin_url(url)
+            # Re-validate normalized URL to prevent SSRF through URL manipulation
+            if self._is_allowed_url(normalized_url):
+                url = normalized_url
+            # If normalized URL is not safe, keep the original validated URL
         
         content = None
         
