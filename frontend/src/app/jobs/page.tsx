@@ -280,7 +280,7 @@ export default function AnalyzeJobPage() {
                                             <Bookmark size={18} />
                                         </motion.button>
                                         <a
-                                            href={currentJob.url}
+                                            href={currentJob.url && (currentJob.url.startsWith('https://') || currentJob.url.startsWith('http://')) ? currentJob.url : '#'}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="p-2 rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-colors"

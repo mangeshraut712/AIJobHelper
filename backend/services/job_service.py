@@ -245,27 +245,33 @@ class JobService:
                 url=url
             )
         
+        # SECURITY: At this point, url has been validated against the allowlist.
+        # We store it in safe_url to make the validation flow explicit.
+        safe_url = url
+        
         # Special handling for LinkedIn URLs
         original_url = url
-        if "linkedin.com" in url.lower():
+        if "linkedin.com" in safe_url.lower():
             # Try to extract job ID and convert to direct job view URL
-            normalized_url = self._normalize_linkedin_url(url)
+            normalized_url = self._normalize_linkedin_url(safe_url)
             # Re-validate normalized URL to prevent SSRF through URL manipulation
             if self._is_allowed_url(normalized_url):
-                url = normalized_url
+                safe_url = normalized_url
             # If normalized URL is not safe, keep the original validated URL
         
         content = None
         
         # Method 1: Try httpx first (better for meta tags and SPAs)
-        html_content = await self._fetch_with_httpx(url)
+        # SECURITY: safe_url has been validated against our allowlist
+        html_content = await self._fetch_with_httpx(safe_url)
         if html_content:
             content = self._extract_text_from_html(html_content)
         
         # Method 2: Fallback to trafilatura if httpx didn't get enough content
+        # SECURITY: safe_url has been validated against our allowlist
         if not content or len(content.strip()) < 100:
             try:
-                downloaded = trafilatura.fetch_url(url)
+                downloaded = trafilatura.fetch_url(safe_url)
                 if downloaded:
                     t_content = trafilatura.extract(downloaded)
                     if t_content and len(t_content) > len(content or ""):
