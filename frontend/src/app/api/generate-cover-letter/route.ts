@@ -3,6 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
+// Model priority chain - tries Grok first (if credits), then reliable free models
+const MODELS = {
+    grok: 'x-ai/grok-4.1-fast',
+    primary: 'meta-llama/llama-3.2-3b-instruct:free',
+    secondary: 'deepseek/deepseek-r1-0528:free',
+    fallback: 'mistralai/mistral-7b-instruct:free',
+};
+
+const MODEL_FALLBACK_ORDER = [MODELS.grok, MODELS.primary, MODELS.secondary, MODELS.fallback];
+
 interface ResumeData {
     name?: string;
     email?: string;
@@ -17,36 +27,59 @@ interface JobDescription {
     description?: string;
 }
 
-async function generateWithAI(prompt: string, systemPrompt: string): Promise<string> {
+async function generateWithAI(prompt: string, systemPrompt: string, modelIndex: number = 0): Promise<string> {
+    const useModel = MODEL_FALLBACK_ORDER[modelIndex] || MODELS.primary;
+
     if (!OPENROUTER_API_KEY) {
         throw new Error('AI service not configured');
     }
 
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://ai-job-helper-steel.vercel.app',
-            'X-Title': 'CareerAgentPro Cover Letter Generator',
-        },
-        body: JSON.stringify({
-            model: 'x-ai/grok-2-vision-1212',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: prompt },
-            ],
-            temperature: 0.7,
-            max_tokens: 2000,
-        }),
-    });
+    console.log('🤖 [cover-letter] Trying model:', useModel, `(attempt ${modelIndex + 1}/${MODEL_FALLBACK_ORDER.length})`);
 
-    if (!response.ok) {
-        throw new Error(`AI API error: ${response.status}`);
+    try {
+        const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://ai-job-helper-steel.vercel.app',
+                'X-Title': 'CareerAgentPro Cover Letter Generator',
+            },
+            body: JSON.stringify({
+                model: useModel,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: prompt },
+                ],
+                temperature: 0.7,
+                max_tokens: 2000,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ OpenRouter API error:', response.status, errorText);
+
+            // Try next model on credits/rate limit issues
+            if ((response.status === 402 || response.status === 429 || response.status === 500)
+                && modelIndex < MODEL_FALLBACK_ORDER.length - 1) {
+                console.log('🔄 Trying next fallback model...');
+                return generateWithAI(prompt, systemPrompt, modelIndex + 1);
+            }
+            throw new Error(`AI API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ [cover-letter] Response received from:', useModel);
+        return data.choices?.[0]?.message?.content || '';
+    } catch (error) {
+        // Try fallback on any error
+        if (modelIndex < MODEL_FALLBACK_ORDER.length - 1) {
+            console.log('🔄 Error occurred, trying next model...');
+            return generateWithAI(prompt, systemPrompt, modelIndex + 1);
+        }
+        throw error;
     }
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
 }
 
 function generateFallbackCoverLetter(resume: ResumeData, job: JobDescription): string {
@@ -88,7 +121,8 @@ export async function POST(request: NextRequest) {
 2. Highlight relevant skills and experience
 3. Show enthusiasm and cultural fit
 4. Are professional yet engaging
-5. Are 3-4 paragraphs long`;
+5. Are 3-4 paragraphs long
+6. Do NOT include any markdown formatting - just plain text`;
 
             const prompt = `Write a ${template_type} cover letter for:
 
@@ -103,11 +137,11 @@ Title: ${job_description?.title || 'The position'}
 Company: ${job_description?.company || 'The company'}
 Description: ${(job_description?.description || '').slice(0, 500)}
 
-Write a compelling cover letter that connects the applicant's experience to this specific role.`;
+Write a compelling cover letter that connects the applicant's experience to this specific role. Return ONLY the cover letter text, no other commentary.`;
 
             try {
                 coverLetter = await generateWithAI(prompt, systemPrompt);
-                console.log('✅ AI-generated cover letter');
+                console.log('✅ AI-generated cover letter, length:', coverLetter.length);
             } catch (aiError) {
                 console.error('AI error, using fallback:', aiError);
                 coverLetter = generateFallbackCoverLetter(resume_data, job_description);
@@ -117,7 +151,11 @@ Write a compelling cover letter that connects the applicant's experience to this
             coverLetter = generateFallbackCoverLetter(resume_data, job_description);
         }
 
-        return NextResponse.json({ content: coverLetter });
+        // Return both 'content' and 'cover_letter' for compatibility
+        return NextResponse.json({
+            content: coverLetter,
+            cover_letter: coverLetter
+        });
 
     } catch (error) {
         console.error('❌ [generate-cover-letter] Error:', error);
