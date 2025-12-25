@@ -97,24 +97,37 @@ export function secureGet<T>(key: string): T | null {
         const encoded = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
         if (!encoded) return null;
 
+        // Try to decode as encrypted data
         const serialized = decode(encoded);
-        if (!serialized) return null;
+        if (serialized) {
+            try {
+                const wrapper: StorageWrapper<T> = JSON.parse(serialized);
 
-        const wrapper: StorageWrapper<T> = JSON.parse(serialized);
+                // Check version compatibility
+                if (wrapper.version !== STORAGE_VERSION) {
+                    secureRemove(key);
+                    return null;
+                }
 
-        // Check version compatibility
-        if (wrapper.version !== STORAGE_VERSION) {
-            secureRemove(key);
-            return null;
+                // Check expiration (0 means no expiration)
+                if (wrapper.timestamp > 0 && wrapper.timestamp < Date.now()) {
+                    secureRemove(key);
+                    return null;
+                }
+
+                return wrapper.data;
+            } catch {
+                // Decoding succeeded but parsing failed, continue to fallback
+            }
         }
 
-        // Check expiration (0 means no expiration)
-        if (wrapper.timestamp > 0 && wrapper.timestamp < Date.now()) {
-            secureRemove(key);
+        // Fallback: Try to parse as plaintext JSON (for migration compatibility)
+        try {
+            return JSON.parse(encoded) as T;
+        } catch {
+            console.warn(`SecureStorage: Failed to parse data for key: ${key}`);
             return null;
         }
-
-        return wrapper.data;
     } catch (error) {
         console.error('SecureStorage: Failed to retrieve data:', error);
         return null;
