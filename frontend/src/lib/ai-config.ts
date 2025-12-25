@@ -1,17 +1,18 @@
 // Shared AI configuration for the entire project
-// Optimized for SPEED and reliability
+// Optimized for FREE tier compatibility on Vercel
 
 export const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 export const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
 // Fast models for different use cases
-// Primary: gpt-4o-mini (fast, cheap, good at JSON)
-// Fallback: llama-3.2-3b-instruct:free
+// Primary: gpt-4o-mini (fast, cheap, good at JSON) - PAID
+// Default: llama-3.2-3b-instruct:free - FREE (use this for Vercel)
 export const AI_MODEL_FAST = 'openai/gpt-4o-mini';
 export const AI_MODEL_FREE = 'meta-llama/llama-3.2-3b-instruct:free';
 
-// Use the fast model by default for better UX
-export const AI_MODEL = AI_MODEL_FAST;
+// Use FREE model by default for Vercel compatibility
+// Can opt-in to fast model with useFastModel option
+export const AI_MODEL = AI_MODEL_FREE;
 
 // Helper function to call OpenRouter with timeout and retry
 export async function callAI(
@@ -60,13 +61,6 @@ export async function callAI(
         if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ [AI] Error:', response.status, errorText);
-
-            // If fast model fails, try free model
-            if (model === AI_MODEL_FAST && !options?.useFreeModel) {
-                console.log('🔄 [AI] Retrying with free model...');
-                return callAI(prompt, systemPrompt, { ...options, useFreeModel: true });
-            }
-
             throw new Error(`AI API error: ${response.status}`);
         }
 
@@ -77,13 +71,6 @@ export async function callAI(
         return content;
     } catch (error) {
         clearTimeout(timeoutId);
-
-        // If timeout or network error, try free model
-        if (model === AI_MODEL_FAST && !options?.useFreeModel) {
-            console.log('🔄 [AI] Timeout/error, retrying with free model...');
-            return callAI(prompt, systemPrompt, { ...options, useFreeModel: true });
-        }
-
         throw error;
     }
 }
