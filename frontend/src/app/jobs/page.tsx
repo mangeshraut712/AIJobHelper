@@ -40,6 +40,7 @@ interface AnalyzedJob {
     benefits: string[];
     jobInfo?: Record<string, string>;
     source?: string;
+    note?: string;  // Warning about limited data
     analyzedAt: string;
     matchScore?: number;
 }
@@ -131,6 +132,7 @@ export default function AnalyzeJobPage() {
                 benefits: data.benefits || [],
                 jobInfo: data.job_info || {},
                 source: data.source,
+                note: data.note,
                 analyzedAt: new Date().toISOString(),
             };
 
@@ -141,7 +143,13 @@ export default function AnalyzeJobPage() {
             }
 
             setCurrentJob(analyzedJob);
-            toast("Job analyzed successfully!", "success");
+
+            // Show note if LinkedIn data is limited
+            if (data.note) {
+                toast(data.note, "info");
+            } else {
+                toast("Job analyzed successfully!", "success");
+            }
         } catch (error) {
             console.error("Analysis error:", error);
             // Extract error message from API response

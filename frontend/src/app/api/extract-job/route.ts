@@ -1,16 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { callAI, extractJSON, OPENROUTER_API_KEY } from '@/lib/ai-config';
 
 interface JobExtractionResult {
     title: string;
     company: string;
     location: string;
     description: string;
+    about_job?: string;
     skills: string[];
     requirements: string[];
     responsibilities: string[];
-    salary?: string;
+    salary_range?: string;
     job_type?: string;
+    source?: string;
+    note?: string;  // To indicate limited data from public pages
 }
+
+// AI-powered job extraction
+const JOB_SYSTEM_PROMPT = `You are a job posting analyzer. Extract structured information from the job posting text.
+Return ONLY a valid JSON object without any markdown or explanation.
+
+Return this exact JSON structure:
+{
+    "title": "job title",
+    "company": "company name",
+    "location": "city, state or remote",
+    "salary_range": "salary range if mentioned",
+    "job_type": "full-time/part-time/contract",
+    "description": "brief job summary",
+    "responsibilities": ["responsibility 1", "responsibility 2"],
+    "requirements": ["requirement 1", "requirement 2"],
+    "skills": ["skill1", "skill2"],
+    "benefits": ["benefit 1", "benefit 2"]
+}`;
+
+async function parseJobWithAI(text: string, meta: { title?: string; company?: string; location?: string; description?: string }): Promise<JobExtractionResult> {
+    if (!OPENROUTER_API_KEY) {
+        throw new Error('No API key');
+    }
+
+    console.log('🤖 [extract-job] Using AI to parse job posting...');
+
+    // Use meta data to provide context
+    const contextInfo = meta.title ? `Job: ${meta.title}\nCompany: ${meta.company || 'Unknown'}\n\n` : '';
+    const prompt = `Extract job details from this posting:\n\n${contextInfo}${text.substring(0, 6000)}`;
+
+    const response = await callAI(prompt, JOB_SYSTEM_PROMPT, { temperature: 0.1, maxTokens: 2000 });
+    const jsonStr = extractJSON(response);
+    const parsed = JSON.parse(jsonStr);
+
+    return {
+        title: parsed.title || meta.title || 'Job Position',
+        company: parsed.company || meta.company || 'Company',
+        location: parsed.location || meta.location || 'Not specified',
+        description: parsed.description || meta.description || text.substring(0, 1000),
+        about_job: parsed.description || meta.description,
+        skills: Array.isArray(parsed.skills) ? parsed.skills : [],
+        requirements: Array.isArray(parsed.requirements) ? parsed.requirements : [],
+        responsibilities: Array.isArray(parsed.responsibilities) ? parsed.responsibilities : [],
+        salary_range: parsed.salary_range,
+        job_type: parsed.job_type,
+        source: 'AI',
+    };
+}
+
 
 // Hardcoded list of allowed hostnames for SSRF protection
 // CodeQL requires explicit string matching, not dynamic functions
@@ -316,6 +369,8 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
+        // Extract meta tags first (works better for LinkedIn)
+        const metaData = extractMetaTags(html);
         const text = extractTextFromHtml(html);
 
         if (!text || text.length < 100) {
@@ -325,9 +380,16 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        const jobData = parseJobContent(text);
-
-        console.log('✅ [extract-job] Extracted job:', jobData.title, 'at', jobData.company);
+        // Try AI-powered extraction first, fall back to regex
+        let jobData: JobExtractionResult;
+        try {
+            jobData = await parseJobWithAI(text, metaData);
+            console.log('✅ [extract-job] AI extracted job:', jobData.title, 'at', jobData.company);
+        } catch (aiError) {
+            console.error('❌ [extract-job] AI failed, using regex:', aiError);
+            jobData = parseJobContent(text, metaData);
+            console.log('✅ [extract-job] Regex extracted job:', jobData.title, 'at', jobData.company);
+        }
 
         return NextResponse.json(jobData);
 
@@ -396,43 +458,144 @@ function extractTextFromHtml(html: string): string {
     return text.substring(0, 10000);
 }
 
+// Extract meta tags from HTML (especially for LinkedIn)
+interface MetaData {
+    title?: string;
+    description?: string;
+    company?: string;
+    location?: string;
+}
+
+function extractMetaTags(html: string): MetaData {
+    const result: MetaData = {};
+
+    // Extract og:title - "Company hiring Title in Location | LinkedIn"
+    const ogTitleMatch = html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i) ||
+        html.match(/<meta\s+content="([^"]+)"\s+property="og:title"/i);
+    if (ogTitleMatch) {
+        const ogTitle = ogTitleMatch[1];
+        // Parse "Company hiring Title in Location | LinkedIn"
+        const linkedInMatch = ogTitle.match(/^(.+?)\s+hiring\s+(.+?)\s+in\s+(.+?)\s*\|/i);
+        if (linkedInMatch) {
+            result.company = linkedInMatch[1].trim();
+            result.title = linkedInMatch[2].trim();
+            result.location = linkedInMatch[3].trim();
+        } else {
+            result.title = ogTitle.replace(/\s*\|\s*LinkedIn$/i, '').trim();
+        }
+    }
+
+    // Extract og:description
+    const ogDescMatch = html.match(/<meta\s+property="og:description"\s+content="([^"]+)"/i) ||
+        html.match(/<meta\s+content="([^"]+)"\s+property="og:description"/i);
+    if (ogDescMatch) {
+        result.description = ogDescMatch[1];
+    }
+
+    // Extract regular title as fallback
+    if (!result.title) {
+        const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+        if (titleMatch) {
+            result.title = titleMatch[1].replace(/\s*\|\s*LinkedIn$/i, '').trim();
+        }
+    }
+
+    // Extract meta description as fallback
+    if (!result.description) {
+        const descMatch = html.match(/<meta\s+name="description"\s+content="([^"]+)"/i);
+        if (descMatch) {
+            result.description = descMatch[1];
+        }
+    }
+
+    return result;
+}
+
 // Parse job content into structured data
-function parseJobContent(text: string): JobExtractionResult {
+function parseJobContent(text: string, meta: MetaData = {}): JobExtractionResult {
     const skills = extractSkills(text);
 
-    // Simple title extraction
-    let title = 'Job Position';
-    const titleMatch = text.match(/(?:position|role|title)[:\s]+([^\n]{5,60})/i);
-    if (titleMatch) title = titleMatch[1].trim();
+    // Use meta data first, then fall back to text extraction
+    let title = meta.title || 'Job Position';
+    let company = meta.company || 'Company';
+    let location = meta.location || 'Not specified';
+    let description = meta.description || '';
 
-    // Simple company extraction
-    let company = 'Company';
-    const companyMatch = text.match(/(?:company|employer)[:\s]+([^\n]{2,40})/i);
-    if (companyMatch) company = companyMatch[1].trim();
+    // If meta didn't give us good data, try text extraction
+    if (title === 'Job Position') {
+        const titleMatch = text.match(/(?:position|role|title|hiring)[:\s]+([^\n]{5,60})/i);
+        if (titleMatch) title = titleMatch[1].trim();
+    }
 
-    // Simple location extraction
-    let location = 'Not specified';
-    const locationMatch = text.match(/(?:location|based in)[:\s]+([^\n]{5,40})/i);
-    if (locationMatch) location = locationMatch[1].trim();
+    if (company === 'Company') {
+        const companyMatch = text.match(/(?:company|employer|at)[:\s]+([^\n]{2,40})/i);
+        if (companyMatch) company = companyMatch[1].trim();
+    }
+
+    if (location === 'Not specified') {
+        const locationMatch = text.match(/(?:location|based in|city)[:\s]+([^\n]{5,40})/i);
+        if (locationMatch) location = locationMatch[1].trim();
+    }
+
+    // Extract salary
+    let salary_range: string | undefined;
+    const salaryMatch = text.match(/\$[\d,]+k?\s*[-–]\s*\$?[\d,]+k?/i) ||
+        text.match(/\$[\d,]+\s*(?:to|-)?\s*\$?[\d,]+/i) ||
+        text.match(/(\d{2,3}k?\s*[-–]\s*\d{2,3}k)/i);
+    if (salaryMatch) salary_range = salaryMatch[0];
+
+    // Extract responsibilities
+    const responsibilities: string[] = [];
+    const respSection = text.match(/(?:responsibilities|what you.?ll do|key duties)[:\s]*([\s\S]*?)(?:\n\n|qualifications|requirements|about)/i);
+    if (respSection) {
+        const bullets = respSection[1].match(/[•\-*]\s*[^\n]+/g) || [];
+        responsibilities.push(...bullets.slice(0, 10).map(b => b.replace(/^[•\-*]\s*/, '').trim()));
+    }
+
+    // Extract requirements
+    const requirements: string[] = [];
+    const reqSection = text.match(/(?:requirements|qualifications|what we.?re looking for)[:\s]*([\s\S]*?)(?:\n\n|benefits|about the company|$)/i);
+    if (reqSection) {
+        const bullets = reqSection[1].match(/[•\-*]\s*[^\n]+/g) || [];
+        requirements.push(...bullets.slice(0, 10).map(b => b.replace(/^[•\-*]\s*/, '').trim()));
+    }
+
+    // Build full description
+    if (!description || description.length < 100) {
+        description = text.substring(0, 3000);
+    }
+
+    // Check if LinkedIn limited the data (truncated with "See this and similar jobs")
+    const isLimitedData = description.includes('See this and similar jobs') ||
+        description.includes('…See this') ||
+        (description.length < 300 && meta.title);
+
+    // Determine source
+    const source = meta.company ? 'LinkedIn' : 'Web';
 
     return {
         title,
         company,
         location,
-        description: text.substring(0, 2000),
+        description,
+        about_job: description,
         skills,
-        requirements: [],
-        responsibilities: [],
+        requirements,
+        responsibilities,
+        salary_range,
+        source,
+        note: isLimitedData ? 'LinkedIn requires login for full job details. For complete info, copy and paste the job description directly from the posting.' : undefined,
     };
 }
 
 function extractSkills(text: string): string[] {
     const commonSkills = [
-        'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'Go', 'Rust',
-        'React', 'Angular', 'Vue', 'Node.js', 'Django', 'Flask',
-        'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes',
-        'SQL', 'PostgreSQL', 'MongoDB', 'Redis', 'GraphQL',
-        'Machine Learning', 'AI', 'TensorFlow', 'PyTorch',
+        'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'Go', 'Rust', 'Ruby', 'PHP', 'Swift', 'Kotlin',
+        'React', 'Angular', 'Vue', 'Next.js', 'Node.js', 'Express', 'Django', 'Flask', 'Spring', 'FastAPI',
+        'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Terraform', 'Jenkins', 'CI/CD',
+        'SQL', 'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'GraphQL', 'REST', 'APIs',
+        'Machine Learning', 'AI', 'TensorFlow', 'PyTorch', 'Deep Learning', 'NLP', 'Computer Vision',
+        'Git', 'Linux', 'Agile', 'Scrum', 'Microservices', 'System Design',
     ];
 
     const found: string[] = [];
@@ -444,5 +607,5 @@ function extractSkills(text: string): string[] {
         }
     }
 
-    return found.slice(0, 15);
+    return [...new Set(found)].slice(0, 20);
 }
