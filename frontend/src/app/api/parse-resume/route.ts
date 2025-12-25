@@ -15,6 +15,9 @@ const MODELS = {
 // Fallback order for parsing
 const MODEL_FALLBACK_ORDER = [MODELS.grok, MODELS.primary, MODELS.secondary, MODELS.fallback];
 
+// Vercel serverless config - increase timeout for PDF processing
+export const maxDuration = 30; // seconds
+
 async function callOpenRouter(prompt: string, systemPrompt: string, modelIndex: number = 0): Promise<string> {
     const useModel = MODEL_FALLBACK_ORDER[modelIndex] || MODELS.primary;
 
@@ -74,11 +77,10 @@ async function callOpenRouter(prompt: string, systemPrompt: string, modelIndex: 
 function extractEmail(text: string): string {
     const patterns = [
         /[\w.+-]+@[\w.-]+\.\w{2,}/gi,
-        /email[:\s]*([^\s@]+@[^\s@]+\.[^\s@]+)/gi,
     ];
     for (const pattern of patterns) {
         const match = text.match(pattern);
-        if (match) return match[0].replace(/^email[:\s]*/i, '');
+        if (match) return match[0];
     }
     return '';
 }
@@ -102,11 +104,9 @@ function extractName(text: string): string {
 
     for (const line of lines.slice(0, 10)) {
         const trimmed = line.trim();
-        // Skip lines with email, phone, or common headers
         if (trimmed.includes('@') || /^\+?\d/.test(trimmed)) continue;
         if (skipWords.some(w => trimmed.toLowerCase().includes(w))) continue;
 
-        // Name likely starts with capital, 2-4 words, reasonable length
         if (/^[A-Z][a-z]+(\s+[A-Z][a-z]+){0,3}$/.test(trimmed) && trimmed.length < 40) {
             return trimmed;
         }
@@ -125,7 +125,6 @@ function extractGitHub(text: string): string {
 }
 
 function extractSkills(text: string): string[] {
-    // Common tech skills to look for
     const commonSkills = [
         'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'Go', 'Rust', 'Swift', 'Kotlin',
         'React', 'Angular', 'Vue', 'Next.js', 'Node.js', 'Express', 'Django', 'Flask', 'FastAPI',
@@ -150,21 +149,13 @@ function extractSkills(text: string): string[] {
 function extractExperience(text: string): Array<{ role: string; company: string; duration: string; description: string }> {
     const experiences: Array<{ role: string; company: string; duration: string; description: string }> = [];
 
-    // Look for common patterns like "Role at Company" or "Company | Role"
-    const patterns = [
-        /(?:^|\n)([A-Z][^,\n]+?)\s+(?:at|@)\s+([A-Z][^\n]+)/gm,
-        /(?:^|\n)([A-Z][^|\n]+?)\s*\|\s*([A-Z][^\n]+)/gm,
-    ];
-
-    // Also look for date ranges
     const datePattern = /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\.?\s*\d{4}\s*[-–]\s*(?:Present|Current|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\.?\s*\d{4})/gi;
     const dates = text.match(datePattern) || [];
 
-    // Simple extraction - can be enhanced
-    for (let i = 0; i < Math.min(dates.length, 3); i++) {
+    for (let i = 0; i < Math.min(dates.length, 5); i++) {
         experiences.push({
-            role: 'Position ' + (i + 1),
-            company: 'Company ' + (i + 1),
+            role: '',
+            company: '',
             duration: dates[i] || '',
             description: '',
         });
@@ -176,7 +167,6 @@ function extractExperience(text: string): Array<{ role: string; company: string;
 function extractEducation(text: string): Array<{ institution: string; degree: string; graduation_year: string }> {
     const education: Array<{ institution: string; degree: string; graduation_year: string }> = [];
 
-    // Look for degree patterns
     const degreePatterns = [
         /(?:Bachelor|Master|B\.?S\.?|M\.?S\.?|B\.?A\.?|M\.?A\.?|Ph\.?D\.?|MBA)[^\n]{5,100}/gi,
     ];
@@ -224,7 +214,6 @@ Return ONLY JSON.`;
         console.log('🚀 [parse-resume] Calling OpenRouter for AI parsing...');
         const aiResponse = await callOpenRouter(prompt, systemPrompt);
 
-        // Clean and extract JSON
         let cleanedResponse = aiResponse;
         if (cleanedResponse.includes('```json')) {
             cleanedResponse = cleanedResponse.split('```json')[1].split('```')[0].trim();
@@ -232,7 +221,6 @@ Return ONLY JSON.`;
             cleanedResponse = cleanedResponse.split('```')[1].split('```')[0].trim();
         }
 
-        // Try to find JSON object in response
         const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
@@ -248,7 +236,6 @@ Return ONLY JSON.`;
 }
 
 function parseResumeWithRegex(text: string) {
-    // Clean text
     text = text.replace(/[♂¶•·‣⁃∙○●]/g, ' ').replace(/\s+/g, ' ');
 
     return {
@@ -266,59 +253,130 @@ function parseResumeWithRegex(text: string) {
     };
 }
 
+// PDF text extraction with Vercel-compatible workaround
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
     try {
-        // Dynamic import for pdf-parse
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pdfParseModule = await import('pdf-parse') as any;
-        const pdfParse = pdfParseModule.default ?? pdfParseModule;
-        const data = await pdfParse(Buffer.from(buffer));
-        console.log('📄 [parse-resume] PDF extracted, length:', data.text.length);
+        console.log('📄 [parse-resume] Starting PDF extraction, buffer size:', buffer.byteLength);
+
+        // Dynamic import with error handling for Vercel
+        let pdfParse;
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pdfModule = await import('pdf-parse') as any;
+            pdfParse = pdfModule.default || pdfModule;
+        } catch (importError) {
+            console.error('❌ pdf-parse import failed:', importError);
+            throw new Error('PDF parsing library not available');
+        }
+
+        // Parse PDF with options optimized for serverless
+        const options = {
+            max: 0, // No page limit
+        };
+
+        const data = await pdfParse(Buffer.from(buffer), options);
+
+        if (!data.text || data.text.trim().length === 0) {
+            throw new Error('No text content extracted from PDF');
+        }
+
+        console.log('📄 [parse-resume] PDF extracted successfully, text length:', data.text.length);
         return data.text;
     } catch (error) {
-        console.error('PDF parsing error:', error);
-        throw new Error('Failed to parse PDF file');
+        console.error('❌ PDF parsing error:', error);
+        throw error;
+    }
+}
+
+// Simple text extraction fallback - tries to read as UTF-8
+async function extractTextFallback(buffer: ArrayBuffer): Promise<string> {
+    try {
+        // Try to decode as text (works for text-based PDFs sometimes)
+        const decoder = new TextDecoder('utf-8', { fatal: false });
+        const text = decoder.decode(buffer);
+
+        // Extract readable text using basic patterns
+        const textMatches = text.match(/[\x20-\x7E\n\r\t]+/g) || [];
+        const cleanText = textMatches
+            .filter(s => s.length > 3)
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        if (cleanText.length > 50) {
+            console.log('📄 [parse-resume] Fallback extraction got text length:', cleanText.length);
+            return cleanText;
+        }
+
+        throw new Error('Fallback extraction failed');
+    } catch {
+        throw new Error('Could not extract text from file');
     }
 }
 
 export async function POST(request: NextRequest) {
+    console.log('📥 [parse-resume] Request received');
+
     try {
         const formData = await request.formData();
         const file = formData.get('file') as File | null;
 
         if (!file) {
+            console.error('❌ No file in request');
             return NextResponse.json({ detail: 'No file provided' }, { status: 400 });
         }
 
-        console.log('📥 [parse-resume] File received:', file.name, 'Size:', file.size);
+        console.log('📥 [parse-resume] File received:', file.name, 'Size:', file.size, 'Type:', file.type);
+
+        // Check file size (limit to 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            return NextResponse.json({ detail: 'File too large. Maximum size is 10MB.' }, { status: 400 });
+        }
 
         const fileName = file.name.toLowerCase();
         let text = '';
 
         if (fileName.endsWith('.txt')) {
+            console.log('📝 Processing TXT file...');
             text = await file.text();
         } else if (fileName.endsWith('.pdf')) {
+            console.log('📄 Processing PDF file...');
             try {
                 const buffer = await file.arrayBuffer();
                 text = await extractTextFromPDF(buffer);
-            } catch (e) {
-                console.error('PDF extraction failed:', e);
-                return NextResponse.json({ detail: 'Could not parse PDF file. Please try a text file.' }, { status: 400 });
+            } catch (pdfError) {
+                console.error('❌ Primary PDF extraction failed, trying fallback...', pdfError);
+                try {
+                    const buffer = await file.arrayBuffer();
+                    text = await extractTextFallback(buffer);
+                } catch (fallbackError) {
+                    console.error('❌ Fallback extraction also failed:', fallbackError);
+                    return NextResponse.json({
+                        detail: 'Could not parse PDF file. The PDF might be scanned or image-based. Please try a text-based PDF or copy the content to a TXT file.'
+                    }, { status: 400 });
+                }
             }
         } else {
-            return NextResponse.json({ detail: 'Unsupported file type. Please use PDF or TXT.' }, { status: 400 });
+            return NextResponse.json({
+                detail: 'Unsupported file type. Please use PDF or TXT files.'
+            }, { status: 400 });
         }
 
-        if (!text || !text.trim()) {
-            return NextResponse.json({ detail: 'Could not extract text from file.' }, { status: 400 });
+        if (!text || text.trim().length < 20) {
+            console.error('❌ Extracted text too short:', text?.length || 0);
+            return NextResponse.json({
+                detail: 'Could not extract enough text from file. Please ensure the file contains readable text.'
+            }, { status: 400 });
         }
 
-        console.log('📝 [parse-resume] Text extracted, attempting parse...');
+        console.log('📝 [parse-resume] Text extracted, length:', text.length, 'attempting parse...');
 
         // Try AI parsing first if API key is available
         if (OPENROUTER_API_KEY) {
             try {
+                console.log('🤖 [parse-resume] Attempting AI parsing...');
                 const parsed = await parseResumeWithAI(text);
+
                 // Supplement with regex for any missing fields
                 if (!parsed.skills || parsed.skills.length === 0) {
                     parsed.skills = extractSkills(text);
@@ -329,19 +387,27 @@ export async function POST(request: NextRequest) {
                 if (!parsed.phone) {
                     parsed.phone = extractPhone(text);
                 }
+
+                console.log('✅ [parse-resume] AI parsing complete');
                 return NextResponse.json(parsed);
-            } catch (e) {
-                console.error('AI parsing failed, falling back to regex:', e);
+            } catch (aiError) {
+                console.error('⚠️ AI parsing failed, falling back to regex:', aiError);
             }
+        } else {
+            console.log('⚠️ No OPENROUTER_API_KEY, using regex fallback');
         }
 
         // Fallback to regex parsing
         console.log('⚙️ [parse-resume] Using regex fallback');
         const parsed = parseResumeWithRegex(text);
+
+        console.log('✅ [parse-resume] Regex parsing complete');
         return NextResponse.json(parsed);
 
     } catch (error) {
-        console.error('Resume parse error:', error);
-        return NextResponse.json({ detail: 'Failed to process resume file' }, { status: 500 });
+        console.error('❌ Resume parse error:', error);
+        return NextResponse.json({
+            detail: 'Failed to process resume file. Please try again or use a different file format.'
+        }, { status: 500 });
     }
 }
