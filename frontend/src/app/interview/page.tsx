@@ -10,6 +10,8 @@ import {
 import { AppleCard } from "@/components/ui/AppleCard";
 import { AppleButton } from "@/components/ui/AppleButton";
 import { useToast } from "@/components/ui/Toast";
+import { secureGet } from "@/lib/secureStorage";
+import { STORAGE_KEYS } from "@/lib/storageKeys";
 
 interface InterviewQuestion {
     id: string;
@@ -92,13 +94,12 @@ export default function InterviewPrepPage() {
     const [currentJob, setCurrentJob] = useState<{ title: string; company: string } | null>(null);
 
     useEffect(() => {
-        // Load saved job info on mount only
-        const saved = localStorage.getItem("currentJobForResume");
+        // Load saved job info on mount only (secureGet adds 'cap_' prefix automatically)
+        const saved = secureGet<{ title: string; company: string }>(STORAGE_KEYS.CURRENT_JOB_FOR_RESUME);
         if (saved) {
-            const parsed = JSON.parse(saved);
             // Use a callback to avoid lint warning about setState in effect
             requestAnimationFrame(() => {
-                setCurrentJob(parsed);
+                setCurrentJob(saved);
             });
         }
     }, []);

@@ -13,6 +13,8 @@ import { useToast } from "@/components/ui/Toast";
 import axios from "axios";
 import API_URL from "@/lib/api";
 import Link from "next/link";
+import { secureGet } from "@/lib/secureStorage";
+import { STORAGE_KEYS } from "@/lib/storageKeys";
 
 type MessageType = "cover_letter" | "email" | "linkedin" | "follow_up";
 
@@ -55,16 +57,16 @@ export default function CommunicationPage() {
     const [profile, setProfile] = useState<ProfileData | null>(null);
 
     useEffect(() => {
-        // Load current job
-        const savedJob = localStorage.getItem("currentJobForResume");
+        // Load current job using secureGet (adds 'cap_' prefix automatically)
+        const savedJob = secureGet<JobData>(STORAGE_KEYS.CURRENT_JOB_FOR_RESUME);
         if (savedJob) {
-            setCurrentJob(JSON.parse(savedJob));
+            setCurrentJob(savedJob);
         }
 
-        // Load profile
-        const savedProfile = localStorage.getItem("careerAgentProfile");
+        // Load profile using secureGet (adds 'cap_' prefix automatically)
+        const savedProfile = secureGet<ProfileData>(STORAGE_KEYS.PROFILE);
         if (savedProfile) {
-            setProfile(JSON.parse(savedProfile));
+            setProfile(savedProfile);
         }
     }, []);
 
