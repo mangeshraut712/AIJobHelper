@@ -3,93 +3,129 @@
 <div align="center">
 
 ![CareerAgentPro](https://img.shields.io/badge/CareerAgentPro-AI%20Career%20Platform-0071e3?style=for-the-badge)
-[![Next.js](https://img.shields.io/badge/Next.js-15+-000000?style=flat-square&logo=next.js)](https://nextjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python)](https://python.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.1-000000?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python)](https://python.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-**Your AI-Powered Career Co-Pilot** — From resume optimization to intelligent job matching, CareerAgentPro automates and elevates your entire job search journey with a premium Apple-style aesthetic.
+**Your AI-Powered Career Co-Pilot** — From resume optimization to intelligent job matching, CareerAgentPro automates and elevates your entire job search journey.
 
-[Live Demo](https://ai-job-helper-steel.vercel.app/) • [Documentation](#-documentation) • [Features](#-core-features) • [Quick Start](#-quick-start)
+[🌐 Live Demo](https://ai-job-helper-steel.vercel.app/) • [✨ Features](#-features) • [🚀 Quick Start](#-quick-start) • [🛠 Tech Stack](#-tech-stack)
 
 </div>
 
 ---
 
-## ✨ Core Features
+## ✨ Features
 
-### 🎨 Premium Apple-Style Design
-A completely redesigned user interface featuring glassmorphism, smooth Framer Motion animations, SF Pro-style typography, and a clean, distraction-free aesthetic.
+### 🎨 Apple-Inspired Design System
+- **Glassmorphism UI** with backdrop blur and subtle transparency
+- **Framer Motion** animations for fluid, 60fps interactions
+- **Dark/Light mode** with system preference detection
+- **Responsive design** optimized for all devices
 
-### 👤 Advanced Profile Hub
-Full CRUD profile management with local persistence. Includes sections for:
-- **Resume Parsing**: Drag & drop PDF/DOCX parsing (works offline!).
-- **Experience & Education**: Rich card-based editing with company logos.
-- **Skills Matrix**: Tag-based skills with "preferred" toggles.
-- **Profile Strength**: Visual progress tracking and completion checklist.
+### 🧠 AI-Powered Intelligence
+- **Resume Enhancement** powered by Grok 2, Gemini 2.0 Flash, or DeepSeek
+- **ATS Score Analysis** with detailed breakdown
+- **Smart Job Matching** with skill gap detection
+- **Cover Letter Generation** tailored to each role
+- **Outreach Automation** for LinkedIn and email
 
-### 🧠 Hybrid AI Engine
-- **Online Mode**: Uses OpenRouter (Gemini 2.0 Flash) for advanced analysis and content generation.
-- **Offline Mode**: Robust regex-based fallback for resume parsing and basic features—no API key required for local dev!
+### 📄 Resume Management
+- **Drag & Drop Upload** for PDF, DOCX, TXT files
+- **AI Parsing** extracts skills, experience, education
+- **Multi-Format Export**: PDF, DOCX, LaTeX
+- **Real-time Preview** with live editing
 
-### 🎯 Job Match & Analysis
-Paste any job URL to extract key requirements. The system scores your fit and highlights missing skills.
-
-### 📝 Resume Studio & Export
-Real-time optimization feedback. Export your tailored resumes to **PDF**, **DOCX**, and **LaTeX** formats.
-
-### 💬 Outreach Generator
-Generate personalized LinkedIn messages, cold emails, and follow-up notes tailored to specific job roles and companies.
+### 🔒 Security First
+- **SSRF Protection** with strict URL allowlisting
+- **XSS Prevention** with HTML escaping
+- **Secure Storage** with client-side encryption
+- **No Data Collection** — all processing client-side
 
 ---
 
 ## 🛠 Tech Stack
 
-| Layer | Technologies |
-|-------|-------------|
-| **Frontend** | Next.js 15+, React 19, TypeScript 5, Tailwind CSS v4, Framer Motion, Lucide Icons |
-| **Backend** | FastAPI, Python 3.11+, Pydantic, Uvicorn |
-| **AI/ML** | OpenRouter (Gemini 2.0 Flash), Custom Regex Parsing Engine |
-| **Storage** | LocalStorage (Client-side), In-memory (Backend), SQLite (Planned) |
-| **Deployment** | Vercel (Frontend & Backend via Serverless Functions) |
+### Frontend
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| [Next.js](https://nextjs.org/) | 15.1 | React framework with App Router |
+| [React](https://react.dev/) | 19 | UI library with new compiler |
+| [TypeScript](https://www.typescriptlang.org/) | 5.7 | Type-safe JavaScript |
+| [Tailwind CSS](https://tailwindcss.com/) | 4.0 | Utility-first styling |
+| [Framer Motion](https://www.framer.com/motion/) | 11.15 | Animations & gestures |
+| [Lucide React](https://lucide.dev/) | Latest | Modern icon library |
+| [Axios](https://axios-http.com/) | 1.7 | HTTP client |
+
+### Backend
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| [FastAPI](https://fastapi.tiangolo.com/) | 0.115 | Modern Python API framework |
+| [Python](https://python.org/) | 3.12 | Backend runtime |
+| [Pydantic](https://docs.pydantic.dev/) | 2.10 | Data validation |
+| [OpenAI SDK](https://platform.openai.com/) | 1.57 | AI/LLM integration |
+| [httpx](https://www.python-httpx.org/) | 0.28 | Async HTTP client |
+| [Trafilatura](https://trafilatura.readthedocs.io/) | 1.12 | Web content extraction |
+| [FPDF2](https://py-pdf.github.io/fpdf2/) | 2.8 | PDF generation |
+
+### AI Models (via OpenRouter)
+| Model | Provider | Use Case |
+|-------|----------|----------|
+| Grok 2 Vision | xAI | Resume enhancement, analysis |
+| Gemini 2.0 Flash | Google | Fast responses, free tier |
+| DeepSeek Chat v3 | DeepSeek | Alternative processing |
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ and npm
-- Python 3.11+
-- (Optional) OpenRouter API Key for advanced AI features
+- **Node.js** 20+ (LTS recommended)
+- **Python** 3.11+
+- **pnpm** or npm
 
-### 1. Clone the Repository
+### 1. Clone & Install
+
 ```bash
 git clone https://github.com/mangeshraut712/AIJobHelper.git
 cd AIJobHelper
-```
 
-### 2. Backend Setup
-The backend facilitates AI parsing and file exports.
-```bash
-cd backend
+# Frontend
+cd frontend
+npm install
+
+# Backend
+cd ../backend
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# Run the server (No .env needed for local mode!)
-python main.py
 ```
-Backend runs at `http://localhost:8000`
 
-### 3. Frontend Setup
-The modern Next.js interface.
+### 2. Environment Setup
+
 ```bash
-cd frontend
-npm install
-npm run dev -- --port 3001
+# Frontend (.env.local)
+NEXT_PUBLIC_API_URL=/api
+
+# Backend (.env) - Optional for AI features
+OPENROUTER_API_KEY=your_key_here
 ```
-Frontend runs at `http://localhost:3001`
+
+### 3. Run Development
+
+```bash
+# Terminal 1 - Backend
+cd backend && python main.py
+# Runs on http://localhost:8000
+
+# Terminal 2 - Frontend
+cd frontend && npm run dev
+# Runs on http://localhost:3000
+```
 
 ---
 
@@ -97,46 +133,30 @@ Frontend runs at `http://localhost:3001`
 
 ```
 AIJobHelper/
-├── 📁 backend/                 # FastAPI Server
-│   ├── main.py                 # API entry point & routes
-│   ├── schemas.py              # Pydantic data models
-│   ├── requirements.txt        # Python dependencies
-│   └── 📁 services/
-│       ├── ai_service.py       # Hybrid AI/Regex logic
-│       ├── job_service.py      # Job extraction
-│       ├── export_service.py   # PDF/DOCX/LaTeX generation
-│       └── resume_parser.py    # Text extraction util
+├── frontend/                # Next.js 15 Application
+│   ├── src/
+│   │   ├── app/             # App Router pages
+│   │   │   ├── api/         # API routes (Edge-ready)
+│   │   │   ├── dashboard/   # User dashboard
+│   │   │   ├── jobs/        # Job analysis
+│   │   │   ├── resumes/     # Resume builder
+│   │   │   └── profile/     # Profile management
+│   │   ├── components/      # React components
+│   │   │   ├── ui/          # Design system
+│   │   │   └── layout/      # Layout components
+│   │   └── lib/             # Utilities
+│   └── package.json
 │
-├── 📁 frontend/                # Next.js Application
-│   ├── 📁 src/
-│   │   ├── 📁 app/             # App Router pages
-│   │   │   ├── layout.tsx      # Global layout & fonts
-│   │   │   ├── globals.css     # Apple design system variables
-│   │   │   ├── page.tsx        # Landing page
-│   │   │   ├── dashboard/      # User dashboard
-│   │   │   ├── jobs/           # Job search & match
-│   │   │   ├── resumes/        # Editor & export
-│   │   │   ├── profile/        # Profile management
-│   │   │   └── communication/  # Message generator
-│   │   ├── 📁 components/      # UI components (Navbar, Footer)
-│   │   └── 📁 lib/             # API utilities & helpers
+├── backend/                 # FastAPI Server
+│   ├── services/
+│   │   ├── ai_service.py    # LLM integration
+│   │   ├── job_service.py   # Job extraction
+│   │   └── export_service.py # Document export
+│   ├── main.py              # API entry point
+│   └── requirements.txt
 │
-├── 📁 docs/                    # Documentation
-│   ├── README.md               # Documentation index
-│   ├── ARCHITECTURE.md         # System architecture
-│   ├── SECURITY.md             # Security policies
-│   ├── CONTRIBUTING.md         # Contribution guidelines
-│   └── IMPROVEMENTS.md         # Feature roadmap
-│
-├── 📁 tests/                   # Test files
-│   ├── test_backend.py         # Backend API tests
-│   └── test_models.py          # Model validation tests
-│
-├── 📁 .github/                 # CI/CD workflows
-│   ├── workflows/              # GitHub Actions
-│   └── ISSUE_TEMPLATE/         # Issue templates
-│
-└── vercel.json                 # Deployment config
+├── vercel.json              # Deployment config
+└── README.md
 ```
 
 ---
@@ -145,94 +165,41 @@ AIJobHelper/
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/health` | Check backend status |
-| `POST` | `/parse-resume` | Extract data from uploads (PDF/DOCX/TXT) |
-| `POST` | `/enhance-resume` | AI optimization (Requires API Key) |
-| `POST` | `/generate-cover-letter` | Create tailored cover letters |
-| `POST` | `/generate-communication` | Generate emails/LinkedIn messages |
-| `POST` | `/export/{format}` | Export to pdf, docx, or latex |
-
----
-
-## 🔧 Environment Variables
-
-### Backend (Optional)
-Create a `.env` file in `backend/` only if you want full AI features locally.
-```env
-OPENROUTER_API_KEY=your_key_here
-```
-*If omitted, the system gracefully falls back to regex parsing and mock responses.*
-
----
-
-## 📚 Documentation
-
-For detailed documentation, see the [docs/](docs/) folder:
-
-- [Architecture Overview](docs/ARCHITECTURE.md)
-- [Security Policy](docs/SECURITY.md)
-- [Contributing Guide](docs/CONTRIBUTING.md)
-- [Feature Roadmap](docs/IMPROVEMENTS.md)
+| `GET` | `/health` | Health check |
+| `POST` | `/parse-resume` | Parse uploaded resume |
+| `POST` | `/enhance-resume` | AI enhancement |
+| `POST` | `/extract-job` | Extract job details from URL |
+| `POST` | `/generate-cover-letter` | Generate cover letter |
+| `POST` | `/generate-communication` | Generate outreach messages |
+| `POST` | `/export/pdf` | Export to PDF |
+| `POST` | `/export/docx` | Export to Word |
+| `POST` | `/export/latex` | Export to LaTeX |
 
 ---
 
 ## 🚢 Deployment
 
-The project is optimized for **Vercel** deployment with a single repository structure.
+Optimized for **Vercel** with zero-config deployment:
 
-1. Push to GitHub.
-2. Import project in [Vercel](https://vercel.com).
-3. Vercel automatically detects the Next.js frontend.
-4. The `vercel.json` configures the FastAPI backend as Serverless Functions.
-5. Add `OPENROUTER_API_KEY` in Vercel project settings.
+1. Push to GitHub
+2. Import in [Vercel](https://vercel.com)
+3. Add `OPENROUTER_API_KEY` environment variable
+4. Deploy!
 
-**Live URL**: [ai-job-helper-steel.vercel.app](https://ai-job-helper-steel.vercel.app/)
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for details.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+**Live**: [ai-job-helper-steel.vercel.app](https://ai-job-helper-steel.vercel.app/)
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
 <div align="center">
 
-**Built with ❤️ by [Mangesh Raut](https://github.com/mangeshraut712)**
+**Built with ❤️ using Next.js 15, React 19, and FastAPI**
 
 ⭐ Star this repo if you find it helpful!
 
 </div>
- 
-
-## ☁️ Vercel Deployment
-
-This project uses a hybrid **Next.js + Python** setup configured via `vercel.json` and a `frontend` folder rewrite bypass.
-
-### **Manual Settings (Vercel Dashboard)**
-To ensure perfect deployment, verify these settings in your Vercel Project Dashboard:
-
-1.  **Project Settings > Build & Development Settings**:
-    *   **Framework Preset**: `Other` (Do not change this to Next.js; `vercel.json` handles the build).
-    *   **Root Directory**: `.` (Leave empty/default).
-    *   **Build Command**: `Override` = **OFF** (Empty).
-    *   **Output Directory**: `Override` = **OFF** (Empty).
-    *   **Install Command**: `Override` = **OFF** (Empty).
-
-2.  **Environment Variables**:
-    *   Add `OPENROUTER_API_KEY`: Your OpenRouter API key.
-
-### **Why "Other"?**
-The project uses `vercel.json` to define two separate builds (`frontend` and `backend`). This legacy mode appears as "Other" in Vercel but correctly builds both applications. Changing the preset to "Next.js" will break the Python backend build.
