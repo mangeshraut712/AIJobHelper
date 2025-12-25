@@ -16,23 +16,59 @@ interface JobExtractionResult {
     note?: string;  // To indicate limited data from public pages
 }
 
-// AI-powered job extraction
-const JOB_SYSTEM_PROMPT = `You are a job posting analyzer. Extract structured information from the job posting text.
+// Comprehensive job extraction interface
+interface JobExtractionResult {
+    title: string;
+    company: string;
+    location: string;
+    description: string;
+    about_job?: string;
+    skills: string[];
+    requirements: string[];
+    responsibilities: string[];
+    minimum_qualifications?: string[];
+    preferred_qualifications?: string[];
+    experience_level?: string;
+    years_experience?: string;
+    salary_range?: string;
+    job_type?: string;
+    work_arrangement?: string;
+    benefits?: string[];
+    why_join?: string;
+    about_company?: string;
+    team_size?: string;
+    funding_info?: string;
+    source?: string;
+    note?: string;
+}
+
+// Comprehensive AI-powered job extraction prompt
+const JOB_SYSTEM_PROMPT = `You are an expert job posting analyzer. Extract ALL information from the job posting.
 Return ONLY a valid JSON object without any markdown or explanation.
 
-Return this exact JSON structure:
+Extract EVERY detail you can find. Return this JSON structure:
 {
-    "title": "job title",
+    "title": "exact job title",
     "company": "company name",
-    "location": "city, state or remote",
-    "salary_range": "salary range if mentioned",
+    "location": "city, state/country or Remote",
+    "work_arrangement": "on-site/remote/hybrid",
+    "salary_range": "exact salary range with currency",
     "job_type": "full-time/part-time/contract",
-    "description": "brief job summary",
-    "responsibilities": ["responsibility 1", "responsibility 2"],
-    "requirements": ["requirement 1", "requirement 2"],
-    "skills": ["skill1", "skill2"],
-    "benefits": ["benefit 1", "benefit 2"]
-}`;
+    "experience_level": "junior/mid/senior/lead/principal",
+    "years_experience": "X+ years required",
+    "about_job": "complete job description/summary - include all context about the role",
+    "about_company": "company description, funding, stage, team size, culture",
+    "why_join": "reasons to join, perks, growth opportunities",
+    "responsibilities": ["every responsibility listed"],
+    "minimum_qualifications": ["every required qualification - education, experience, skills"],
+    "preferred_qualifications": ["every nice-to-have or preferred qualification"],
+    "skills": ["ALL technical skills mentioned - languages, frameworks, tools, platforms"],
+    "benefits": ["all benefits, perks, compensation details"],
+    "team_size": "team/company size if mentioned",
+    "funding_info": "funding stage/amount if mentioned"
+}
+
+IMPORTANT: Extract EVERYTHING. Include full sentences for descriptions. Don't summarize - capture all details.`;
 
 async function parseJobWithAI(text: string, meta: { title?: string; company?: string; location?: string; description?: string }): Promise<JobExtractionResult> {
     if (!OPENROUTER_API_KEY) {
@@ -42,10 +78,10 @@ async function parseJobWithAI(text: string, meta: { title?: string; company?: st
     console.log('🤖 [extract-job] Using AI to parse job posting...');
 
     // Use meta data to provide context
-    const contextInfo = meta.title ? `Job: ${meta.title}\nCompany: ${meta.company || 'Unknown'}\n\n` : '';
-    const prompt = `Extract job details from this posting:\n\n${contextInfo}${text.substring(0, 6000)}`;
+    const contextInfo = meta.title ? `Job Title: ${meta.title}\nCompany: ${meta.company || 'Unknown'}\nLocation: ${meta.location || 'Unknown'}\n\n` : '';
+    const prompt = `Extract ALL job details from this posting. Be comprehensive and capture every detail:\n\n${contextInfo}FULL JOB POSTING:\n${text.substring(0, 8000)}`;
 
-    const response = await callAI(prompt, JOB_SYSTEM_PROMPT, { temperature: 0.1, maxTokens: 2000 });
+    const response = await callAI(prompt, JOB_SYSTEM_PROMPT, { temperature: 0.1, maxTokens: 3000 });
     const jsonStr = extractJSON(response);
     const parsed = JSON.parse(jsonStr);
 
@@ -53,13 +89,23 @@ async function parseJobWithAI(text: string, meta: { title?: string; company?: st
         title: parsed.title || meta.title || 'Job Position',
         company: parsed.company || meta.company || 'Company',
         location: parsed.location || meta.location || 'Not specified',
-        description: parsed.description || meta.description || text.substring(0, 1000),
-        about_job: parsed.description || meta.description,
+        description: parsed.about_job || parsed.description || meta.description || text.substring(0, 2000),
+        about_job: parsed.about_job || parsed.description,
+        about_company: parsed.about_company,
+        why_join: parsed.why_join,
         skills: Array.isArray(parsed.skills) ? parsed.skills : [],
-        requirements: Array.isArray(parsed.requirements) ? parsed.requirements : [],
+        requirements: Array.isArray(parsed.minimum_qualifications) ? parsed.minimum_qualifications : (Array.isArray(parsed.requirements) ? parsed.requirements : []),
         responsibilities: Array.isArray(parsed.responsibilities) ? parsed.responsibilities : [],
+        minimum_qualifications: Array.isArray(parsed.minimum_qualifications) ? parsed.minimum_qualifications : [],
+        preferred_qualifications: Array.isArray(parsed.preferred_qualifications) ? parsed.preferred_qualifications : [],
+        benefits: Array.isArray(parsed.benefits) ? parsed.benefits : [],
+        experience_level: parsed.experience_level,
+        years_experience: parsed.years_experience,
         salary_range: parsed.salary_range,
         job_type: parsed.job_type,
+        work_arrangement: parsed.work_arrangement,
+        team_size: parsed.team_size,
+        funding_info: parsed.funding_info,
         source: 'AI',
     };
 }

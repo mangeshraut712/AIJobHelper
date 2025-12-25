@@ -26,6 +26,7 @@ interface AnalyzedJob {
     jobType: string;
     workArrangement?: string;
     experienceLevel?: string;
+    yearsExperience?: string;
     // Structured sections
     aboutJob?: string;
     responsibilities: string[];
@@ -33,6 +34,8 @@ interface AnalyzedJob {
     preferredQualifications: string[];
     aboutCompany?: string;
     whyJoin?: string;
+    teamSize?: string;
+    fundingInfo?: string;
     // Legacy
     description: string;
     requirements: string[];
@@ -40,7 +43,7 @@ interface AnalyzedJob {
     benefits: string[];
     jobInfo?: Record<string, string>;
     source?: string;
-    note?: string;  // Warning about limited data
+    note?: string;
     analyzedAt: string;
     matchScore?: number;
 }
@@ -118,6 +121,7 @@ export default function AnalyzeJobPage() {
                 jobType: data.job_type || "Full-time",
                 workArrangement: data.work_arrangement,
                 experienceLevel: data.experience_level,
+                yearsExperience: data.years_experience,
                 // Structured sections
                 aboutJob: data.about_job,
                 responsibilities: data.responsibilities || [],
@@ -125,6 +129,8 @@ export default function AnalyzeJobPage() {
                 preferredQualifications: data.preferred_qualifications || [],
                 aboutCompany: data.about_company,
                 whyJoin: data.why_join,
+                teamSize: data.team_size,
+                fundingInfo: data.funding_info,
                 // Legacy
                 description: data.description || data.about_job || "",
                 requirements: data.requirements || data.minimum_qualifications || [],
@@ -316,7 +322,7 @@ export default function AnalyzeJobPage() {
                                 {/* Meta info */}
                                 <div className="flex flex-wrap gap-3 mt-4">
                                     {currentJob.salary !== "Not specified" && (
-                                        <span className="apple-pill">
+                                        <span className="apple-pill bg-green-500/10 text-green-600 dark:text-green-400">
                                             <DollarSign size={12} />
                                             {currentJob.salary}
                                         </span>
@@ -325,10 +331,30 @@ export default function AnalyzeJobPage() {
                                         <Briefcase size={12} />
                                         {currentJob.jobType}
                                     </span>
-                                    <span className="apple-pill">
-                                        <Clock size={12} />
-                                        Just analyzed
-                                    </span>
+                                    {currentJob.workArrangement && (
+                                        <span className="apple-pill">
+                                            <MapPin size={12} />
+                                            {currentJob.workArrangement}
+                                        </span>
+                                    )}
+                                    {currentJob.experienceLevel && (
+                                        <span className="apple-pill bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                            <Star size={12} />
+                                            {currentJob.experienceLevel}
+                                        </span>
+                                    )}
+                                    {currentJob.yearsExperience && (
+                                        <span className="apple-pill bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                                            <Clock size={12} />
+                                            {currentJob.yearsExperience}
+                                        </span>
+                                    )}
+                                    {currentJob.teamSize && (
+                                        <span className="apple-pill">
+                                            <Building2 size={12} />
+                                            {currentJob.teamSize}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
@@ -419,16 +445,24 @@ export default function AnalyzeJobPage() {
                                 )}
 
                                 {/* About the Company */}
-                                {currentJob.aboutCompany && (
+                                {(currentJob.aboutCompany || currentJob.fundingInfo) && (
                                     <div>
                                         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
                                             <Building2 size={14} />
                                             About {currentJob.company}
                                         </h3>
-                                        <p className="text-sm leading-relaxed bg-secondary/50 p-4 rounded-xl">
-                                            {currentJob.aboutCompany.slice(0, 500)}
-                                            {currentJob.aboutCompany.length > 500 && "..."}
-                                        </p>
+                                        <div className="bg-secondary/50 p-4 rounded-xl space-y-2">
+                                            {currentJob.aboutCompany && (
+                                                <p className="text-sm leading-relaxed">
+                                                    {currentJob.aboutCompany}
+                                                </p>
+                                            )}
+                                            {currentJob.fundingInfo && (
+                                                <p className="text-sm text-primary font-medium">
+                                                    💰 {currentJob.fundingInfo}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
 
