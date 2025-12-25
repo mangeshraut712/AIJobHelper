@@ -267,11 +267,17 @@ async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
 
         try {
             // Dynamic import with error handling for Vercel
+            // pdf-parse v1.1.1 exports a function directly
             let pdfParse;
             try {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const pdfModule = await import('pdf-parse') as any;
-                pdfParse = pdfModule.default || pdfModule;
+                // v1 exports function directly, v2 exports object
+                pdfParse = typeof pdfModule === 'function' ? pdfModule : (pdfModule.default || pdfModule);
+
+                if (typeof pdfParse !== 'function') {
+                    throw new Error('pdf-parse module not a function');
+                }
             } catch (importError) {
                 clearTimeout(timeoutId);
                 console.error('❌ pdf-parse import failed:', importError);
@@ -279,35 +285,10 @@ async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
                 return;
             }
 
-            // Custom render function to handle text better
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const customRender = (pageData: any) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                return pageData.getTextContent().then((textContent: any) => {
-                    let text = '';
-                    let lastY = -1;
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    for (const item of textContent.items) {
-                        if ('str' in item) {
-                            // Add newline if we're on a new line
-                            if (lastY !== -1 && Math.abs(item.transform[5] - lastY) > 5) {
-                                text += '\n';
-                            }
-                            text += item.str + ' ';
-                            lastY = item.transform[5];
-                        }
-                    }
-                    return text;
-                });
-            };
+            console.log('📄 [parse-resume] pdf-parse loaded, type:', typeof pdfParse);
 
-            // Parse PDF with options
-            const options = {
-                max: 10, // Limit to 10 pages
-                pagerender: customRender,
-            };
-
-            const data = await pdfParse(Buffer.from(buffer), options);
+            // Parse PDF with simple options (v1 API)
+            const data = await pdfParse(Buffer.from(buffer));
             clearTimeout(timeoutId);
 
             if (!data.text || data.text.trim().length === 0) {
@@ -315,37 +296,29 @@ async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
                 return;
             }
 
-            console.log('📄 [parse-resume] Raw PDF text length:', data.text.length);
+            console.log('📄 [parse-resume] Raw PDF text length:', data.text.length, 'pages:', data.numpages);
 
             // Clean up common PDF artifacts and special characters
             let cleanedText = data.text
-                // Remove FontAwesome and icon characters
+                // Replace common icon placeholders with labels
+                .replace(/I\+/g, 'Phone: +')
+                .replace(/#/g, 'Email: ')
+                .replace(/ð/g, 'LinkedIn: ')
+                // Remove remaining icon characters
                 .replace(/[♂¶⌢]/g, '')
-                .replace(/\/envelope/gi, 'Email: ')
-                .replace(/\/linkedin-in/gi, 'LinkedIn: ')
-                .replace(/\/github/gi, 'GitHub: ')
-                .replace(/\/mobile-alt/gi, 'Phone: ')
-                .replace(/\/envel/gi, '')
                 // Remove other unicode artifacts
                 .replace(/[\uE000-\uF8FF]/g, '') // Private use area
                 .replace(/[\u2022\u2023\u25E6\u2043\u2219]/g, '• ') // Bullet points
-                // Clean whitespace
-                .replace(/\s+/g, ' ')
-                .replace(/\n\s*\n/g, '\n\n')
+                // Clean whitespace but preserve newlines
+                .replace(/[ \t]+/g, ' ')
+                .replace(/\n\s*\n\s*\n/g, '\n\n')
                 .trim();
-
-            // Check text quality - if mostly non-ASCII, text might be garbled
-            const asciiRatio = (cleanedText.match(/[\x20-\x7E]/g) || []).length / cleanedText.length;
-            console.log('📄 [parse-resume] ASCII ratio:', asciiRatio.toFixed(2));
-
-            if (asciiRatio < 0.5 || cleanedText.length < 100) {
-                console.warn('⚠️ [parse-resume] Text quality poor, may need fallback');
-            }
 
             console.log('📄 [parse-resume] PDF extracted successfully, cleaned text length:', cleanedText.length);
             resolve(cleanedText);
         } catch (error) {
             clearTimeout(timeoutId);
+            console.error('❌ PDF parsing error:', error);
             reject(error);
         }
     });
