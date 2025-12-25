@@ -81,28 +81,36 @@ function parseResumeWithRegex(text: string): ParsedResume {
     const linkedinMatch = text.match(/linkedin\.com\/in\/[\w-]+/i);
     const githubMatch = text.match(/github\.com\/[\w-]+/i);
 
-    // Extract name (usually first line or before email)
-    const lines = text.split('\n').filter(l => l.trim());
+    // Extract name (usually first non-empty line that looks like a name)
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     let name = '';
-    for (const line of lines.slice(0, 5)) {
-        const cleaned = line.trim();
-        if (cleaned.length > 2 && cleaned.length < 50 && !cleaned.includes('@') && !cleaned.includes('http')) {
-            name = cleaned;
+    for (const line of lines.slice(0, 10)) {
+        // Name usually has 2-4 words, no special chars except spaces
+        if (/^[A-Z][a-z]+(\s+[A-Z][a-z]+){1,3}$/.test(line) && line.length < 40) {
+            name = line;
             break;
         }
     }
+    // Fallback: first line if no proper name found
+    if (!name && lines.length > 0) {
+        const firstLine = lines[0];
+        if (firstLine.length > 2 && firstLine.length < 50 && !firstLine.includes('@')) {
+            name = firstLine;
+        }
+    }
 
-    // Extract skills
-    const skillsSection = text.match(/skills[:\s]*([\s\S]*?)(?:\n\n|experience|education|$)/i);
+    // Extract skills from known skill keywords
+    const commonSkills = ['Python', 'Java', 'JavaScript', 'TypeScript', 'React', 'Angular', 'Vue',
+        'Node.js', 'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'SQL', 'MongoDB', 'PostgreSQL',
+        'Git', 'Linux', 'Spring', 'Django', 'Flask', 'TensorFlow', 'PyTorch', 'C++', 'C#', 'Go',
+        'Ruby', 'PHP', 'Swift', 'Kotlin', 'Scala', 'Rust', 'Redis', 'Kafka', 'Jenkins', 'CI/CD',
+        'Machine Learning', 'Deep Learning', 'Data Science', 'Tableau', 'Power BI', 'Excel'];
+
     const skills: string[] = [];
-    if (skillsSection) {
-        const skillText = skillsSection[1];
-        const skillPatterns = skillText.match(/[\w\s.#+]+/g) || [];
-        for (const s of skillPatterns) {
-            const cleaned = s.trim();
-            if (cleaned.length > 1 && cleaned.length < 30) {
-                skills.push(cleaned);
-            }
+    const textLower = text.toLowerCase();
+    for (const skill of commonSkills) {
+        if (textLower.includes(skill.toLowerCase())) {
+            skills.push(skill);
         }
     }
 
@@ -116,65 +124,61 @@ function parseResumeWithRegex(text: string): ParsedResume {
         summary: '',
         experience: [],
         education: [],
-        skills: skills.slice(0, 20),
+        skills: [...new Set(skills)].slice(0, 25),
         projects: [],
     };
 }
 
-// Fallback PDF text extraction (works when pdf-parse fails)
-function extractTextFallback(buffer: Buffer): string {
-    console.log('📄 [parse-resume] Using fallback PDF extraction');
-
-    try {
-        // Try to extract readable text from PDF buffer
-        const text = buffer.toString('utf-8');
-
-        // Extract text between parentheses (common PDF text encoding)
-        const textMatches = text.match(/\(([^)]+)\)/g) || [];
-        const extractedParts: string[] = [];
-
-        for (const match of textMatches) {
-            const content = match.slice(1, -1);
-            // Filter for readable text
-            if (/^[\x20-\x7E\s]+$/.test(content) && content.length > 1) {
-                extractedParts.push(content);
-            }
-        }
-
-        // Also try to find raw text patterns
-        const rawTextPattern = /([A-Za-z][A-Za-z\s,.\-@0-9]+)/g;
-        const rawMatches = text.match(rawTextPattern) || [];
-
-        for (const match of rawMatches) {
-            if (match.length > 10 && match.length < 200) {
-                extractedParts.push(match);
-            }
-        }
-
-        const result = extractedParts.join(' ').substring(0, 10000);
-        console.log('📄 [parse-resume] Fallback extracted:', result.length, 'chars');
-        return result;
-    } catch (e) {
-        console.error('📄 [parse-resume] Fallback extraction failed:', e);
-        return '';
-    }
-}
-
-// PDF text extraction with multiple fallbacks
+// PDF text extraction using pdfjs-dist (works in serverless)
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
     console.log('📄 [parse-resume] Extracting PDF text, size:', buffer.byteLength);
-    const nodeBuffer = Buffer.from(buffer);
 
-    // Try pdf-parse first
+    // Try pdfjs-dist first (works well in serverless)
+    try {
+        const pdfjsLib = await import('pdfjs-dist');
+
+        // Load the PDF document
+        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
+        const pdf = await loadingTask.promise;
+
+        console.log('📄 [parse-resume] PDF loaded, pages:', pdf.numPages);
+
+        let fullText = '';
+
+        // Extract text from each page
+        for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pageText = textContent.items.map((item: any) => item.str || '').join(' ');
+            fullText += pageText + '\n';
+        }
+
+        // Clean up the extracted text
+        const cleanedText = fullText
+            .replace(/\s+/g, ' ')
+            .replace(/\n\s*\n/g, '\n')
+            .trim();
+
+        console.log('📄 [parse-resume] pdfjs-dist extracted:', cleanedText.length, 'chars');
+
+        if (cleanedText.length > 100) {
+            return cleanedText;
+        }
+    } catch (pdfjsError) {
+        console.error('❌ [parse-resume] pdfjs-dist failed:', pdfjsError);
+    }
+
+    // Fallback: try pdf-parse
     try {
         const pdfParseModule = await import('pdf-parse');
         const pdfParse = pdfParseModule.default || pdfParseModule;
 
         if (typeof pdfParse === 'function') {
-            const data = await pdfParse(nodeBuffer);
+            const data = await pdfParse(Buffer.from(buffer));
 
             if (data.text && data.text.trim().length > 50) {
-                // Clean the text
                 const cleanedText = data.text
                     .replace(/I\+/g, 'Phone: +')
                     .replace(/#/g, 'Email: ')
@@ -184,18 +188,12 @@ async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
                     .replace(/[ \t]+/g, ' ')
                     .trim();
 
-                console.log('📄 [parse-resume] pdf-parse success, length:', cleanedText.length);
+                console.log('📄 [parse-resume] pdf-parse fallback:', cleanedText.length, 'chars');
                 return cleanedText;
             }
         }
-    } catch (pdfError) {
-        console.error('❌ [parse-resume] pdf-parse failed:', pdfError);
-    }
-
-    // Fallback extraction
-    const fallbackText = extractTextFallback(nodeBuffer);
-    if (fallbackText.length > 50) {
-        return fallbackText;
+    } catch (pdfParseError) {
+        console.error('❌ [parse-resume] pdf-parse fallback failed:', pdfParseError);
     }
 
     throw new Error('Could not extract text from PDF');
@@ -232,7 +230,9 @@ export async function POST(request: NextRequest) {
         }
 
         if (!text || text.length < 20) {
-            return NextResponse.json({ detail: 'Could not extract text from file. Try uploading a TXT file instead.' }, { status: 400 });
+            return NextResponse.json({
+                detail: 'Could not extract text from file. Try copying your resume text and saving as a .txt file.'
+            }, { status: 400 });
         }
 
         console.log('📝 [parse-resume] Text extracted, length:', text.length);
