@@ -105,7 +105,12 @@ function getCanonicalOrigin(hostname: string): string | undefined {
     return undefined;
 }
 
+// Vercel serverless config
+export const maxDuration = 30;
+
 export async function POST(request: NextRequest) {
+    console.log('📥 [extract-job] Request received');
+
     try {
         const body = await request.json();
         const { url } = body;
@@ -117,13 +122,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Parse and validate URL - CodeQL requires inline validation
+        console.log('🔗 [extract-job] Processing URL:', url);
+
+        // Parse and validate URL
         let parsedUrl: URL;
         try {
             parsedUrl = new URL(url);
         } catch {
             return NextResponse.json(
-                { error: 'Invalid URL format' },
+                { error: 'Invalid URL format. Please paste a valid job posting URL.' },
                 { status: 400 }
             );
         }
@@ -136,10 +143,36 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // SECURITY: Check hostname against explicit allowlist
         const hostname = parsedUrl.hostname.toLowerCase();
+        const pathname = parsedUrl.pathname;
 
-        // Inline check that CodeQL can verify
+        // LinkedIn-specific validation
+        if (hostname.includes('linkedin.com')) {
+            // Reject URLs that require authentication
+            if (pathname.includes('/collections/') ||
+                pathname.includes('/my-jobs/') ||
+                pathname.includes('/saved-jobs/') ||
+                pathname.includes('/recommended/')) {
+                return NextResponse.json({
+                    error: 'This LinkedIn URL requires authentication. Please use a direct job link like: linkedin.com/jobs/view/123456789',
+                    suggestion: 'Open the job posting and copy the URL from the browser address bar, it should look like: https://www.linkedin.com/jobs/view/[job-id]'
+                }, { status: 400 });
+            }
+
+            // Check for valid LinkedIn job URL patterns
+            const isValidLinkedInJob = pathname.startsWith('/jobs/view/') ||
+                pathname.match(/\/jobs\/\d+/) ||
+                pathname.includes('/jobs/') && parsedUrl.searchParams.has('currentJobId');
+
+            if (!isValidLinkedInJob && !pathname.includes('/jobs/')) {
+                return NextResponse.json({
+                    error: 'Please provide a direct LinkedIn job URL.',
+                    suggestion: 'The URL should look like: https://www.linkedin.com/jobs/view/[job-id]'
+                }, { status: 400 });
+            }
+        }
+
+        // Check hostname allowlist
         const isAllowed = ALLOWED_HOSTNAMES.includes(hostname as typeof ALLOWED_HOSTNAMES[number]) ||
             hostname.endsWith('.greenhouse.io') ||
             hostname.endsWith('.lever.co') ||
@@ -149,11 +182,13 @@ export async function POST(request: NextRequest) {
 
         if (!isAllowed) {
             return NextResponse.json({
-                error: 'This job board is not supported. Please use LinkedIn, Indeed, Greenhouse, Lever, or paste the job description manually.',
+                error: 'This job board is not supported.',
+                supported: 'Supported: LinkedIn, Indeed, Greenhouse, Lever, Glassdoor, and major company career sites.',
+                suggestion: 'You can paste the job description directly instead.'
             }, { status: 400 });
         }
 
-        // SECURITY: Block private IPs
+        // Block private IPs
         if (hostname === 'localhost' ||
             hostname.startsWith('127.') ||
             hostname.startsWith('10.') ||
@@ -173,9 +208,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // SECURITY: Get canonical origin from trusted sources only.
-        // Uses explicit map OR validated suffix-based domains.
-        // This breaks the taint chain by ensuring we NEVER derive the origin from arbitrary user input.
+        // Get canonical origin
         const canonicalOrigin = getCanonicalOrigin(hostname);
         if (!canonicalOrigin) {
             return NextResponse.json(
@@ -184,47 +217,78 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // SECURITY: Validate the path to prevent path traversal attacks
-        const pathname = parsedUrl.pathname || '/';
-        if (!pathname.startsWith('/') || pathname.includes('..') || pathname.includes('\\')) {
+        // Validate path
+        const safePath = pathname || '/';
+        if (!safePath.startsWith('/') || safePath.includes('..') || safePath.includes('\\')) {
             return NextResponse.json(
                 { error: 'Invalid URL path' },
                 { status: 400 }
             );
         }
 
-        // SECURITY: Build the final URL using a fixed, server-controlled origin as the base.
-        // This completely breaks the direct dependency between user input and the request host.
-        // The canonicalOrigin is a compile-time constant from HOSTNAME_CANONICAL_ORIGINS.
-        const safeUrl = new URL(pathname + parsedUrl.search, canonicalOrigin);
+        // Build safe URL
+        const safeUrl = new URL(safePath + parsedUrl.search, canonicalOrigin);
         const safeUrlString = safeUrl.toString();
 
-        console.log('📥 [extract-job] Fetching validated URL:', safeUrlString);
+        console.log('📥 [extract-job] Fetching:', safeUrlString);
 
-        // Fetch with validated URL - redirect disabled for additional safety
-        const response = await fetch(safeUrlString, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; JobHelper/1.0)',
-                'Accept': 'text/html',
-            },
-            redirect: 'error',
-        });
+        // Fetch with proper headers and redirect handling
+        let response;
+        try {
+            response = await fetch(safeUrlString, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Cache-Control': 'no-cache',
+                },
+                redirect: 'follow', // Allow redirects (LinkedIn uses them)
+            });
+        } catch (fetchError) {
+            console.error('❌ Fetch error:', fetchError);
+            return NextResponse.json({
+                error: 'Could not connect to the job board. Please try again later.',
+                details: 'Network error while fetching the job page.'
+            }, { status: 500 });
+        }
+
+        console.log('📥 [extract-job] Response status:', response.status);
 
         if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                return NextResponse.json({
+                    error: 'This job posting requires authentication.',
+                    suggestion: 'Please copy the job description text and paste it directly, or try a public job URL.'
+                }, { status: 400 });
+            }
+            if (response.status === 404) {
+                return NextResponse.json({
+                    error: 'Job posting not found. It may have been removed or the URL is incorrect.'
+                }, { status: 400 });
+            }
             return NextResponse.json(
-                { error: `Failed to fetch job page: ${response.status}` },
+                { error: `Failed to fetch job page (status: ${response.status})` },
                 { status: 400 }
             );
         }
 
         const html = await response.text();
+
+        // Check if we got a login/auth page
+        if (html.includes('Sign in') && html.includes('LinkedIn') && html.length < 50000) {
+            return NextResponse.json({
+                error: 'LinkedIn is requiring sign-in to view this job.',
+                suggestion: 'Please copy the job description text and paste it manually, or use the direct job URL from the view page.'
+            }, { status: 400 });
+        }
+
         const text = extractTextFromHtml(html);
 
         if (!text || text.length < 100) {
-            return NextResponse.json(
-                { error: 'Could not extract job content from this URL' },
-                { status: 400 }
-            );
+            return NextResponse.json({
+                error: 'Could not extract job content from this URL.',
+                suggestion: 'The page might be dynamic or require JavaScript. Please copy and paste the job description manually.'
+            }, { status: 400 });
         }
 
         const jobData = parseJobContent(text);
@@ -235,10 +299,10 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error('❌ [extract-job] Error:', error);
-        return NextResponse.json(
-            { error: 'Failed to extract job details' },
-            { status: 500 }
-        );
+        return NextResponse.json({
+            error: 'Failed to extract job details. Please try again or paste the job description manually.',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 });
     }
 }
 
