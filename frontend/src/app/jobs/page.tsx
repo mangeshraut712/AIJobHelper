@@ -144,7 +144,18 @@ export default function AnalyzeJobPage() {
             toast("Job analyzed successfully!", "success");
         } catch (error) {
             console.error("Analysis error:", error);
-            toast("Failed to analyze job. Please check the URL and try again.", "error");
+            // Extract error message from API response
+            let errorMsg = "Failed to analyze job. Please check the URL and try again.";
+            if (axios.isAxiosError(error) && error.response?.data) {
+                const data = error.response.data;
+                if (data.error) {
+                    errorMsg = data.error;
+                    if (data.suggestion) {
+                        errorMsg += ` ${data.suggestion}`;
+                    }
+                }
+            }
+            toast(errorMsg, "error");
         } finally {
             setIsAnalyzing(false);
         }
