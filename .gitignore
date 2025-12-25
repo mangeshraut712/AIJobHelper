@@ -1,31 +1,92 @@
-# Next.js
-frontend/.next/
+# =========================
+# Dependencies
+# =========================
 frontend/node_modules/
-frontend/.env*
-frontend/.vercel
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-backend/.env
-backend/.venv
+backend/venv/
+backend/.venv/
 venv/
-.pytest_cache/
+node_modules/
 
-# OS
+# =========================
+# Build Outputs
+# =========================
+frontend/.next/
+frontend/out/
+frontend/.vercel/
+dist/
+build/
+*.egg-info/
+
+# =========================
+# Environment Variables
+# =========================
+.env
+.env.local
+.env.*.local
+frontend/.env*
+backend/.env
+!.env.example
+!frontend/.env.example
+!backend/.env.example
+
+# =========================
+# IDE & Editor
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/rules/
+
+# =========================
+# OS Files
+# =========================
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Project Specific
+# =========================
+# Python Cache
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# =========================
+# Temporary Files
+# =========================
+*.tmp
+*.temp
+*.log
+*.bak
+temp_*
+tmp_*
+
+# =========================
+# Generated Exports
+# =========================
 storage/exports/
+exports/
+
+# =========================
+# Personal/Sensitive Files
+# =========================
 *.pdf
 *.docx
+*.doc
 *.tex
-*.txt
-!README.md
-!requirements.txt
+!docs/*.md
 
-
-#Ignore cursor AI rules
-.cursor/rules/codacy.mdc
+# =========================
+# TypeScript Build Info
+# =========================
+*.tsbuildinfo

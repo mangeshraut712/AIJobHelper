@@ -119,9 +119,23 @@ AIJobHelper/
 │   │   │   ├── profile/        # Profile management
 │   │   │   └── communication/  # Message generator
 │   │   ├── 📁 components/      # UI components (Navbar, Footer)
-│   │   └── 📁 lib/             # API utilities
+│   │   └── 📁 lib/             # API utilities & helpers
+│
+├── 📁 docs/                    # Documentation
+│   ├── README.md               # Documentation index
+│   ├── ARCHITECTURE.md         # System architecture
+│   ├── SECURITY.md             # Security policies
+│   ├── CONTRIBUTING.md         # Contribution guidelines
+│   └── IMPROVEMENTS.md         # Feature roadmap
+│
+├── 📁 tests/                   # Test files
+│   ├── test_backend.py         # Backend API tests
+│   └── test_models.py          # Model validation tests
 │
 ├── 📁 .github/                 # CI/CD workflows
+│   ├── workflows/              # GitHub Actions
+│   └── ISSUE_TEMPLATE/         # Issue templates
+│
 └── vercel.json                 # Deployment config
 ```
 
@@ -151,6 +165,17 @@ OPENROUTER_API_KEY=your_key_here
 
 ---
 
+## 📚 Documentation
+
+For detailed documentation, see the [docs/](docs/) folder:
+
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Security Policy](docs/SECURITY.md)
+- [Contributing Guide](docs/CONTRIBUTING.md)
+- [Feature Roadmap](docs/IMPROVEMENTS.md)
+
+---
+
 ## 🚢 Deployment
 
 The project is optimized for **Vercel** deployment with a single repository structure.
@@ -167,7 +192,7 @@ The project is optimized for **Vercel** deployment with a single repository stru
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for details.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
