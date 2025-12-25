@@ -1,105 +1,135 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { callAI, OPENROUTER_API_KEY } from '@/lib/ai-config';
+import { callAI } from '@/lib/ai-config';
 
-// Vercel serverless config
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 interface ResumeData {
-    name?: string;
-    email?: string;
-    summary?: string;
-    skills?: string[];
-    experience?: { role?: string; company?: string; description?: string }[];
+    name: string;
+    email: string;
+    summary: string;
+    skills: string[];
+    experience: Array<{ role: string; company: string; description: string }>;
 }
 
 interface JobDescription {
-    title?: string;
-    company?: string;
-    description?: string;
+    title: string;
+    company: string;
+    description: string;
+    requirements: string;
+    skills: string;
 }
 
-const SYSTEM_PROMPT = `You are an expert cover letter writer. Write compelling, personalized cover letters that:
-1. Are tailored to the specific job and company
-2. Highlight relevant skills and experience
-3. Show enthusiasm and cultural fit
-4. Are professional yet engaging
-5. Are 3-4 paragraphs long
-6. Return ONLY the cover letter text, no explanation or formatting`;
+const COVER_LETTER_PROMPT = `You are an expert cover letter writer. Generate a professional, personalized cover letter.
 
-async function generateWithAI(resume: ResumeData, job: JobDescription): Promise<string> {
-    const prompt = `Write a professional cover letter for:
+REQUIREMENTS:
+1. Professional tone, enthusiastic but not over-the-top
+2. Highlight SPECIFIC achievements from experience
+3. Connect skills to job requirements
+4. Show knowledge about the company
+5. Clear structure: opening, body (2-3 paragraphs), closing
+6. 250-350 words total
 
-APPLICANT:
-Name: ${resume.name || 'Job Seeker'}
-Summary: ${resume.summary || 'Experienced professional'}
-Skills: ${(resume.skills || []).join(', ')}
-Recent Role: ${resume.experience?.[0]?.role || 'Professional'} at ${resume.experience?.[0]?.company || 'Previous Company'}
+STRUCTURE:
+- Opening: Express interest, mention how you found the role
+- Body Paragraph 1: Highlight most relevant experience + quantified achievement
+- Body Paragraph 2: Connect your skills to job requirements
+- Closing: Express enthusiasm, call to action
 
-TARGET JOB:
-Title: ${job.title || 'The position'}
-Company: ${job.company || 'The company'}
-Description: ${(job.description || '').slice(0, 500)}
+Return ONLY the cover letter text, no markdown formatting.`;
 
-Write a compelling cover letter connecting their experience to this role.`;
+const EMAIL_PROMPT = `Generate a professional job application email. Keep it concise (150-200 words).
 
-    return await callAI(prompt, SYSTEM_PROMPT, { temperature: 0.7, maxTokens: 1500 });
-}
+INCLUDE:
+- Professional subject line suggestion
+- Brief introduction
+- Why you're a good fit (1-2 sentences)
+- Mention attached resume
+- Professional closing
 
-function generateFallbackCoverLetter(resume: ResumeData, job: JobDescription): string {
-    const name = resume.name || 'Your Name';
-    const jobTitle = job.title || 'the position';
-    const company = job.company || 'your company';
-    const skills = (resume.skills || []).slice(0, 5).join(', ') || 'relevant skills';
+Format as:
+Subject: [your subject line]
 
-    return `Dear Hiring Manager,
+[email body]`;
 
-I am writing to express my strong interest in the ${jobTitle} position at ${company}. With my background in ${skills}, I believe I would be a valuable addition to your team.
+const LINKEDIN_PROMPT = `Generate a professional LinkedIn connection request message.
 
-${resume.summary || 'I am a dedicated professional with a passion for excellence and continuous learning.'}
+REQUIREMENTS:
+- Maximum 300 characters (LinkedIn limit)
+- Mention the specific role
+- Show genuine interest
+- Professional but friendly tone
 
-Throughout my career, I have developed expertise in ${skills}. I am excited about the opportunity to bring my experience and skills to ${company} and contribute to your continued success.
+Return ONLY the message text.`;
 
-I am particularly drawn to ${company} because of your commitment to innovation and excellence. I am confident that my skills and enthusiasm make me an ideal candidate for this role.
+const FOLLOW_UP_PROMPT = `Generate a professional follow-up email after job application/interview.
 
-Thank you for considering my application. I look forward to the opportunity to discuss how I can contribute to your team.
+REQUIREMENTS:
+- Polite and professional
+- Re-express interest
+- Reference specific discussion points (if applicable)
+- Ask about next steps
+- 150-200 words
 
-Sincerely,
-${name}`;
-}
+Return ONLY the email text.`;
 
 export async function POST(request: NextRequest) {
-    console.log('📝 [cover-letter] Request received');
-
     try {
         const body = await request.json();
-        const { resume_data, job_description } = body;
+        const { resume_data, job_description, template_type } = body as {
+            resume_data: ResumeData;
+            job_description: JobDescription;
+            template_type: 'cover_letter' | 'email' | 'linkedin' | 'follow_up';
+        };
 
-        console.log('👤 Name:', resume_data?.name);
-        console.log('💼 Job:', job_description?.title, 'at', job_description?.company);
+        console.log(`📝 [generate-cover-letter] Generating ${template_type} for ${job_description.title} at ${job_description.company}`);
 
-        let coverLetter: string;
+        // Select appropriate system prompt
+        const systemPromptMap = {
+            cover_letter: COVER_LETTER_PROMPT,
+            email: EMAIL_PROMPT,
+            linkedin: LINKEDIN_PROMPT,
+            follow_up: FOLLOW_UP_PROMPT,
+        };
 
-        if (OPENROUTER_API_KEY) {
-            try {
-                coverLetter = await generateWithAI(resume_data || {}, job_description || {});
-                console.log('✅ [cover-letter] AI generated, length:', coverLetter.length);
-            } catch (aiError) {
-                console.error('❌ [cover-letter] AI failed:', aiError);
-                coverLetter = generateFallbackCoverLetter(resume_data || {}, job_description || {});
-            }
-        } else {
-            coverLetter = generateFallbackCoverLetter(resume_data || {}, job_description || {});
-        }
+        const systemPrompt = systemPromptMap[template_type];
+
+        // Build user prompt with context
+        const userPrompt = `Generate a ${template_type.replace('_', ' ')} for this application:
+
+JOB DETAILS:
+- Position: ${job_description.title}
+- Company: ${job_description.company}
+- Requirements: ${job_description.requirements}
+- Key Skills Needed: ${job_description.skills}
+
+CANDIDATE PROFILE:
+- Name: ${resume_data.name}
+- Summary: ${resume_data.summary}
+- Top Skills: ${resume_data.skills.slice(0, 8).join(', ')}
+- Recent Experience: ${resume_data.experience.slice(0, 2).map(exp => `${exp.role} at ${exp.company}`).join('; ')}
+
+KEY ACHIEVEMENTS:
+${resume_data.experience.slice(0, 2).map((exp, idx) => `${idx + 1}. ${exp.description.split('.')[0]}`).join('\n')}
+
+Generate a compelling, personalized ${template_type.replace('_', ' ')} that highlights the match between this candidate and the role.`;
+
+        // Call AI
+        const response = await callAI(userPrompt, systemPrompt, {
+            temperature: 0.7, // Slightly creative for writing
+            maxTokens: 800,
+        });
+
+        console.log(`✅ [generate-cover-letter] Generated ${template_type}, length: ${response.length} chars`);
 
         return NextResponse.json({
-            content: coverLetter,
-            cover_letter: coverLetter
+            content: response.trim(),
+            type: template_type,
         });
 
     } catch (error) {
-        console.error('❌ [cover-letter] Error:', error);
+        console.error('❌ [generate-cover-letter] Error:', error);
         return NextResponse.json(
-            { error: 'Failed to generate cover letter' },
+            { detail: 'Failed to generate content. Please try again.' },
             { status: 500 }
         );
     }

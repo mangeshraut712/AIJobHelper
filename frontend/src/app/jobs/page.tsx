@@ -15,6 +15,7 @@ import axios from "axios";
 import API_URL from "@/lib/api";
 import Link from "next/link";
 import { secureGet, secureSet, sanitizeUrl } from "@/lib/secureStorage";
+import { STORAGE_KEYS } from "@/lib/storageKeys";
 
 interface AnalyzedJob {
     id: string;
@@ -72,11 +73,19 @@ export default function AnalyzeJobPage() {
 
     // Load data from secure storage after mount
     useEffect(() => {
-        const jobs = secureGet<AnalyzedJob[]>('analyzedJobs');
+        console.log('🔄 [Jobs] Loading saved data from localStorage...');
+
+        const jobs = secureGet<AnalyzedJob[]>(STORAGE_KEYS.ANALYZED_JOBS);
+        console.log('📦 [Jobs] Loaded jobs:', jobs ? `${jobs.length} jobs` : 'NONE');
         if (jobs) setSavedJobs(jobs);
 
-        const p = secureGet<UserProfile>('profile');
+        const p = secureGet<UserProfile>(STORAGE_KEYS.PROFILE);
+        console.log('👤 [Jobs] Loaded profile:', p ? `${p.skills?.length || 0} skills` : 'NONE');
         if (p) setProfile(p);
+
+        console.log('🔍 [Jobs] localStorage check:');
+        console.log('   - cap_analyzedJobs:', localStorage.getItem('cap_analyzedJobs') ? 'EXISTS' : 'MISSING');
+        console.log('   - cap_profile:', localStorage.getItem('cap_profile') ? 'EXISTS' : 'MISSING');
     }, []);
 
     // Set mounted state after component mounts
@@ -179,8 +188,12 @@ export default function AnalyzeJobPage() {
         if (!currentJob) return;
         const updatedJobs = [currentJob, ...savedJobs.filter(j => j.url !== currentJob.url)];
         setSavedJobs(updatedJobs);
-        secureSet('analyzedJobs', updatedJobs);
-        secureSet('currentJobForResume', currentJob);
+        secureSet(STORAGE_KEYS.ANALYZED_JOBS, updatedJobs);
+        secureSet(STORAGE_KEYS.CURRENT_JOB_FOR_RESUME, currentJob);
+
+        console.log('💾 [Jobs] Saved job:', currentJob.title, 'at', currentJob.company);
+        console.log('💾 [Jobs] Total saved jobs:', updatedJobs.length);
+
         toast("Job saved!", "success");
     };
 
@@ -192,7 +205,7 @@ export default function AnalyzeJobPage() {
     const deleteJob = (jobId: string) => {
         const updatedJobs = savedJobs.filter(j => j.id !== jobId);
         setSavedJobs(updatedJobs);
-        secureSet('analyzedJobs', updatedJobs);
+        secureSet(STORAGE_KEYS.ANALYZED_JOBS, updatedJobs);
         if (currentJob?.id === jobId) setCurrentJob(null);
         toast("Job removed", "info");
     };
