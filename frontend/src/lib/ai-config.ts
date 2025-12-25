@@ -4,15 +4,20 @@
 export const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 export const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-// Fast models for different use cases
-// Primary: gpt-4o-mini (fast, cheap, good at JSON) - PAID
-// Default: llama-3.2-3b-instruct:free - FREE (use this for Vercel)
-export const AI_MODEL_FAST = 'openai/gpt-4o-mini';
-export const AI_MODEL_FREE = 'meta-llama/llama-3.2-3b-instruct:free';
+// Model selection - using GPT-4 mini for best quality with reasonable cost
+// With API key, this provides excellent parsing without rate limits
+const AI_MODEL_FAST = 'openai/gpt-4o-mini'; // Fast, affordable, high quality
+const AI_MODEL_FREE = 'meta-llama/llama-3.2-3b-instruct:free'; // Free but rate-limited
 
-// Use FREE model by default for Vercel compatibility
-// Can opt-in to fast model with useFastModel option
-export const AI_MODEL = AI_MODEL_FREE;
+// Use fast model if API key is available, otherwise free
+export const AI_MODEL = OPENROUTER_API_KEY ? AI_MODEL_FAST : AI_MODEL_FREE;
+
+console.log(`🤖 [AI] Using model: ${AI_MODEL}${OPENROUTER_API_KEY ? ' (with your API key)' : ' (free, may have rate limits)'}`);
+
+interface AIOptions {
+    temperature?: number;
+    maxTokens?: number;
+}
 
 // Helper function to call OpenRouter with timeout and retry
 export async function callAI(

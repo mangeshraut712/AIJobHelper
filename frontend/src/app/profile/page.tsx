@@ -115,9 +115,18 @@ export default function ProfilePage() {
     const [profile, setProfile] = useState<ProfileData>(EMPTY_PROFILE);
 
     useEffect(() => {
+        // Load saved profile from secure storage on mount
         const saved = secureGet<ProfileData>('profile');
         if (saved) {
+            console.log('📥 Loading saved profile from localStorage:', {
+                name: saved.name,
+                experienceCount: saved.experience?.length || 0,
+                educationCount: saved.education?.length || 0,
+                skillsCount: saved.skills?.length || 0
+            });
             setProfile(saved);
+        } else {
+            console.log('ℹ️ No saved profile found in localStorage');
         }
     }, []);
 
@@ -127,8 +136,20 @@ export default function ProfilePage() {
 
     const handleSave = async () => {
         setIsSaving(true);
+
+        // Small delay for UX feedback
         await new Promise(r => setTimeout(r, 500));
+
+        // Save to secure storage - this persists across page refreshes
         secureSet('profile', profile);
+
+        console.log('💾 Saved profile to localStorage:', {
+            name: profile.name,
+            experienceCount: profile.experience.length,
+            educationCount: profile.education.length,
+            skillsCount: profile.skills.length
+        });
+
         toast("Profile saved successfully!", "success");
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);
@@ -139,11 +160,29 @@ export default function ProfilePage() {
         const file = e.target.files?.[0];
         if (!file) return;
         setIsParsing(true);
+
         try {
             const formData = new FormData();
             formData.append("file", file);
+
+            console.log('📤 Uploading resume for parsing...');
+            const startTime = Date.now();
+
+            // Call API to parse resume
             const response = await axios.post(`${API_URL}/parse-resume`, formData);
             const parsed = response.data;
+
+            const parseTime = Date.now() - startTime;
+            console.log(`⏱️ Parsing took ${parseTime}ms`);
+
+            // Ensure minimum processing time for thorough extraction (at least 2 seconds)
+            if (parseTime < 2000) {
+                console.log('⏳ Waiting for thorough AI processing...');
+                await new Promise(r => setTimeout(r, 2000 - parseTime));
+            }
+
+            // Debug: Log what we received from API
+            console.log('📋 Parsed resume data:', parsed);
 
             // Map experience from backend format to frontend format
             const mappedExperience: Experience[] = (parsed.experience || []).map((exp: ParsedExperience) => ({
@@ -167,15 +206,17 @@ export default function ProfilePage() {
                 endDate: edu.graduation_year || edu.year || ""
             }));
 
+            // Update profile with ALL extracted data
             setProfile(prev => ({
                 ...prev,
                 name: parsed.name || prev.name,
+                title: parsed.jobTitle || parsed.title || prev.title, // Map jobTitle to title
                 email: parsed.email || prev.email,
                 phone: parsed.phone || prev.phone,
                 location: parsed.location || prev.location,
                 linkedin: parsed.linkedin || prev.linkedin,
                 github: parsed.github || prev.github,
-                portfolio: parsed.website || prev.portfolio,
+                portfolio: parsed.portfolio || parsed.website || prev.portfolio, // Try both fields
                 skills: parsed.skills?.length ? parsed.skills : prev.skills,
                 summary: parsed.summary || prev.summary,
                 experience: mappedExperience.length ? mappedExperience : prev.experience,
@@ -184,11 +225,21 @@ export default function ProfilePage() {
 
             const itemsFound = [];
             if (parsed.name) itemsFound.push("name");
+            if (parsed.email) itemsFound.push("email");
+            if (parsed.phone) itemsFound.push("phone");
+            if (parsed.jobTitle) itemsFound.push("title");
             if (parsed.experience?.length) itemsFound.push(`${parsed.experience.length} experience(s)`);
             if (parsed.education?.length) itemsFound.push(`${parsed.education.length} education(s)`);
             if (parsed.skills?.length) itemsFound.push(`${parsed.skills.length} skills`);
 
             toast(`Resume parsed! Found: ${itemsFound.join(", ") || "basic info"}`, "success");
+            console.log('✅ Profile updated with:', {
+                name: parsed.name,
+                title: parsed.jobTitle,
+                experienceCount: mappedExperience.length,
+                educationCount: mappedEducation.length,
+                skillsCount: parsed.skills?.length || 0
+            });
         } catch (error) {
             console.error("Parse error:", error);
             // Extract detailed error message from API response

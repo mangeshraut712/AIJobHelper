@@ -36,66 +36,113 @@ interface ParsedResume {
     awards?: string[];
 }
 
-const SYSTEM_PROMPT = `You are an EXPERT resume parser AI. Your job is to extract EVERY SINGLE piece of information from resumes with 100% accuracy.
+const SYSTEM_PROMPT = `You are an EXPERT resume parser AI. Extract EVERY piece of information with 100% accuracy.
+
+STEP-BY-STEP EXTRACTION PROCESS:
+
+1. CONTACT INFORMATION (scan entire resume):
+   - name: First line is usually the name (e.g., "John Smith" or "JOHN SMITH")
+   - email: Find pattern like name@domain.com
+   - phone: Find any phone number format (+1-555-123-4567, (555) 123-4567, etc.)
+   - linkedin: Look for linkedin.com/in/username or just the username
+   - github: Look for github.com/username or just the username
+   - portfolio: Look for personal website URLs
+   - location: City, State or City, Country
+   - jobTitle: Current job title OR the position mentioned at top
+
+2. SUMMARY/OBJECTIVE (usually near top):
+   - Extract the COMPLETE paragraph under "Summary", "Objective", "About", "Profile"
+   - Include EVERY sentence, don't truncate
+
+3. EXPERIENCE (CRITICAL - DON'T SKIP ANY):
+   Look for sections titled: "Experience", "Work Experience", "Employment", "Professional Experience"
+   For EACH job entry, extract:
+   - company: Company name
+   - role: Job title/position
+   - duration: "Jan 2020 - Present" or "2020-2022" or any date format
+   - description: Combine ALL bullet points into ONE detailed paragraph with periods between
+
+   Example:
+   If resume shows:
+   "Software Engineer at Google | Jan 2020 - Present
+   • Built scalable microservices using Node.js
+   • Led team of 5 developers
+   • Improved performance by 40%"
+   
+   Extract as:
+   {
+     "company": "Google",
+     "role": "Software Engineer", 
+     "duration": "Jan 2020 - Present",
+     "description": "Built scalable microservices using Node.js. Led team of 5 developers. Improved performance by 40%."
+   }
+
+4. EDUCATION (CRITICAL - DON'T SKIP ANY):
+   Look for: "Education", "Academic Background", "Qualifications"
+   For EACH degree:
+   - institution: Full university/college name
+   - degree: "Bachelor of Science in Computer Science", "MBA", "PhD", etc.
+   - graduation_year: "2024", "Expected 2025", "2020-2024"
+   - gpa: "3.8/4.0" if mentioned
+
+5. SKILLS:
+   Extract from sections: "Skills", "Technical Skills", "Core Competencies", "Tools"
+   Include: programming languages, frameworks, tools, soft skills, languages spoken
+   Examples: "Python", "React", "AWS", "Leadership", "Spanish"
+
+6. PROJECTS (if present):
+   - name: Project name
+   - description: What they built and the impact
+   - technologies: Tech stack used
+
+7. CERTIFICATIONS & AWARDS:
+   - certifications: ["AWS Certified", "PMP"]
+   - awards: ["Dean's List", "Employee of the Month"]
 
 CRITICAL RULES:
-1. Extract ALL experience entries - never skip any job, even internships or part-time work
-2. Extract ALL education entries - every degree, certificate, or course mentioned
-3. Extract EVERY skill mentioned anywhere in the resume
-4. Combine all bullet points in experience into a single detailed paragraph
-5. Return ONLY valid JSON, NO markdown, NO explanations
+- Extract EVERY work experience entry, even internships, part-time jobs
+- Extract EVERY education entry, even online courses
+- Combine bullet points into flowing paragraphs with periods
+- Return ONLY valid JSON, NO markdown formatting
+- If field not found, use empty string "" or empty array []
 
-REQUIRED OUTPUT FORMAT:
+OUTPUT FORMAT (valid JSON only):
 {
-    "name": "FULL NAME - usually the first line of resume",
-    "email": "email@example.com - REQUIRED",
-    "phone": "+1-xxx-xxx-xxxx or any format found",
-    "linkedin": "linkedin.com/in/username OR just username",
-    "github": "github.com/username OR just username",
-    "portfolio": "personal website URL if any",
-    "location": "City, State/Country",
-    "jobTitle": "current title OR title they're applying for",
-    "summary": "COMPLETE professional summary - include EVERY sentence from objective/summary section",
-    "experience": [
-        {
-            "company": "Company Name Inc.",
-            "role": "Job Title / Position",
-            "duration": "Jan 2020 - Present (or any date format)",
-            "description": "Combine ALL bullet points into detailed paragraph. Include achievements, technologies, metrics, responsibilities."
-        }
-    ],
-    "education": [
-        {
-            "institution": "University/College Full Name",
-            "degree": "Bachelor of Science, Master of Arts, PhD, etc.",
-            "graduation_year": "2024 or Expected 2025",
-            "gpa": "3.8/4.0 if mentioned"
-        }
-    ],
-    "skills": ["Extract EVERY technical skill", "soft skill", "programming language", "framework", "tool", "certification", "language spoken"],
-    "certifications": ["AWS Certified Solutions Architect", "PMP", "Include issuing org if mentioned"],
-    "projects": [
-        {
-            "name": "Project Name",
-            "description": "Full description with impact/results",
-            "technologies": "React, Node.js, AWS, etc."
-        }
-    ],
-    "awards": ["Dean's List 2023", "Employee of the Month", "Any achievement/honor"]
-}
-
-EMPHASIS:
-- EXPERIENCE: Extract EVERY job, internship, volunteer role. Don't skip anything!
-- EDUCATION: Extract EVERY degree, certificate, bootcamp, online course
-- If field not present: use empty string "" or empty array []
-- Be COMPREHENSIVE - more data is better than less!`;
+  "name": "",
+  "email": "",
+  "phone": "",
+  "linkedin": "",
+  "github": "",
+  "portfolio": "",
+  "location": "",
+  "jobTitle": "",
+  "summary": "",
+  "experience": [{"company": "", "role": "", "duration": "", "description": ""}],
+  "education": [{"institution": "", "degree": "", "graduation_year": "", "gpa": ""}],
+  "skills": [],
+  "certifications": [],
+  "projects": [{"name": "", "description": "", "technologies": ""}],
+  "awards": []
+}`;
 
 async function parseResumeWithAI(text: string): Promise<ParsedResume> {
     console.log('🤖 [parse-resume] Calling AI to parse resume...');
 
-    const prompt = `Parse this resume and extract ALL information into JSON format. Be comprehensive and don't miss anything:\n\nRESUME TEXT:\n${text.substring(0, 15000)}`;
+    const prompt = `TASK: Extract ALL information from this resume into the JSON format specified in the system prompt.
 
-    const response = await callAI(prompt, SYSTEM_PROMPT, { temperature: 0.1, maxTokens: 4500 });
+BE THOROUGH:
+- Don't skip ANY work experience entries
+- Don't skip ANY education entries  
+- Include COMPLETE descriptions (all bullet points combined)
+- Extract EVERY skill mentioned
+- Find contact info even if formatted differently
+
+RESUME TEXT:
+${text.substring(0, 15000)}
+
+Return ONLY the JSON object, no other text.`;
+
+    const response = await callAI(prompt, SYSTEM_PROMPT, { temperature: 0.05, maxTokens: 5000 });
 
     const jsonStr = extractJSON(response);
     const parsed = JSON.parse(jsonStr);
