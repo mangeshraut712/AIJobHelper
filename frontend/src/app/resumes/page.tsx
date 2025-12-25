@@ -17,7 +17,7 @@ import axios from "axios";
 import API_URL from "@/lib/api";
 import Link from "next/link";
 import { secureGet, secureSet } from "@/lib/secureStorage";
-import { STORAGE_KEYS, migrateOldKeys } from "@/lib/storageKeys";
+import { STORAGE_KEYS } from "@/lib/storageKeys";
 
 interface JobData {
     title: string;
@@ -111,16 +111,13 @@ export default function ResumesPage() {
 
 
     useEffect(() => {
-        // Migrate old storage keys to new standard keys
-        migrateOldKeys();
-
-        // Load current job from secure storage
+        // Load current job from secure storage (secureGet adds 'cap_' prefix automatically)
         const savedJob = secureGet<JobData>(STORAGE_KEYS.CURRENT_JOB_FOR_RESUME);
         if (savedJob) {
             setCurrentJob(savedJob);
         }
 
-        // Load profile from secure storage
+        // Load profile from secure storage (secureGet adds 'cap_' prefix automatically)
         const savedProfile = secureGet<ProfileData>(STORAGE_KEYS.PROFILE);
         if (savedProfile) {
             setProfile(savedProfile);
