@@ -255,37 +255,69 @@ function parseResumeWithRegex(text: string) {
 
 // PDF text extraction with Vercel-compatible workaround
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
-    try {
-        console.log('📄 [parse-resume] Starting PDF extraction, buffer size:', buffer.byteLength);
+    console.log('📄 [parse-resume] Starting PDF extraction, buffer size:', buffer.byteLength);
 
-        // Dynamic import with error handling for Vercel
-        let pdfParse;
+    // Timeout for PDF parsing (prevent serverless timeout)
+    const PARSE_TIMEOUT = 25000; // 25 seconds
+
+    const parseWithTimeout = new Promise<string>(async (resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+            reject(new Error('PDF parsing timed out'));
+        }, PARSE_TIMEOUT);
+
         try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const pdfModule = await import('pdf-parse') as any;
-            pdfParse = pdfModule.default || pdfModule;
-        } catch (importError) {
-            console.error('❌ pdf-parse import failed:', importError);
-            throw new Error('PDF parsing library not available');
+            // Dynamic import with error handling for Vercel
+            let pdfParse;
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const pdfModule = await import('pdf-parse') as any;
+                pdfParse = pdfModule.default || pdfModule;
+            } catch (importError) {
+                clearTimeout(timeoutId);
+                console.error('❌ pdf-parse import failed:', importError);
+                reject(new Error('PDF parsing library not available'));
+                return;
+            }
+
+            // Parse PDF with options optimized for serverless
+            const options = {
+                max: 10, // Limit to 10 pages for performance
+            };
+
+            const data = await pdfParse(Buffer.from(buffer), options);
+            clearTimeout(timeoutId);
+
+            if (!data.text || data.text.trim().length === 0) {
+                reject(new Error('No text content extracted from PDF'));
+                return;
+            }
+
+            // Clean up common PDF artifacts and special characters
+            let cleanedText = data.text
+                // Remove FontAwesome and icon characters
+                .replace(/[♂¶⌢]/g, '')
+                .replace(/\/envelope/gi, 'Email: ')
+                .replace(/\/linkedin-in/gi, 'LinkedIn: ')
+                .replace(/\/github/gi, 'GitHub: ')
+                .replace(/\/mobile-alt/gi, 'Phone: ')
+                .replace(/\/envel/gi, '')
+                // Remove other unicode artifacts
+                .replace(/[\uE000-\uF8FF]/g, '') // Private use area
+                .replace(/[\u2022\u2023\u25E6\u2043\u2219]/g, '• ') // Bullet points
+                // Clean whitespace
+                .replace(/\s+/g, ' ')
+                .replace(/\n\s*\n/g, '\n\n')
+                .trim();
+
+            console.log('📄 [parse-resume] PDF extracted successfully, text length:', cleanedText.length);
+            resolve(cleanedText);
+        } catch (error) {
+            clearTimeout(timeoutId);
+            reject(error);
         }
+    });
 
-        // Parse PDF with options optimized for serverless
-        const options = {
-            max: 0, // No page limit
-        };
-
-        const data = await pdfParse(Buffer.from(buffer), options);
-
-        if (!data.text || data.text.trim().length === 0) {
-            throw new Error('No text content extracted from PDF');
-        }
-
-        console.log('📄 [parse-resume] PDF extracted successfully, text length:', data.text.length);
-        return data.text;
-    } catch (error) {
-        console.error('❌ PDF parsing error:', error);
-        throw error;
-    }
+    return parseWithTimeout;
 }
 
 // Simple text extraction fallback - tries to read as UTF-8
