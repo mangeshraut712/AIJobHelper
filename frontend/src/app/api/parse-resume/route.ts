@@ -1,23 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// OpenRouter API Configuration
+// OpenRouter API Configuration - Uses Vercel environment variables
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-// Available models
-const MODELS = {
-    grok: 'x-ai/grok-2-vision-1212',
-    gemini: 'google/gemini-2.0-flash-exp:free',
-};
-
-// For Vercel deployment: Use the local Python backend in development
-// In production on Vercel, we use pdf-parse for PDFs and regex for parsing
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
+// Reliable free model for parsing
+const PARSE_MODEL = 'meta-llama/llama-3.2-3b-instruct:free';
 
 async function callOpenRouter(prompt: string, systemPrompt: string): Promise<string> {
     if (!OPENROUTER_API_KEY) {
         throw new Error('OpenRouter API key not configured');
     }
+
+    console.log('🤖 [parse-resume] Using model:', PARSE_MODEL);
 
     const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
         method: 'POST',
@@ -28,13 +23,13 @@ async function callOpenRouter(prompt: string, systemPrompt: string): Promise<str
             'X-Title': 'CareerAgentPro Resume Parser',
         },
         body: JSON.stringify({
-            model: MODELS.grok,
+            model: PARSE_MODEL,
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: prompt },
             ],
             temperature: 0.1,
-            max_tokens: 4000,
+            max_tokens: 2000,
         }),
     });
 
@@ -48,58 +43,161 @@ async function callOpenRouter(prompt: string, systemPrompt: string): Promise<str
     return data.choices?.[0]?.message?.content || '';
 }
 
-// Regex extraction helpers (Fallback)
+// Enhanced regex extraction helpers
 function extractEmail(text: string): string {
-    const match = text.match(/[\w.+-]+@[\w.-]+\.\w+/);
-    return match ? match[0] : '';
+    const patterns = [
+        /[\w.+-]+@[\w.-]+\.\w{2,}/gi,
+        /email[:\s]*([^\s@]+@[^\s@]+\.[^\s@]+)/gi,
+    ];
+    for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) return match[0].replace(/^email[:\s]*/i, '');
+    }
+    return '';
 }
 
 function extractPhone(text: string): string {
-    const match = text.match(/\+?1?\d{10,11}|\+?\d{1,3}[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{4}/);
-    return match ? match[0].trim() : '';
+    const patterns = [
+        /\+?1?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/,
+        /\+?\d{10,12}/,
+        /\(\d{3}\)\s*\d{3}[-.\s]?\d{4}/,
+    ];
+    for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) return match[0].trim();
+    }
+    return '';
 }
 
 function extractName(text: string): string {
     const lines = text.split('\n').filter(l => l.trim());
-    for (const line of lines.slice(0, 5)) {
+    const skipWords = ['summary', 'skills', 'experience', 'resume', 'cv', 'objective', 'education', 'profile', 'contact'];
+
+    for (const line of lines.slice(0, 10)) {
         const trimmed = line.trim();
-        if (!trimmed.includes('@') && !trimmed.match(/^\d/) && !trimmed.includes('+')) {
-            if (trimmed.length > 3 && trimmed.length < 50 && /^[A-Z]/.test(trimmed)) {
-                const skipWords = ['summary', 'skills', 'experience', 'resume', 'cv', 'objective', 'education'];
-                if (!skipWords.some(w => trimmed.toLowerCase().includes(w))) {
-                    return trimmed;
-                }
-            }
+        // Skip lines with email, phone, or common headers
+        if (trimmed.includes('@') || /^\+?\d/.test(trimmed)) continue;
+        if (skipWords.some(w => trimmed.toLowerCase().includes(w))) continue;
+
+        // Name likely starts with capital, 2-4 words, reasonable length
+        if (/^[A-Z][a-z]+(\s+[A-Z][a-z]+){0,3}$/.test(trimmed) && trimmed.length < 40) {
+            return trimmed;
         }
     }
     return '';
 }
 
-// ... other extractors kept simple or omitted for brevity if not strictly needed for fallback ...
+function extractLinkedIn(text: string): string {
+    const match = text.match(/linkedin\.com\/in\/[\w-]+/i);
+    return match ? `https://${match[0]}` : '';
+}
+
+function extractGitHub(text: string): string {
+    const match = text.match(/github\.com\/[\w-]+/i);
+    return match ? `https://${match[0]}` : '';
+}
+
+function extractSkills(text: string): string[] {
+    // Common tech skills to look for
+    const commonSkills = [
+        'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'Go', 'Rust', 'Swift', 'Kotlin',
+        'React', 'Angular', 'Vue', 'Next.js', 'Node.js', 'Express', 'Django', 'Flask', 'FastAPI',
+        'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Terraform', 'Jenkins', 'CI/CD',
+        'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'Elasticsearch', 'GraphQL', 'REST API',
+        'Machine Learning', 'Deep Learning', 'TensorFlow', 'PyTorch', 'NLP', 'Computer Vision',
+        'Git', 'Agile', 'Scrum', 'HTML', 'CSS', 'Tailwind', 'SASS', 'SQL', 'NoSQL',
+    ];
+
+    const found: string[] = [];
+    const lowerText = text.toLowerCase();
+
+    for (const skill of commonSkills) {
+        if (lowerText.includes(skill.toLowerCase())) {
+            found.push(skill);
+        }
+    }
+
+    return [...new Set(found)].slice(0, 20);
+}
+
+function extractExperience(text: string): Array<{ role: string; company: string; duration: string; description: string }> {
+    const experiences: Array<{ role: string; company: string; duration: string; description: string }> = [];
+
+    // Look for common patterns like "Role at Company" or "Company | Role"
+    const patterns = [
+        /(?:^|\n)([A-Z][^,\n]+?)\s+(?:at|@)\s+([A-Z][^\n]+)/gm,
+        /(?:^|\n)([A-Z][^|\n]+?)\s*\|\s*([A-Z][^\n]+)/gm,
+    ];
+
+    // Also look for date ranges
+    const datePattern = /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\.?\s*\d{4}\s*[-–]\s*(?:Present|Current|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\.?\s*\d{4})/gi;
+    const dates = text.match(datePattern) || [];
+
+    // Simple extraction - can be enhanced
+    for (let i = 0; i < Math.min(dates.length, 3); i++) {
+        experiences.push({
+            role: 'Position ' + (i + 1),
+            company: 'Company ' + (i + 1),
+            duration: dates[i] || '',
+            description: '',
+        });
+    }
+
+    return experiences;
+}
+
+function extractEducation(text: string): Array<{ institution: string; degree: string; graduation_year: string }> {
+    const education: Array<{ institution: string; degree: string; graduation_year: string }> = [];
+
+    // Look for degree patterns
+    const degreePatterns = [
+        /(?:Bachelor|Master|B\.?S\.?|M\.?S\.?|B\.?A\.?|M\.?A\.?|Ph\.?D\.?|MBA)[^\n]{5,100}/gi,
+    ];
+
+    for (const pattern of degreePatterns) {
+        const matches = text.match(pattern) || [];
+        for (const match of matches.slice(0, 3)) {
+            const yearMatch = match.match(/20\d{2}|19\d{2}/);
+            education.push({
+                institution: '',
+                degree: match.trim(),
+                graduation_year: yearMatch ? yearMatch[0] : '',
+            });
+        }
+    }
+
+    return education;
+}
 
 async function parseResumeWithAI(text: string) {
-    const systemPrompt = `You are a precise resume parser. Extract structured data from the resume text properly. Return ONLY valid JSON.
-    Structure:
-    {
-        "name": "Full Name",
-        "email": "email",
-        "phone": "phone",
-        "linkedin": "url",
-        "github": "url",
-        "location": "City, State",
-        "summary": "Professional summary...",
-        "experience": [{ "company": "", "role": "", "duration": "", "location": "", "description": "" }],
-        "education": [{ "institution": "", "degree": "", "graduation_year": "", "field": "" }],
-        "skills": ["skill1", "skill2"],
-        "projects": [{ "name": "", "description": "" }]
-    }`;
+    const systemPrompt = `You are a resume parser. Extract data and return ONLY valid JSON, no explanation.`;
 
-    const prompt = `Parse the following resume text into the specified JSON structure:\n\n${text.slice(0, 10000)}`;
+    const prompt = `Parse this resume text into JSON:
+
+${text.slice(0, 6000)}
+
+Return this exact structure:
+{
+  "name": "Full Name",
+  "email": "email@example.com",
+  "phone": "phone number",
+  "linkedin": "linkedin url or empty",
+  "github": "github url or empty", 
+  "location": "City, State",
+  "summary": "Professional summary text",
+  "experience": [{"company": "", "role": "", "duration": "", "description": ""}],
+  "education": [{"institution": "", "degree": "", "graduation_year": ""}],
+  "skills": ["skill1", "skill2"],
+  "projects": [{"name": "", "description": ""}]
+}
+
+Return ONLY JSON.`;
 
     try {
-        console.log('🚀 [parse-resume] Calling OpenRouter for parsing...');
+        console.log('🚀 [parse-resume] Calling OpenRouter for AI parsing...');
         const aiResponse = await callOpenRouter(prompt, systemPrompt);
 
+        // Clean and extract JSON
         let cleanedResponse = aiResponse;
         if (cleanedResponse.includes('```json')) {
             cleanedResponse = cleanedResponse.split('```json')[1].split('```')[0].trim();
@@ -107,34 +205,48 @@ async function parseResumeWithAI(text: string) {
             cleanedResponse = cleanedResponse.split('```')[1].split('```')[0].trim();
         }
 
-        return JSON.parse(cleanedResponse);
+        // Try to find JSON object in response
+        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            console.log('✅ [parse-resume] AI parsing successful');
+            return parsed;
+        }
+
+        throw new Error('Could not find JSON in response');
     } catch (error) {
         console.error('❌ [parse-resume] AI Parsing failed:', error);
         throw error;
     }
 }
 
-async function parseResumeText(text: string) {
-    // Regex fallback
-    text = text.replace(/[♂¶]/g, '');
-    const name = extractName(text);
-    const email = extractEmail(text);
-    const phone = extractPhone(text);
+function parseResumeWithRegex(text: string) {
+    // Clean text
+    text = text.replace(/[♂¶•·‣⁃∙○●]/g, ' ').replace(/\s+/g, ' ');
+
     return {
-        name, email, phone,
+        name: extractName(text),
+        email: extractEmail(text),
+        phone: extractPhone(text),
+        linkedin: extractLinkedIn(text),
+        github: extractGitHub(text),
+        location: '',
         summary: '',
-        experience: [],
-        education: [],
-        skills: [],
+        experience: extractExperience(text),
+        education: extractEducation(text),
+        skills: extractSkills(text),
+        projects: [],
     };
 }
 
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
     try {
+        // Dynamic import for pdf-parse
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const pdfParseModule = await import('pdf-parse') as any;
         const pdfParse = pdfParseModule.default ?? pdfParseModule;
         const data = await pdfParse(Buffer.from(buffer));
+        console.log('📄 [parse-resume] PDF extracted, length:', data.text.length);
         return data.text;
     } catch (error) {
         console.error('PDF parsing error:', error);
@@ -151,6 +263,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ detail: 'No file provided' }, { status: 400 });
         }
 
+        console.log('📥 [parse-resume] File received:', file.name, 'Size:', file.size);
+
         const fileName = file.name.toLowerCase();
         let text = '';
 
@@ -160,41 +274,44 @@ export async function POST(request: NextRequest) {
             try {
                 const buffer = await file.arrayBuffer();
                 text = await extractTextFromPDF(buffer);
-            } catch {
-                return NextResponse.json({ detail: 'Could not parse PDF file.' }, { status: 400 });
+            } catch (e) {
+                console.error('PDF extraction failed:', e);
+                return NextResponse.json({ detail: 'Could not parse PDF file. Please try a text file.' }, { status: 400 });
             }
         } else {
-            // Fallback to python for docx if configured, else formatting error
-            if (process.env.VERCEL !== '1' && fileName.endsWith('.docx')) {
-                // Try backend
-                try {
-                    const backendFormData = new FormData();
-                    backendFormData.append('file', file);
-                    const response = await fetch(`${BACKEND_URL}/parse-resume`, { method: 'POST', body: backendFormData });
-                    if (response.ok) return NextResponse.json(await response.json());
-                } catch { }
-            }
             return NextResponse.json({ detail: 'Unsupported file type. Please use PDF or TXT.' }, { status: 400 });
         }
 
-        // Parse extracted text
-        if (text && text.trim()) {
-            // Try AI first
-            if (OPENROUTER_API_KEY) {
-                try {
-                    const parsed = await parseResumeWithAI(text);
-                    return NextResponse.json(parsed);
-                } catch {
-                    console.error('Fallback to regex due to AI error');
-                }
-            }
-
-            // Fallback to Regex
-            const parsed = await parseResumeText(text);
-            return NextResponse.json(parsed);
+        if (!text || !text.trim()) {
+            return NextResponse.json({ detail: 'Could not extract text from file.' }, { status: 400 });
         }
 
-        return NextResponse.json({ detail: 'Could not extract text.' }, { status: 400 });
+        console.log('📝 [parse-resume] Text extracted, attempting parse...');
+
+        // Try AI parsing first if API key is available
+        if (OPENROUTER_API_KEY) {
+            try {
+                const parsed = await parseResumeWithAI(text);
+                // Supplement with regex for any missing fields
+                if (!parsed.skills || parsed.skills.length === 0) {
+                    parsed.skills = extractSkills(text);
+                }
+                if (!parsed.email) {
+                    parsed.email = extractEmail(text);
+                }
+                if (!parsed.phone) {
+                    parsed.phone = extractPhone(text);
+                }
+                return NextResponse.json(parsed);
+            } catch (e) {
+                console.error('AI parsing failed, falling back to regex:', e);
+            }
+        }
+
+        // Fallback to regex parsing
+        console.log('⚙️ [parse-resume] Using regex fallback');
+        const parsed = parseResumeWithRegex(text);
+        return NextResponse.json(parsed);
 
     } catch (error) {
         console.error('Resume parse error:', error);

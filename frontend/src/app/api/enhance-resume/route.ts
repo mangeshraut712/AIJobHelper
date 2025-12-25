@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// OpenRouter API Configuration
+// OpenRouter API Configuration - Uses Vercel environment variables
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-// Available models - Grok is default for testing
+// Available models with fallback chain - prioritize reliable free models
 const MODELS = {
-    grok: 'x-ai/grok-2-vision-1212',
-    gemini: 'google/gemini-2.0-flash-exp:free',
-    deepseek: 'deepseek/deepseek-chat-v3-0324:free',
+    primary: 'meta-llama/llama-3.2-3b-instruct:free',     // Reliable free model
+    secondary: 'mistralai/mistral-7b-instruct:free',       // Backup free model
+    premium: 'anthropic/claude-3.5-sonnet',                // Premium option if available
 };
 
 interface ExperienceItem {
@@ -21,11 +21,12 @@ interface ExperienceItem {
 interface ResumeData {
     name?: string;
     email?: string;
+    phone?: string;
     summary?: string;
     skills?: string[];
     experience?: ExperienceItem[];
     education?: { degree?: string; institution?: string; graduation_year?: string }[];
-    projects?: { name?: string; description?: string }[];
+    projects?: { name?: string; description?: string; technologies?: string[] }[];
 }
 
 interface JobDescription {
@@ -37,9 +38,9 @@ interface JobDescription {
     responsibilities?: string[];
 }
 
-async function callOpenRouter(prompt: string, systemPrompt: string): Promise<string> {
+async function callOpenRouter(prompt: string, systemPrompt: string, useModel: string = MODELS.primary): Promise<string> {
     console.log('🔑 [OpenRouter] API Key configured:', !!OPENROUTER_API_KEY);
-    console.log('🤖 [OpenRouter] Using model: grok');
+    console.log('🤖 [OpenRouter] Using model:', useModel);
 
     if (!OPENROUTER_API_KEY) {
         console.error('❌ OPENROUTER_API_KEY not found in environment');
@@ -55,19 +56,25 @@ async function callOpenRouter(prompt: string, systemPrompt: string): Promise<str
             'X-Title': 'CareerAgentPro Resume Enhancer',
         },
         body: JSON.stringify({
-            model: MODELS.grok,
+            model: useModel,
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: prompt },
             ],
-            temperature: 0.2,
-            max_tokens: 4000,
+            temperature: 0.3,
+            max_tokens: 2000,
         }),
     });
 
     if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ OpenRouter API error:', response.status, errorText);
+
+        // Try fallback model if primary fails
+        if (useModel === MODELS.primary) {
+            console.log('🔄 Trying fallback model...');
+            return callOpenRouter(prompt, systemPrompt, MODELS.secondary);
+        }
         throw new Error(`OpenRouter API error: ${response.status}`);
     }
 
@@ -138,52 +145,36 @@ Experience #${i + 1}:
 
         const jobSkillsList = (job_description.skills || []).join(', ');
 
-        // AI Enhancement Prompt
-        const prompt = `You are an expert resume writer and ATS optimization specialist. Analyze and enhance this resume for a ${job_description.title} position at ${job_description.company || 'the company'}.
+        // AI Enhancement Prompt - Optimized for smaller models
+        const prompt = `Analyze and enhance this resume for a ${job_description.title} position.
 
-TARGET JOB:
+JOB REQUIREMENTS:
 - Title: ${job_description.title}
-- Company: ${job_description.company || 'Not specified'}
-- Required Skills: ${jobSkillsList}
-- Description: ${(job_description.description || '').substring(0, 500)}
+- Company: ${job_description.company || 'Company'}
+- Key Skills: ${jobSkillsList}
 
 CURRENT RESUME:
 - Name: ${resume_data.name}
 - Summary: ${resume_data.summary || 'None'}
 - Skills: ${(resume_data.skills || []).join(', ')}
-
 ${experienceDetails}
 
-TASK: Generate enhanced bullet points for each experience that:
-1. Start with powerful action verbs (Architected, Engineered, Led, Developed, Optimized)
-2. Include specific metrics (%, $, time saved, users impacted)
-3. Incorporate keywords: ${jobSkillsList}
-4. Are 15-25 words each
-5. Show business impact and results
-
-Return a JSON object with this exact structure:
+TASK: Return ONLY a JSON object with:
 {
-    "enhanced_summary": "A 3-4 sentence professional summary tailored to the ${job_description.title} role",
-    "experience_enhancements": [
-        {
-            "experience_index": 0,
-            "role": "role name",
-            "ai_suggested_bullets": [
-                "Enhanced bullet 1 with metrics and keywords...",
-                "Enhanced bullet 2 with metrics and keywords...",
-                "Enhanced bullet 3 with metrics and keywords...",
-                "Enhanced bullet 4 with metrics and keywords...",
-                "Enhanced bullet 5 with metrics and keywords..."
-            ]
-        }
-    ],
-    "skills_to_add": ["skill1", "skill2"],
-    "ats_tips": ["tip1", "tip2", "tip3"]
+  "enhanced_summary": "3-4 sentence professional summary",
+  "experience_enhancements": [
+    {
+      "experience_index": 0,
+      "ai_suggested_bullets": ["bullet 1", "bullet 2", "bullet 3"]
+    }
+  ],
+  "skills_to_add": ["skill1", "skill2"],
+  "ats_tips": ["tip1", "tip2"]
 }
 
-Return ONLY valid JSON, no markdown or explanation.`;
+Return ONLY valid JSON, no explanation.`;
 
-        const systemPrompt = `You are a world-class technical resume writer. Your bullet points are legendary for being specific, metric-driven, and ATS-optimized. Return ONLY valid JSON.`;
+        const systemPrompt = `You are a resume optimization expert. Always return valid JSON only.`;
 
         let aiEnhancements = null;
 
@@ -200,8 +191,12 @@ Return ONLY valid JSON, no markdown or explanation.`;
                     cleanedResponse = cleanedResponse.split('```')[1].split('```')[0].trim();
                 }
 
-                aiEnhancements = JSON.parse(cleanedResponse);
-                console.log('✅ [enhance-resume] AI enhancements parsed successfully');
+                // Try to extract JSON from response
+                const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    aiEnhancements = JSON.parse(jsonMatch[0]);
+                    console.log('✅ [enhance-resume] AI enhancements parsed successfully');
+                }
             } else {
                 console.log('⚠️ [enhance-resume] No API key, using local enhancements');
             }
@@ -209,11 +204,11 @@ Return ONLY valid JSON, no markdown or explanation.`;
             console.error('❌ [enhance-resume] AI enhancement error:', aiError);
         }
 
-        // Build response
+        // Build response with fallback content
         const response = {
             ats_score: score,
             score_breakdown: breakdown,
-            enhanced_summary: aiEnhancements?.enhanced_summary || `Results-driven professional with expertise in ${(resume_data.skills || []).slice(0, 3).join(', ')}. Seeking ${job_description.title} role where I can leverage my experience to drive impact.`,
+            enhanced_summary: aiEnhancements?.enhanced_summary || `Results-driven ${job_description.title || 'professional'} with expertise in ${(resume_data.skills || []).slice(0, 3).join(', ')}. Seeking to leverage experience to drive impact at ${job_description.company || 'your organization'}.`,
             section_improvements: {
                 summary: {
                     ai_enhanced: aiEnhancements?.enhanced_summary,
@@ -226,11 +221,9 @@ Return ONLY valid JSON, no markdown or explanation.`;
                         return {
                             original: exp,
                             ai_suggested_bullets: aiExp?.ai_suggested_bullets || [
-                                `• Architected scalable solutions using ${jobSkillsList.split(',')[0] || 'modern technologies'}, improving system performance by 40%`,
-                                `• Led cross-functional team initiatives resulting in 30% efficiency improvements`,
-                                `• Implemented automated testing achieving 95% code coverage and reducing bugs by 70%`,
-                                `• Developed RESTful APIs serving 50K+ daily requests with 99.9% uptime`,
-                                `• Collaborated with stakeholders to deliver agile sprints exceeding velocity targets by 25%`,
+                                `• Delivered key results using ${jobSkillsList.split(',')[0] || 'technical expertise'}`,
+                                `• Collaborated with cross-functional teams to achieve business objectives`,
+                                `• Implemented solutions improving efficiency and quality metrics`,
                             ],
                         };
                     }),
@@ -246,9 +239,9 @@ Return ONLY valid JSON, no markdown or explanation.`;
                 },
             },
             ats_tips: aiEnhancements?.ats_tips || [
-                'Add more specific metrics to your experience bullet points',
+                'Add specific metrics and numbers to bullet points',
                 'Include keywords from the job description naturally',
-                'Quantify achievements with numbers and percentages',
+                'Quantify achievements where possible',
             ],
         };
 
