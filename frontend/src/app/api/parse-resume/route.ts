@@ -4,43 +4,70 @@ import { NextRequest, NextResponse } from 'next/server';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-// Reliable free model for parsing
-const PARSE_MODEL = 'meta-llama/llama-3.2-3b-instruct:free';
+// Model priority chain - tries Grok first (if credits), then reliable free models
+const MODELS = {
+    grok: 'x-ai/grok-4.1-fast',                           // Best quality (requires credits)
+    primary: 'meta-llama/llama-3.2-3b-instruct:free',     // Reliable free - best for JSON
+    secondary: 'deepseek/deepseek-r1-0528:free',          // Good reasoning (free)
+    fallback: 'mistralai/mistral-7b-instruct:free',       // Backup free model
+};
 
-async function callOpenRouter(prompt: string, systemPrompt: string): Promise<string> {
+// Fallback order for parsing
+const MODEL_FALLBACK_ORDER = [MODELS.grok, MODELS.primary, MODELS.secondary, MODELS.fallback];
+
+async function callOpenRouter(prompt: string, systemPrompt: string, modelIndex: number = 0): Promise<string> {
+    const useModel = MODEL_FALLBACK_ORDER[modelIndex] || MODELS.primary;
+
     if (!OPENROUTER_API_KEY) {
         throw new Error('OpenRouter API key not configured');
     }
 
-    console.log('🤖 [parse-resume] Using model:', PARSE_MODEL);
+    console.log('🤖 [parse-resume] Trying model:', useModel, `(attempt ${modelIndex + 1}/${MODEL_FALLBACK_ORDER.length})`);
 
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://ai-job-helper-steel.vercel.app',
-            'X-Title': 'CareerAgentPro Resume Parser',
-        },
-        body: JSON.stringify({
-            model: PARSE_MODEL,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: prompt },
-            ],
-            temperature: 0.1,
-            max_tokens: 2000,
-        }),
-    });
+    try {
+        const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://ai-job-helper-steel.vercel.app',
+                'X-Title': 'CareerAgentPro Resume Parser',
+            },
+            body: JSON.stringify({
+                model: useModel,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: prompt },
+                ],
+                temperature: 0.1,
+                max_tokens: 2000,
+            }),
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ OpenRouter API error:', response.status, errorText);
-        throw new Error(`OpenRouter API error: ${response.status}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ OpenRouter API error:', response.status, errorText);
+
+            // Try next model on credits/rate limit issues
+            if ((response.status === 402 || response.status === 429 || response.status === 500)
+                && modelIndex < MODEL_FALLBACK_ORDER.length - 1) {
+                console.log('🔄 Trying next fallback model...');
+                return callOpenRouter(prompt, systemPrompt, modelIndex + 1);
+            }
+            throw new Error(`OpenRouter API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ [parse-resume] Response received from:', useModel);
+        return data.choices?.[0]?.message?.content || '';
+    } catch (error) {
+        // Try fallback on any error
+        if (modelIndex < MODEL_FALLBACK_ORDER.length - 1) {
+            console.log('🔄 Error occurred, trying next model...');
+            return callOpenRouter(prompt, systemPrompt, modelIndex + 1);
+        }
+        throw error;
     }
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
 }
 
 // Enhanced regex extraction helpers

@@ -4,11 +4,13 @@ import { NextRequest, NextResponse } from 'next/server';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-// Available models with fallback chain - prioritize reliable free models
+// Model priority chain - tries Grok first (if credits), then reliable free models
+// Grok models require OpenRouter credits, free models work without
 const MODELS = {
-    primary: 'meta-llama/llama-3.2-3b-instruct:free',     // Reliable free model
-    secondary: 'mistralai/mistral-7b-instruct:free',       // Backup free model
-    premium: 'anthropic/claude-3.5-sonnet',                // Premium option if available
+    grok: 'x-ai/grok-4.1-fast',                            // Best quality (requires credits)
+    primary: 'meta-llama/llama-3.2-3b-instruct:free',      // Reliable free - best for JSON
+    secondary: 'deepseek/deepseek-r1-0528:free',           // Good reasoning (free)
+    fallback: 'mistralai/mistral-7b-instruct:free',        // Backup free model
 };
 
 interface ExperienceItem {
@@ -38,49 +40,65 @@ interface JobDescription {
     responsibilities?: string[];
 }
 
-async function callOpenRouter(prompt: string, systemPrompt: string, useModel: string = MODELS.primary): Promise<string> {
+// Model fallback order: Grok (paid) -> Llama (free) -> DeepSeek (free) -> Mistral (free)
+const MODEL_FALLBACK_ORDER = [MODELS.grok, MODELS.primary, MODELS.secondary, MODELS.fallback];
+
+async function callOpenRouter(prompt: string, systemPrompt: string, modelIndex: number = 0): Promise<string> {
+    const useModel = MODEL_FALLBACK_ORDER[modelIndex] || MODELS.primary;
     console.log('🔑 [OpenRouter] API Key configured:', !!OPENROUTER_API_KEY);
-    console.log('🤖 [OpenRouter] Using model:', useModel);
+    console.log('🤖 [OpenRouter] Trying model:', useModel, `(attempt ${modelIndex + 1}/${MODEL_FALLBACK_ORDER.length})`);
 
     if (!OPENROUTER_API_KEY) {
         console.error('❌ OPENROUTER_API_KEY not found in environment');
         throw new Error('OpenRouter API key not configured');
     }
 
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://ai-job-helper-steel.vercel.app',
-            'X-Title': 'CareerAgentPro Resume Enhancer',
-        },
-        body: JSON.stringify({
-            model: useModel,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: prompt },
-            ],
-            temperature: 0.3,
-            max_tokens: 2000,
-        }),
-    });
+    try {
+        const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://ai-job-helper-steel.vercel.app',
+                'X-Title': 'CareerAgentPro Resume Enhancer',
+            },
+            body: JSON.stringify({
+                model: useModel,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: prompt },
+                ],
+                temperature: 0.3,
+                max_tokens: 2000,
+            }),
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ OpenRouter API error:', response.status, errorText);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ OpenRouter API error:', response.status, errorText);
 
-        // Try fallback model if primary fails
-        if (useModel === MODELS.primary) {
-            console.log('🔄 Trying fallback model...');
-            return callOpenRouter(prompt, systemPrompt, MODELS.secondary);
+            // Check if it's a credits issue (402) or rate limit (429)
+            if (response.status === 402 || response.status === 429 || response.status === 500) {
+                // Try next model in fallback chain
+                if (modelIndex < MODEL_FALLBACK_ORDER.length - 1) {
+                    console.log('🔄 Trying next fallback model...');
+                    return callOpenRouter(prompt, systemPrompt, modelIndex + 1);
+                }
+            }
+            throw new Error(`OpenRouter API error: ${response.status}`);
         }
-        throw new Error(`OpenRouter API error: ${response.status}`);
-    }
 
-    const data = await response.json();
-    console.log('✅ [OpenRouter] Response received successfully');
-    return data.choices?.[0]?.message?.content || '';
+        const data = await response.json();
+        console.log('✅ [OpenRouter] Response received from:', useModel);
+        return data.choices?.[0]?.message?.content || '';
+    } catch (error) {
+        // Network or other error - try fallback
+        if (modelIndex < MODEL_FALLBACK_ORDER.length - 1) {
+            console.log('🔄 Error occurred, trying next model...');
+            return callOpenRouter(prompt, systemPrompt, modelIndex + 1);
+        }
+        throw error;
+    }
 }
 
 function calculateATSScore(resume: ResumeData, job: JobDescription): { score: number; breakdown: Record<string, number> } {
