@@ -4,93 +4,74 @@ import { motion } from "framer-motion";
 
 interface LoadingSpinnerProps {
     size?: "sm" | "md" | "lg";
-    text?: string;
     className?: string;
 }
 
-export function LoadingSpinner({ size = "md", text, className = "" }: LoadingSpinnerProps) {
-    const sizes = {
-        sm: { ring: "w-5 h-5", dot: "w-1 h-1" },
-        md: { ring: "w-8 h-8", dot: "w-1.5 h-1.5" },
-        lg: { ring: "w-12 h-12", dot: "w-2 h-2" },
+export function LoadingSpinner({ size = "md", className = "" }: LoadingSpinnerProps) {
+    const sizeClasses = {
+        sm: "w-4 h-4",
+        md: "w-8 h-8",
+        lg: "w-12 h-12",
     };
 
     return (
-        <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
-            <div className="relative">
-                {/* Outer ring */}
-                <motion.div
-                    className={`${sizes[size].ring} rounded-full border-2 border-primary/20`}
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                >
-                    <motion.div
-                        className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/4 h-1/4 rounded-full bg-primary"
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ duration: 0.5, repeat: Infinity }}
-                    />
-                </motion.div>
-
-                {/* Animated gradient ring */}
-                <motion.div
-                    className={`absolute inset-0 ${sizes[size].ring} rounded-full border-2 border-transparent`}
-                    style={{
-                        borderTopColor: "var(--primary)",
-                        borderRightColor: "transparent",
-                        borderBottomColor: "transparent",
-                        borderLeftColor: "transparent",
-                    }}
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                />
-            </div>
-
-            {text && (
-                <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-sm text-muted-foreground"
-                >
-                    {text}
-                </motion.p>
-            )}
+        <div className={`flex items-center justify-center ${className}`}>
+            <motion.div
+                className={`${sizeClasses[size]} border-2 border-primary/20 border-t-primary rounded-full`}
+                animate={{ rotate: 360 }}
+                transition={{
+                    duration: 0.8,
+                    repeat: Infinity,
+                    ease: "linear",
+                }}
+            />
         </div>
     );
 }
 
-// Full page loading overlay
-export function LoadingOverlay({ text = "Loading..." }: { text?: string }) {
+interface PageLoaderProps {
+    message?: string;
+}
+
+export function PageLoader({ message = "Loading..." }: PageLoaderProps) {
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-        >
-            <div className="flex flex-col items-center gap-4">
-                <LoadingSpinner size="lg" />
-                <p className="text-lg font-medium">{text}</p>
-            </div>
-        </motion.div>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+            <LoadingSpinner size="lg" />
+            <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-muted-foreground"
+            >
+                {message}
+            </motion.p>
+        </div>
     );
 }
 
-// Inline loading dots
-export function LoadingDots({ className = "" }: { className?: string }) {
+interface SkeletonProps {
+    className?: string;
+}
+
+export function Skeleton({ className = "" }: SkeletonProps) {
     return (
-        <span className={`inline-flex items-center gap-1 ${className}`}>
-            {[0, 1, 2].map((i) => (
-                <motion.span
-                    key={i}
-                    className="w-1.5 h-1.5 rounded-full bg-current"
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        delay: i * 0.2,
-                    }}
-                />
-            ))}
-        </span>
+        <motion.div
+            className={`bg-secondary rounded-lg ${className}`}
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+        />
+    );
+}
+
+export function CardSkeleton() {
+    return (
+        <div className="p-6 rounded-2xl border border-border bg-card space-y-4">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <div className="space-y-2 pt-4">
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-5/6" />
+                <Skeleton className="h-3 w-4/6" />
+            </div>
+        </div>
     );
 }

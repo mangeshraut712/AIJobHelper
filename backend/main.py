@@ -2,12 +2,14 @@
 import sys
 import os
 import logging
+from functools import lru_cache
 
 # Add current directory to path for serverless/deployment environments
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, HTTPException, Body, File, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -22,10 +24,10 @@ from services.resume_parser import ResumeParser
 
 load_dotenv()
 
-# Configure logging
+# Configure logging with optimized format
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(levelname)s - %(message)s',
 )
 logger = logging.getLogger(__name__)
 
@@ -33,21 +35,37 @@ app = FastAPI(
     title="CareerAgentPro API",
     version="1.0.0",
     description="AI-Powered Career Platform API",
+    # Disable docs in production for faster startup
+    docs_url="/docs" if os.getenv("DEBUG") else None,
+    redoc_url=None,
 )
 
-# Configure CORS
+# Add GZip compression for responses > 500 bytes
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
+# Configure CORS with optimized settings
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    max_age=86400,  # Cache preflight for 24 hours
 )
 
-# Initialize services
-ai_service = AIService()
+# Cached service initialization for better performance
+@lru_cache()
+def get_ai_service():
+    return AIService()
+
+@lru_cache()
+def get_export_service():
+    return ExportService()
+
+# Initialize services lazily
+ai_service = get_ai_service()
 job_service = JobService(ai_service)
-export_service = ExportService()
+export_service = get_export_service()
 
 # Exception handlers
 @app.exception_handler(RequestValidationError)

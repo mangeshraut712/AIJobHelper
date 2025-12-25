@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 
+// Enable edge runtime for faster cold starts
+export const runtime = 'edge';
+
+// Cache health check for 60 seconds
+export const revalidate = 60;
+
 export async function GET() {
     const hasApiKey = !!process.env.OPENROUTER_API_KEY;
     const isVercel = process.env.VERCEL === '1';
@@ -13,7 +19,6 @@ export async function GET() {
         checks: {
             api: 'ok',
             ai_service: hasApiKey ? 'configured' : 'not_configured',
-            database: 'not_applicable'
         },
         features: {
             resume_parsing: true,
@@ -23,6 +28,10 @@ export async function GET() {
             export_pdf: true,
             export_docx: true,
             export_latex: true
+        }
+    }, {
+        headers: {
+            'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
         }
     });
 }
