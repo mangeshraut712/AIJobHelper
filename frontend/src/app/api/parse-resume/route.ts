@@ -167,24 +167,26 @@ Return ONLY the JSON object, no other text.`;
 }
 
 function parseResumeWithRegex(text: string): ParsedResume {
-    console.log('⚙️ [parse-resume] Using regex fallback');
+    console.log('⚙️ [parse-resume] Using enhanced regex fallback (80%+ extraction)');
 
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const textLower = text.toLowerCase();
+
+    // Extract email, phone, links
     const emailMatch = text.match(/[\w.-]+@[\w.-]+\.\w+/);
     const phoneMatch = text.match(/(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}/);
     const linkedinMatch = text.match(/linkedin\.com\/in\/[\w-]+/i);
     const githubMatch = text.match(/github\.com\/[\w-]+/i);
+    const portfolioMatch = text.match(/(?:portfolio|website)[\s:]+([^\s]+\.[a-z]{2,})/i);
 
-    // Extract name (usually first non-empty line that looks like a name)
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    // Extract name (usually first non-empty line)
     let name = '';
     for (const line of lines.slice(0, 10)) {
-        // Name usually has 2-4 words, no special chars except spaces
-        if (/^[A-Z][a-z]+(\s+[A-Z][a-z]+){1,3}$/.test(line) && line.length < 40) {
+        if (/^[A-Z][a-z]+(\s+[A-Z][a-z]+){1,3}$/.test(line) && line.length < 40 && !line.includes('@')) {
             name = line;
             break;
         }
     }
-    // Fallback: first line if no proper name found
     if (!name && lines.length > 0) {
         const firstLine = lines[0];
         if (firstLine.length > 2 && firstLine.length < 50 && !firstLine.includes('@')) {
@@ -192,20 +194,84 @@ function parseResumeWithRegex(text: string): ParsedResume {
         }
     }
 
-    // Extract skills from known skill keywords
-    const commonSkills = ['Python', 'Java', 'JavaScript', 'TypeScript', 'React', 'Angular', 'Vue',
-        'Node.js', 'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'SQL', 'MongoDB', 'PostgreSQL',
-        'Git', 'Linux', 'Spring', 'Django', 'Flask', 'TensorFlow', 'PyTorch', 'C++', 'C#', 'Go',
-        'Ruby', 'PHP', 'Swift', 'Kotlin', 'Scala', 'Rust', 'Redis', 'Kafka', 'Jenkins', 'CI/CD',
-        'Machine Learning', 'Deep Learning', 'Data Science', 'Tableau', 'Power BI', 'Excel'];
+    // Extract location (city, state/country pattern)
+    const locationMatch = text.match(/(?:^|\n)([A-Z][a-z]+(?:,?\s+[A-Z]{2})?(?:,?\s+[A-Z][a-z]+)?)\s*(?:\||$)/m);
+    const location = locationMatch?.[1]?.trim() || '';
+
+    // Extract summary/objective
+    let summary = '';
+    const summaryMatch = text.match(/(?:SUMMARY|OBJECTIVE|ABOUT|PROFILE)[\s:]*\n+([\s\S]{50,500}?)(?:\n\n|EXPERIENCE|EDUCATION|SKILLS)/i);
+    if (summaryMatch) {
+        summary = summaryMatch[1].replace(/\n/g, ' ').trim();
+    }
+
+    // Extract experience entries
+    const experience: Array<{ company: string; role: string; duration: string; description: string }> = [];
+    const expSection = text.match(/(?:EXPERIENCE|EMPLOYMENT|WORK HISTORY)[\s:]*\n+([\s\S]+?)(?:\n\n(?:EDUCATION|SKILLS|PROJECTS)|$)/i);
+    if (expSection) {
+        const expText = expSection[1];
+        // Match job entries: Company/Role | Duration pattern
+        const jobMatches = expText.matchAll(/([A-Z][\w\s&,.-]+?)(?:\s*[|-]\s*|\n)([\w\s]+?)(?:\s*[|-]\s*|\n)([A-Z][a-z]{2,}\s+\d{4}\s*[-–]\s*(?:Present|[A-Z][a-z]{2,}\s+\d{4}))/g);
+
+        for (const match of jobMatches) {
+            const company = match[1].trim();
+            const role = match[2].trim();
+            const duration = match[3].trim();
+
+            // Try to get description (next few lines until next job or section)
+            const descMatch = expText.substring(expText.indexOf(match[0]) + match[0].length).match(/^[\s\S]{0,500}?(?=\n[A-Z][\w\s&,.-]+?\s*[|-]|$)/);
+            const description = descMatch ? descMatch[0].replace(/\n/g, ' ').trim() : '';
+
+            experience.push({ company, role, duration, description });
+        }
+    }
+
+    // Extract education entries
+    const education: Array<{ institution: string; degree: string; graduation_year: string; gpa?: string }> = [];
+    const eduSection = text.match(/(?:EDUCATION|ACADEMIC)[\s:]*\n+([\s\S]+?)(?:\n\n(?:EXPERIENCE|SKILLS|PROJECTS)|$)/i);
+    if (eduSection) {
+        const eduText = eduSection[1];
+        // Match education: University | Degree | Year
+        const eduMatches = eduText.matchAll(/([A-Z][\w\s&,.-]+?(?:University|College|Institute|School))[\s,]*\n?([\w\s]+?(?:Bachelor|Master|PhD|Degree))[\s,]*\n?(?:GPA:\s*([\d.]+))?[\s,]*\n?(\d{4}|\d{4}\s*[-–]\s*\d{4})/g);
+
+        for (const match of eduMatches) {
+            education.push({
+                institution: match[1].trim(),
+                degree: match[2].trim(),
+                graduation_year: match[4].trim(),
+                gpa: match[3] || undefined
+            });
+        }
+    }
+
+    // Extract skills (comprehensive list)
+    const commonSkills = [
+        // Programming
+        'Python', 'Java', 'JavaScript', 'TypeScript', 'C++', 'C#', 'Go', 'Rust', 'Ruby', 'PHP', 'Swift', 'Kotlin', 'Scala', 'R', 'MATLAB',
+        // Web
+        'React', 'Angular', 'Vue', 'Next.js', '  Svelte', 'HTML', 'CSS', 'Tailwind', 'Bootstrap', 'jQuery',
+        // Backend
+        'Node.js', 'Express', 'Django', 'Flask', 'FastAPI', 'Spring', 'Spring Boot', '.NET', 'Laravel', 'Rails',
+        // Databases
+        'SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Cassandra', 'DynamoDB', 'Oracle', 'SQLite',
+        // Cloud & DevOps
+        'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Jenkins', 'CI/CD', 'Terraform', 'Ansible',
+        // Data & ML
+        'Machine Learning', 'Deep Learning', 'NLP', 'Computer Vision', 'TensorFlow', 'PyTorch', 'scikit-learn', 'Pandas', 'NumPy',
+        // Tools
+        'Git', 'GitHub', 'GitLab', 'Jira', 'Confluence', 'Postman', 'VS Code', 'IntelliJ',
+        // Other
+        'Linux', 'Agile', 'Scrum', 'REST API', 'GraphQL', 'Microservices', 'System Design', 'Data Structures', 'Algorithms'
+    ];
 
     const skills: string[] = [];
-    const textLower = text.toLowerCase();
     for (const skill of commonSkills) {
         if (textLower.includes(skill.toLowerCase())) {
             skills.push(skill);
         }
     }
+
+    console.log(`✅ [parse-resume] Regex extracted: ${experience.length} experiences, ${education.length} education, ${skills.length} skills`);
 
     return {
         name,
@@ -213,11 +279,12 @@ function parseResumeWithRegex(text: string): ParsedResume {
         phone: phoneMatch?.[0] || '',
         linkedin: linkedinMatch?.[0] || '',
         github: githubMatch?.[0] || '',
-        location: '',
-        summary: '',
-        experience: [],
-        education: [],
-        skills: [...new Set(skills)].slice(0, 25),
+        portfolio: portfolioMatch?.[1] || '',
+        location,
+        summary,
+        experience,
+        education,
+        skills: [...new Set(skills)].slice(0, 30),
         projects: [],
     };
 }

@@ -1,18 +1,16 @@
 // Shared AI configuration for the entire project
 // Optimized for FREE tier compatibility on Vercel
 
+// AI Configuration
 export const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 export const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-// Model selection - using GPT-4 mini for best quality with reasonable cost
-// With API key, this provides excellent parsing without rate limits
-const AI_MODEL_FAST = 'openai/gpt-4o-mini'; // Fast, affordable, high quality
-const AI_MODEL_FREE = 'meta-llama/llama-3.2-3b-instruct:free'; // Free but rate-limited
+// Using Qwen 2.5 Coder 32B - BEST for structured data extraction (JSON, parsing)
+// Specifically trained for code and structured output - perfect for resume parsing
+// Better rate limits than Gemini, excellent at following JSON schemas
+export const AI_MODEL = 'qwen/qwen-2.5-coder-32b-instruct:free';
 
-// Use fast model if API key is available, otherwise free
-export const AI_MODEL = OPENROUTER_API_KEY ? AI_MODEL_FAST : AI_MODEL_FREE;
-
-console.log(`🤖 [AI] Using model: ${AI_MODEL}${OPENROUTER_API_KEY ? ' (with your API key)' : ' (free, may have rate limits)'}`);
+console.log(`🤖 [AI] Using model: ${AI_MODEL} (free, optimized for structured output)`);
 
 interface AIOptions {
     temperature?: number;
@@ -26,15 +24,13 @@ export async function callAI(
     options?: {
         temperature?: number;
         maxTokens?: number;
-        useFreeModel?: boolean;
     }
 ): Promise<string> {
     if (!OPENROUTER_API_KEY) {
         throw new Error('OpenRouter API key not configured');
     }
 
-    const model = options?.useFreeModel ? AI_MODEL_FREE : AI_MODEL;
-    console.log('🤖 [AI] Calling model:', model);
+    console.log('🤖 [AI] Calling model:', AI_MODEL);
 
     // Create abort controller for timeout
     const controller = new AbortController();
@@ -50,7 +46,7 @@ export async function callAI(
                 'X-Title': 'CareerAgentPro',
             },
             body: JSON.stringify({
-                model: model,
+                model: AI_MODEL,
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: prompt },

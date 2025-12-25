@@ -111,17 +111,31 @@ export default function ResumesPage() {
 
 
     useEffect(() => {
+        console.log('🔄 [Resumes] Loading data from localStorage...');
+
         // Load current job from secure storage (secureGet adds 'cap_' prefix automatically)
         const savedJob = secureGet<JobData>(STORAGE_KEYS.CURRENT_JOB_FOR_RESUME);
+        console.log('📦 [Resumes] Current job loaded:', savedJob ? `${savedJob.title} at ${savedJob.company}` : 'NOT FOUND');
         if (savedJob) {
             setCurrentJob(savedJob);
+        } else {
+            console.warn('⚠️ [Resumes] No job found in localStorage. User needs to analyze a job first.');
         }
 
         // Load profile from secure storage (secureGet adds 'cap_' prefix automatically)
         const savedProfile = secureGet<ProfileData>(STORAGE_KEYS.PROFILE);
+        console.log('👤 [Resumes] Profile loaded:', savedProfile ? `${savedProfile.name} (${savedProfile.experience?.length || 0} experiences, ${savedProfile.skills?.length || 0} skills)` : 'NOT FOUND');
         if (savedProfile) {
             setProfile(savedProfile);
+        } else {
+            console.warn('⚠️ [Resumes] No profile found in localStorage. User needs to complete profile first.');
         }
+
+        // Debug: Show what's actually in localStorage
+        console.log('🔍 [Resumes] localStorage contents:');
+        console.log('   - cap_profile:', localStorage.getItem('cap_profile') ? 'EXISTS' : 'MISSING');
+        console.log('   - cap_analyzedJobs:', localStorage.getItem('cap_analyzedJobs') ? 'EXISTS' : 'MISSING');
+        console.log('   - cap_currentJobForResume:', localStorage.getItem('cap_currentJobForResume') ? 'EXISTS' : 'MISSING');
     }, []);
 
     const enhanceResume = async () => {
