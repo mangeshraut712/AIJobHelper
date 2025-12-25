@@ -10,7 +10,9 @@ interface ParsedResume {
     phone: string;
     linkedin: string;
     github: string;
+    portfolio?: string;
     location: string;
+    jobTitle?: string;
     summary: string;
     experience: {
         company: string;
@@ -22,38 +24,68 @@ interface ParsedResume {
         institution: string;
         degree: string;
         graduation_year: string;
+        gpa?: string;
     }[];
     skills: string[];
+    certifications?: string[];
     projects: {
         name: string;
         description: string;
+        technologies?: string;
     }[];
+    awards?: string[];
 }
 
-const SYSTEM_PROMPT = `You are a resume parser. Extract information from the resume text and return ONLY a valid JSON object.
-Do not include any explanation or markdown formatting, just the raw JSON.
+const SYSTEM_PROMPT = `You are an expert resume parser. Extract ALL information from the resume text.
+Return ONLY a valid JSON object without any markdown or explanation.
 
-Return this exact JSON structure:
+Extract EVERY piece of information you can find. Return this exact JSON structure:
 {
-    "name": "full name",
-    "email": "email address",
-    "phone": "phone number",
-    "linkedin": "linkedin url",
-    "github": "github url",
-    "location": "city, state",
-    "summary": "professional summary",
-    "experience": [{"company": "name", "role": "title", "duration": "dates", "description": "bullet points"}],
-    "education": [{"institution": "school", "degree": "degree", "graduation_year": "year"}],
-    "skills": ["skill1", "skill2"],
-    "projects": [{"name": "project", "description": "description"}]
-}`;
+    "name": "full name (REQUIRED - first thing in resume)",
+    "email": "email address (REQUIRED)",
+    "phone": "phone number with country code if present",
+    "linkedin": "full LinkedIn URL or username",
+    "github": "full GitHub URL or username",
+    "portfolio": "personal website/portfolio URL if mentioned",
+    "location": "city, state/country",
+    "jobTitle": "current job title or desired position",
+    "summary": "complete professional summary or objective - include ALL sentences",
+    "experience": [
+        {
+            "company": "company name",
+            "role": "job title/position",
+            "duration": "start date - end date (or Present)",
+            "description": "ALL bullet points and responsibilities combined into one paragraph"
+        }
+    ],
+    "education": [
+        {
+            "institution": "university/college name",
+            "degree": "degree name and field of study",
+            "graduation_year": "graduation year or expected year",
+            "gpa": "GPA if mentioned"
+        }
+    ],
+    "skills": ["ALL skills mentioned - technical, soft skills, tools, languages, frameworks"],
+    "certifications": ["ALL certifications with issuing org if mentioned"],
+    "projects": [
+        {
+            "name": "project name",
+            "description": "complete project description with impact",
+            "technologies": "technologies used"
+        }
+    ],
+    "awards": ["ALL awards, honors, achievements"]
+}
+
+CRITICAL: Extract EVERYTHING. Don't skip anything. If a field is not present, use empty string "" or empty array [].`;
 
 async function parseResumeWithAI(text: string): Promise<ParsedResume> {
     console.log('🤖 [parse-resume] Calling AI to parse resume...');
 
-    const prompt = `Parse this resume and extract all information into JSON format:\n\n${text.substring(0, 8000)}`;
+    const prompt = `Parse this resume and extract ALL information into JSON format. Be comprehensive and don't miss anything:\n\nRESUME TEXT:\n${text.substring(0, 12000)}`;
 
-    const response = await callAI(prompt, SYSTEM_PROMPT, { temperature: 0.1, maxTokens: 2500 });
+    const response = await callAI(prompt, SYSTEM_PROMPT, { temperature: 0.1, maxTokens: 3500 });
 
     const jsonStr = extractJSON(response);
     const parsed = JSON.parse(jsonStr);
@@ -64,12 +96,16 @@ async function parseResumeWithAI(text: string): Promise<ParsedResume> {
         phone: parsed.phone || '',
         linkedin: parsed.linkedin || '',
         github: parsed.github || '',
+        portfolio: parsed.portfolio || '',
         location: parsed.location || '',
+        jobTitle: parsed.jobTitle || '',
         summary: parsed.summary || '',
         experience: Array.isArray(parsed.experience) ? parsed.experience : [],
         education: Array.isArray(parsed.education) ? parsed.education : [],
         skills: Array.isArray(parsed.skills) ? parsed.skills : [],
+        certifications: Array.isArray(parsed.certifications) ? parsed.certifications : [],
         projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+        awards: Array.isArray(parsed.awards) ? parsed.awards : [],
     };
 }
 
