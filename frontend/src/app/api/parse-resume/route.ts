@@ -129,53 +129,16 @@ function parseResumeWithRegex(text: string): ParsedResume {
     };
 }
 
-// PDF text extraction using pdfjs-dist (works in serverless)
+// PDF text extraction using pdf-parse (simple and reliable)
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
     console.log('📄 [parse-resume] Extracting PDF text, size:', buffer.byteLength);
 
-    // Try pdfjs-dist first (works well in serverless)
-    try {
-        const pdfjsLib = await import('pdfjs-dist');
-
-        // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
-        const pdf = await loadingTask.promise;
-
-        console.log('📄 [parse-resume] PDF loaded, pages:', pdf.numPages);
-
-        let fullText = '';
-
-        // Extract text from each page
-        for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const pageText = textContent.items.map((item: any) => item.str || '').join(' ');
-            fullText += pageText + '\n';
-        }
-
-        // Clean up the extracted text
-        const cleanedText = fullText
-            .replace(/\s+/g, ' ')
-            .replace(/\n\s*\n/g, '\n')
-            .trim();
-
-        console.log('📄 [parse-resume] pdfjs-dist extracted:', cleanedText.length, 'chars');
-
-        if (cleanedText.length > 100) {
-            return cleanedText;
-        }
-    } catch (pdfjsError) {
-        console.error('❌ [parse-resume] pdfjs-dist failed:', pdfjsError);
-    }
-
-    // Fallback: try pdf-parse
     try {
         const pdfParseModule = await import('pdf-parse');
         const pdfParse = pdfParseModule.default || pdfParseModule;
 
         if (typeof pdfParse === 'function') {
+            // Use Buffer.from() instead of Buffer() to avoid deprecation warning
             const data = await pdfParse(Buffer.from(buffer));
 
             if (data.text && data.text.trim().length > 50) {
@@ -188,12 +151,12 @@ async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
                     .replace(/[ \t]+/g, ' ')
                     .trim();
 
-                console.log('📄 [parse-resume] pdf-parse fallback:', cleanedText.length, 'chars');
+                console.log('📄 [parse-resume] Extracted:', cleanedText.length, 'chars');
                 return cleanedText;
             }
         }
-    } catch (pdfParseError) {
-        console.error('❌ [parse-resume] pdf-parse fallback failed:', pdfParseError);
+    } catch (error) {
+        console.error('❌ [parse-resume] pdf-parse failed:', error);
     }
 
     throw new Error('Could not extract text from PDF');
