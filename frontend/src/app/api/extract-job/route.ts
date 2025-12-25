@@ -144,26 +144,34 @@ export async function POST(request: NextRequest) {
         }
 
         const hostname = parsedUrl.hostname.toLowerCase();
-        const pathname = parsedUrl.pathname;
+        let pathname = parsedUrl.pathname;
 
         // LinkedIn-specific validation - use exact hostname match (not substring)
         const isLinkedIn = hostname === 'www.linkedin.com' || hostname === 'linkedin.com';
         if (isLinkedIn) {
-            // Reject URLs that require authentication
-            if (pathname.includes('/collections/') ||
+            // Check if URL has currentJobId - convert to direct job URL
+            const currentJobId = parsedUrl.searchParams.get('currentJobId');
+            if (currentJobId && /^\d+$/.test(currentJobId)) {
+                // Convert to direct job URL
+                pathname = `/jobs/view/${currentJobId}`;
+                console.log('📥 [extract-job] Converting to direct job URL:', pathname);
+            }
+
+            // Reject URLs that require authentication (unless they have currentJobId)
+            if (!currentJobId && (
+                pathname.includes('/collections/') ||
                 pathname.includes('/my-jobs/') ||
                 pathname.includes('/saved-jobs/') ||
-                pathname.includes('/recommended/')) {
+                pathname.includes('/recommended/'))) {
                 return NextResponse.json({
-                    error: 'This LinkedIn URL requires authentication. Please use a direct job link like: linkedin.com/jobs/view/123456789',
-                    suggestion: 'Open the job posting and copy the URL from the browser address bar, it should look like: https://www.linkedin.com/jobs/view/[job-id]'
+                    error: 'This LinkedIn URL requires login. Please use a direct job link.',
+                    suggestion: 'Click on the job posting, then copy the URL. It should look like: https://www.linkedin.com/jobs/view/1234567890'
                 }, { status: 400 });
             }
 
             // Check for valid LinkedIn job URL patterns
             const isValidLinkedInJob = pathname.startsWith('/jobs/view/') ||
-                pathname.match(/\/jobs\/\d+/) ||
-                pathname.includes('/jobs/') && parsedUrl.searchParams.has('currentJobId');
+                pathname.match(/\/jobs\/\d+/);
 
             if (!isValidLinkedInJob && !pathname.includes('/jobs/')) {
                 return NextResponse.json({
