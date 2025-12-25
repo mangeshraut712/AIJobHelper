@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { callAI, extractJSON, OPENROUTER_API_KEY } from '@/lib/ai-config';
 
 // Vercel serverless config
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 interface ParsedResume {
     name: string;
@@ -121,36 +121,84 @@ function parseResumeWithRegex(text: string): ParsedResume {
     };
 }
 
-// PDF text extraction
-async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
-    console.log('📄 [parse-resume] Extracting PDF text, size:', buffer.byteLength);
+// Fallback PDF text extraction (works when pdf-parse fails)
+function extractTextFallback(buffer: Buffer): string {
+    console.log('📄 [parse-resume] Using fallback PDF extraction');
 
     try {
-        // Dynamic import for pdf-parse
-        const pdfParse = (await import('pdf-parse')).default;
+        // Try to extract readable text from PDF buffer
+        const text = buffer.toString('utf-8');
 
-        const data = await pdfParse(Buffer.from(buffer));
+        // Extract text between parentheses (common PDF text encoding)
+        const textMatches = text.match(/\(([^)]+)\)/g) || [];
+        const extractedParts: string[] = [];
 
-        if (!data.text || data.text.trim().length < 50) {
-            throw new Error('No text extracted from PDF');
+        for (const match of textMatches) {
+            const content = match.slice(1, -1);
+            // Filter for readable text
+            if (/^[\x20-\x7E\s]+$/.test(content) && content.length > 1) {
+                extractedParts.push(content);
+            }
         }
 
-        // Clean the text
-        const cleanedText = data.text
-            .replace(/I\+/g, 'Phone: +')
-            .replace(/#/g, 'Email: ')
-            .replace(/ð/g, 'LinkedIn: ')
-            .replace(/[♂¶⌢]/g, '')
-            .replace(/[\uE000-\uF8FF]/g, '')
-            .replace(/[ \t]+/g, ' ')
-            .trim();
+        // Also try to find raw text patterns
+        const rawTextPattern = /([A-Za-z][A-Za-z\s,.\-@0-9]+)/g;
+        const rawMatches = text.match(rawTextPattern) || [];
 
-        console.log('📄 [parse-resume] PDF text extracted, length:', cleanedText.length);
-        return cleanedText;
-    } catch (error) {
-        console.error('❌ [parse-resume] PDF extraction failed:', error);
-        throw error;
+        for (const match of rawMatches) {
+            if (match.length > 10 && match.length < 200) {
+                extractedParts.push(match);
+            }
+        }
+
+        const result = extractedParts.join(' ').substring(0, 10000);
+        console.log('📄 [parse-resume] Fallback extracted:', result.length, 'chars');
+        return result;
+    } catch (e) {
+        console.error('📄 [parse-resume] Fallback extraction failed:', e);
+        return '';
     }
+}
+
+// PDF text extraction with multiple fallbacks
+async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
+    console.log('📄 [parse-resume] Extracting PDF text, size:', buffer.byteLength);
+    const nodeBuffer = Buffer.from(buffer);
+
+    // Try pdf-parse first
+    try {
+        const pdfParseModule = await import('pdf-parse');
+        const pdfParse = pdfParseModule.default || pdfParseModule;
+
+        if (typeof pdfParse === 'function') {
+            const data = await pdfParse(nodeBuffer);
+
+            if (data.text && data.text.trim().length > 50) {
+                // Clean the text
+                const cleanedText = data.text
+                    .replace(/I\+/g, 'Phone: +')
+                    .replace(/#/g, 'Email: ')
+                    .replace(/ð/g, 'LinkedIn: ')
+                    .replace(/[♂¶⌢]/g, '')
+                    .replace(/[\uE000-\uF8FF]/g, '')
+                    .replace(/[ \t]+/g, ' ')
+                    .trim();
+
+                console.log('📄 [parse-resume] pdf-parse success, length:', cleanedText.length);
+                return cleanedText;
+            }
+        }
+    } catch (pdfError) {
+        console.error('❌ [parse-resume] pdf-parse failed:', pdfError);
+    }
+
+    // Fallback extraction
+    const fallbackText = extractTextFallback(nodeBuffer);
+    if (fallbackText.length > 50) {
+        return fallbackText;
+    }
+
+    throw new Error('Could not extract text from PDF');
 }
 
 export async function POST(request: NextRequest) {
@@ -175,6 +223,7 @@ export async function POST(request: NextRequest) {
 
         if (fileName.endsWith('.txt')) {
             text = await file.text();
+            console.log('📄 [parse-resume] TXT file, length:', text.length);
         } else if (fileName.endsWith('.pdf')) {
             const buffer = await file.arrayBuffer();
             text = await extractTextFromPDF(buffer);
@@ -183,7 +232,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (!text || text.length < 20) {
-            return NextResponse.json({ detail: 'Could not extract text from file' }, { status: 400 });
+            return NextResponse.json({ detail: 'Could not extract text from file. Try uploading a TXT file instead.' }, { status: 400 });
         }
 
         console.log('📝 [parse-resume] Text extracted, length:', text.length);
@@ -196,7 +245,7 @@ export async function POST(request: NextRequest) {
                 result = await parseResumeWithAI(text);
                 console.log('✅ [parse-resume] AI parsing succeeded');
             } catch (aiError) {
-                console.error('❌ [parse-resume] AI failed, using regex:', aiError);
+                console.error('❌ [parse-resume] AI failed:', aiError);
                 result = parseResumeWithRegex(text);
             }
         } else {
@@ -209,7 +258,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('❌ [parse-resume] Error:', error);
         return NextResponse.json(
-            { detail: 'Failed to parse resume. Please try again.' },
+            { detail: 'Failed to parse resume. Try uploading a TXT file instead.' },
             { status: 500 }
         );
     }
