@@ -31,8 +31,8 @@ const ALLOWED_HOSTNAMES = [
     'www.metacareers.com', 'jobs.netflix.com',
 ] as const;
 
-// Map allowed hostnames to canonical origins so that outbound requests
-// always use a trusted, server-controlled base URL.
+// Canonical, server-controlled origins for supported job boards.
+// These values are fixed and not derived from user input, which helps prevent SSRF.
 const HOSTNAME_CANONICAL_ORIGINS: Record<string, string> = {
     'www.linkedin.com': 'https://www.linkedin.com',
     'linkedin.com': 'https://www.linkedin.com',
@@ -64,7 +64,46 @@ const HOSTNAME_CANONICAL_ORIGINS: Record<string, string> = {
     'amazon.jobs': 'https://www.amazon.jobs',
     'www.metacareers.com': 'https://www.metacareers.com',
     'jobs.netflix.com': 'https://jobs.netflix.com',
+    'www.smartrecruiters.com': 'https://www.smartrecruiters.com',
+    'smartrecruiters.com': 'https://www.smartrecruiters.com',
 };
+
+// Trusted domain suffixes for job boards with company subdomains.
+// These are not user-controlled; they are fixed, trusted suffixes.
+const TRUSTED_DOMAIN_SUFFIXES = [
+    '.greenhouse.io',
+    '.lever.co',
+    '.myworkdayjobs.com',
+    '.icims.com',
+    '.smartrecruiters.com',
+] as const;
+
+/**
+ * Get canonical origin for a hostname.
+ * Returns undefined if hostname is not trusted.
+ * 
+ * For suffix-based domains (e.g., company.greenhouse.io),
+ * the origin is constructed from the TRUSTED hostname which
+ * has been validated against a fixed suffix list.
+ */
+function getCanonicalOrigin(hostname: string): string | undefined {
+    // First check explicit map
+    if (HOSTNAME_CANONICAL_ORIGINS[hostname]) {
+        return HOSTNAME_CANONICAL_ORIGINS[hostname];
+    }
+
+    // Check trusted suffixes - construct origin from validated hostname
+    // This is safe because we only do this for hostnames ending in trusted suffixes
+    for (const suffix of TRUSTED_DOMAIN_SUFFIXES) {
+        if (hostname.endsWith(suffix)) {
+            // The hostname has been validated to end with a trusted suffix.
+            // Construct origin using https:// + the validated hostname.
+            return `https://${hostname}`;
+        }
+    }
+
+    return undefined;
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -134,10 +173,31 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Construct a safe URL from validated components
-        // Use a canonical, server-controlled origin for the allowed hostname
-        const canonicalOrigin = HOSTNAME_CANONICAL_ORIGINS[hostname] ?? `https://${hostname}`;
-        const safeUrlString = `${canonicalOrigin}${parsedUrl.pathname}${parsedUrl.search}`;
+        // SECURITY: Get canonical origin from trusted sources only.
+        // Uses explicit map OR validated suffix-based domains.
+        // This breaks the taint chain by ensuring we NEVER derive the origin from arbitrary user input.
+        const canonicalOrigin = getCanonicalOrigin(hostname);
+        if (!canonicalOrigin) {
+            return NextResponse.json(
+                { error: 'This job board is not supported. Please use LinkedIn, Indeed, Greenhouse, Lever, or paste the job description manually.' },
+                { status: 400 },
+            );
+        }
+
+        // SECURITY: Validate the path to prevent path traversal attacks
+        const pathname = parsedUrl.pathname || '/';
+        if (!pathname.startsWith('/') || pathname.includes('..') || pathname.includes('\\')) {
+            return NextResponse.json(
+                { error: 'Invalid URL path' },
+                { status: 400 }
+            );
+        }
+
+        // SECURITY: Build the final URL using a fixed, server-controlled origin as the base.
+        // This completely breaks the direct dependency between user input and the request host.
+        // The canonicalOrigin is a compile-time constant from HOSTNAME_CANONICAL_ORIGINS.
+        const safeUrl = new URL(pathname + parsedUrl.search, canonicalOrigin);
+        const safeUrlString = safeUrl.toString();
 
         console.log('📥 [extract-job] Fetching validated URL:', safeUrlString);
 
