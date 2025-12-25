@@ -299,7 +299,7 @@ async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
             console.log('📄 [parse-resume] Raw PDF text length:', data.text.length, 'pages:', data.numpages);
 
             // Clean up common PDF artifacts and special characters
-            let cleanedText = data.text
+            const cleanedText = data.text
                 // Replace common icon placeholders with labels
                 .replace(/I\+/g, 'Phone: +')
                 .replace(/#/g, 'Email: ')

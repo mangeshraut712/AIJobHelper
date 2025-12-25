@@ -146,8 +146,9 @@ export async function POST(request: NextRequest) {
         const hostname = parsedUrl.hostname.toLowerCase();
         const pathname = parsedUrl.pathname;
 
-        // LinkedIn-specific validation
-        if (hostname.includes('linkedin.com')) {
+        // LinkedIn-specific validation - use exact hostname match (not substring)
+        const isLinkedIn = hostname === 'www.linkedin.com' || hostname === 'linkedin.com';
+        if (isLinkedIn) {
             // Reject URLs that require authentication
             if (pathname.includes('/collections/') ||
                 pathname.includes('/my-jobs/') ||
@@ -208,7 +209,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get canonical origin
+        // SSRF PROTECTION: Get canonical origin from server-controlled map
+        // The canonicalOrigin comes from HOSTNAME_CANONICAL_ORIGINS which is hardcoded
         const canonicalOrigin = getCanonicalOrigin(hostname);
         if (!canonicalOrigin) {
             return NextResponse.json(
@@ -217,25 +219,49 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Validate path
-        const safePath = pathname || '/';
-        if (!safePath.startsWith('/') || safePath.includes('..') || safePath.includes('\\')) {
-            return NextResponse.json(
-                { error: 'Invalid URL path' },
-                { status: 400 }
-            );
+        // SSRF PROTECTION: Validate and sanitize path
+        // Only allow paths that start with / and don't contain traversal
+        let validatedPath = '/';
+        if (pathname && pathname.startsWith('/')) {
+            // Remove any path traversal attempts
+            const cleanPath = pathname.split('/').filter(segment =>
+                segment !== '' && segment !== '.' && segment !== '..'
+            ).join('/');
+            validatedPath = '/' + cleanPath;
         }
 
-        // Build safe URL
-        const safeUrl = new URL(safePath + parsedUrl.search, canonicalOrigin);
-        const safeUrlString = safeUrl.toString();
+        // SSRF PROTECTION: Validate query params (only allow specific job-related params)
+        const allowedParams = ['currentJobId', 'id', 'job', 'position'];
+        const safeSearchParams = new URLSearchParams();
+        for (const param of allowedParams) {
+            const value = parsedUrl.searchParams.get(param);
+            if (value && /^[\w-]+$/.test(value)) {
+                safeSearchParams.set(param, value);
+            }
+        }
+        const queryString = safeSearchParams.toString();
 
-        console.log('📥 [extract-job] Fetching:', safeUrlString);
+        // SSRF PROTECTION: Build final URL using ONLY server-controlled components
+        // canonicalOrigin: from hardcoded HOSTNAME_CANONICAL_ORIGINS
+        // validatedPath: sanitized and validated
+        // queryString: only allowed params with alphanumeric values
+        const trustedUrl = new URL(validatedPath, canonicalOrigin);
+        if (queryString) {
+            trustedUrl.search = queryString;
+        }
 
-        // Fetch with proper headers and redirect handling
+        // This URL is now safe because:
+        // 1. The origin comes from a hardcoded, server-controlled map
+        // 2. The path is sanitized (no traversal, must start with /)
+        // 3. Query params are allowlisted and validated
+        const fetchUrl = trustedUrl.toString();
+
+        console.log('📥 [extract-job] Fetching trusted URL:', fetchUrl);
+
+        // Fetch from the trusted, validated URL
         let response;
         try {
-            response = await fetch(safeUrlString, {
+            response = await fetch(fetchUrl, {
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
