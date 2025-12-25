@@ -36,56 +36,66 @@ interface ParsedResume {
     awards?: string[];
 }
 
-const SYSTEM_PROMPT = `You are an expert resume parser. Extract ALL information from the resume text.
-Return ONLY a valid JSON object without any markdown or explanation.
+const SYSTEM_PROMPT = `You are an EXPERT resume parser AI. Your job is to extract EVERY SINGLE piece of information from resumes with 100% accuracy.
 
-Extract EVERY piece of information you can find. Return this exact JSON structure:
+CRITICAL RULES:
+1. Extract ALL experience entries - never skip any job, even internships or part-time work
+2. Extract ALL education entries - every degree, certificate, or course mentioned
+3. Extract EVERY skill mentioned anywhere in the resume
+4. Combine all bullet points in experience into a single detailed paragraph
+5. Return ONLY valid JSON, NO markdown, NO explanations
+
+REQUIRED OUTPUT FORMAT:
 {
-    "name": "full name (REQUIRED - first thing in resume)",
-    "email": "email address (REQUIRED)",
-    "phone": "phone number with country code if present",
-    "linkedin": "full LinkedIn URL or username",
-    "github": "full GitHub URL or username",
-    "portfolio": "personal website/portfolio URL if mentioned",
-    "location": "city, state/country",
-    "jobTitle": "current job title or desired position",
-    "summary": "complete professional summary or objective - include ALL sentences",
+    "name": "FULL NAME - usually the first line of resume",
+    "email": "email@example.com - REQUIRED",
+    "phone": "+1-xxx-xxx-xxxx or any format found",
+    "linkedin": "linkedin.com/in/username OR just username",
+    "github": "github.com/username OR just username",
+    "portfolio": "personal website URL if any",
+    "location": "City, State/Country",
+    "jobTitle": "current title OR title they're applying for",
+    "summary": "COMPLETE professional summary - include EVERY sentence from objective/summary section",
     "experience": [
         {
-            "company": "company name",
-            "role": "job title/position",
-            "duration": "start date - end date (or Present)",
-            "description": "ALL bullet points and responsibilities combined into one paragraph"
+            "company": "Company Name Inc.",
+            "role": "Job Title / Position",
+            "duration": "Jan 2020 - Present (or any date format)",
+            "description": "Combine ALL bullet points into detailed paragraph. Include achievements, technologies, metrics, responsibilities."
         }
     ],
     "education": [
         {
-            "institution": "university/college name",
-            "degree": "degree name and field of study",
-            "graduation_year": "graduation year or expected year",
-            "gpa": "GPA if mentioned"
+            "institution": "University/College Full Name",
+            "degree": "Bachelor of Science, Master of Arts, PhD, etc.",
+            "graduation_year": "2024 or Expected 2025",
+            "gpa": "3.8/4.0 if mentioned"
         }
     ],
-    "skills": ["ALL skills mentioned - technical, soft skills, tools, languages, frameworks"],
-    "certifications": ["ALL certifications with issuing org if mentioned"],
+    "skills": ["Extract EVERY technical skill", "soft skill", "programming language", "framework", "tool", "certification", "language spoken"],
+    "certifications": ["AWS Certified Solutions Architect", "PMP", "Include issuing org if mentioned"],
     "projects": [
         {
-            "name": "project name",
-            "description": "complete project description with impact",
-            "technologies": "technologies used"
+            "name": "Project Name",
+            "description": "Full description with impact/results",
+            "technologies": "React, Node.js, AWS, etc."
         }
     ],
-    "awards": ["ALL awards, honors, achievements"]
+    "awards": ["Dean's List 2023", "Employee of the Month", "Any achievement/honor"]
 }
 
-CRITICAL: Extract EVERYTHING. Don't skip anything. If a field is not present, use empty string "" or empty array [].`;
+EMPHASIS:
+- EXPERIENCE: Extract EVERY job, internship, volunteer role. Don't skip anything!
+- EDUCATION: Extract EVERY degree, certificate, bootcamp, online course
+- If field not present: use empty string "" or empty array []
+- Be COMPREHENSIVE - more data is better than less!`;
 
 async function parseResumeWithAI(text: string): Promise<ParsedResume> {
     console.log('🤖 [parse-resume] Calling AI to parse resume...');
 
-    const prompt = `Parse this resume and extract ALL information into JSON format. Be comprehensive and don't miss anything:\n\nRESUME TEXT:\n${text.substring(0, 12000)}`;
+    const prompt = `Parse this resume and extract ALL information into JSON format. Be comprehensive and don't miss anything:\n\nRESUME TEXT:\n${text.substring(0, 15000)}`;
 
-    const response = await callAI(prompt, SYSTEM_PROMPT, { temperature: 0.1, maxTokens: 3500 });
+    const response = await callAI(prompt, SYSTEM_PROMPT, { temperature: 0.1, maxTokens: 4500 });
 
     const jsonStr = extractJSON(response);
     const parsed = JSON.parse(jsonStr);
