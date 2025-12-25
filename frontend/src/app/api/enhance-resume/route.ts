@@ -1,24 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { callAI, extractJSON, OPENROUTER_API_KEY } from '@/lib/ai-config';
 
-// OpenRouter API Configuration - Uses Vercel environment variables
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-
-// Model priority chain - tries Grok first (if credits), then reliable free models
-// Grok models require OpenRouter credits, free models work without
-const MODELS = {
-    grok: 'x-ai/grok-4.1-fast',                            // Best quality (requires credits)
-    primary: 'meta-llama/llama-3.2-3b-instruct:free',      // Reliable free - best for JSON
-    secondary: 'deepseek/deepseek-r1-0528:free',           // Good reasoning (free)
-    fallback: 'mistralai/mistral-7b-instruct:free',        // Backup free model
-};
-
-interface ExperienceItem {
-    role?: string;
-    company?: string;
-    duration?: string;
-    description?: string;
-}
+// Vercel serverless config
+export const maxDuration = 30;
 
 interface ResumeData {
     name?: string;
@@ -26,9 +10,17 @@ interface ResumeData {
     phone?: string;
     summary?: string;
     skills?: string[];
-    experience?: ExperienceItem[];
-    education?: { degree?: string; institution?: string; graduation_year?: string }[];
-    projects?: { name?: string; description?: string; technologies?: string[] }[];
+    experience?: {
+        role?: string;
+        company?: string;
+        duration?: string;
+        description?: string;
+    }[];
+    education?: {
+        institution?: string;
+        degree?: string;
+        graduation_year?: string;
+    }[];
 }
 
 interface JobDescription {
@@ -37,251 +29,124 @@ interface JobDescription {
     description?: string;
     skills?: string[];
     requirements?: string[];
-    responsibilities?: string[];
 }
 
-// Model fallback order: Grok (paid) -> Llama (free) -> DeepSeek (free) -> Mistral (free)
-const MODEL_FALLBACK_ORDER = [MODELS.grok, MODELS.primary, MODELS.secondary, MODELS.fallback];
+const SYSTEM_PROMPT = `You are an expert resume consultant and ATS optimization specialist.
+Analyze the resume against the job description and provide detailed improvements.
+Return ONLY valid JSON without any markdown or explanation.`;
 
-async function callOpenRouter(prompt: string, systemPrompt: string, modelIndex: number = 0): Promise<string> {
-    const useModel = MODEL_FALLBACK_ORDER[modelIndex] || MODELS.primary;
-    console.log('🔑 [OpenRouter] API Key configured:', !!OPENROUTER_API_KEY);
-    console.log('🤖 [OpenRouter] Trying model:', useModel, `(attempt ${modelIndex + 1}/${MODEL_FALLBACK_ORDER.length})`);
+async function enhanceWithAI(resume: ResumeData, job: JobDescription): Promise<object> {
+    const prompt = `Analyze this resume for the target job and provide improvements:
 
-    if (!OPENROUTER_API_KEY) {
-        console.error('❌ OPENROUTER_API_KEY not found in environment');
-        throw new Error('OpenRouter API key not configured');
-    }
+RESUME:
+Name: ${resume.name || 'N/A'}
+Summary: ${resume.summary || 'N/A'}
+Skills: ${(resume.skills || []).join(', ')}
+Experience: ${JSON.stringify(resume.experience || [])}
+Education: ${JSON.stringify(resume.education || [])}
 
-    try {
-        const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://ai-job-helper-steel.vercel.app',
-                'X-Title': 'CareerAgentPro Resume Enhancer',
+TARGET JOB:
+Title: ${job.title || 'Software Engineer'}
+Company: ${job.company || 'Company'}
+Required Skills: ${(job.skills || []).join(', ')}
+Description: ${(job.description || '').substring(0, 1000)}
+
+Return JSON with this structure:
+{
+    "ats_score": 75,
+    "score_breakdown": {
+        "skills_match": 80,
+        "experience_relevance": 70,
+        "keyword_density": 75,
+        "education": 80,
+        "format_quality": 80
+    },
+    "enhanced_summary": "improved professional summary",
+    "section_improvements": {
+        "summary": {"ai_enhanced": "improved summary"},
+        "experience": {"items": [{"original": {...}, "ai_suggested_bullets": ["bullet1", "bullet2"]}]},
+        "skills": {"matched": ["skill1"], "missing": ["skill2"], "ai_recommended": ["skill3"]}
+    },
+    "ats_tips": ["tip1", "tip2", "tip3"]
+}`;
+
+    const response = await callAI(prompt, SYSTEM_PROMPT, { temperature: 0.3, maxTokens: 2500 });
+    const jsonStr = extractJSON(response);
+    return JSON.parse(jsonStr);
+}
+
+function generateFallbackEnhancement(resume: ResumeData, job: JobDescription): object {
+    const resumeSkills = (resume.skills || []).map(s => s.toLowerCase());
+    const jobSkills = (job.skills || []).map(s => s.toLowerCase());
+
+    const matched = jobSkills.filter(s => resumeSkills.some(rs => rs.includes(s) || s.includes(rs)));
+    const missing = jobSkills.filter(s => !resumeSkills.some(rs => rs.includes(s) || s.includes(rs)));
+
+    const skillsScore = jobSkills.length > 0 ? Math.round((matched.length / jobSkills.length) * 100) : 50;
+    const atsScore = Math.round((skillsScore + 70 + 60 + 75 + 80) / 5);
+
+    return {
+        ats_score: atsScore,
+        score_breakdown: {
+            skills_match: skillsScore,
+            experience_relevance: 70,
+            keyword_density: 60,
+            education: 75,
+            format_quality: 80,
+        },
+        enhanced_summary: resume.summary || `Professional with expertise in ${(resume.skills || []).slice(0, 3).join(', ')}.`,
+        section_improvements: {
+            summary: { ai_enhanced: 'Complete your profile for AI-powered suggestions.' },
+            experience: { items: [] },
+            skills: {
+                matched: matched.slice(0, 10),
+                missing: missing.slice(0, 5),
+                ai_recommended: ['Communication', 'Problem Solving'],
             },
-            body: JSON.stringify({
-                model: useModel,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: prompt },
-                ],
-                temperature: 0.3,
-                max_tokens: 2000,
-            }),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ OpenRouter API error:', response.status, errorText);
-
-            // Check if it's a credits issue (402) or rate limit (429)
-            if (response.status === 402 || response.status === 429 || response.status === 500) {
-                // Try next model in fallback chain
-                if (modelIndex < MODEL_FALLBACK_ORDER.length - 1) {
-                    console.log('🔄 Trying next fallback model...');
-                    return callOpenRouter(prompt, systemPrompt, modelIndex + 1);
-                }
-            }
-            throw new Error(`OpenRouter API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('✅ [OpenRouter] Response received from:', useModel);
-        return data.choices?.[0]?.message?.content || '';
-    } catch (error) {
-        // Network or other error - try fallback
-        if (modelIndex < MODEL_FALLBACK_ORDER.length - 1) {
-            console.log('🔄 Error occurred, trying next model...');
-            return callOpenRouter(prompt, systemPrompt, modelIndex + 1);
-        }
-        throw error;
-    }
-}
-
-function calculateATSScore(resume: ResumeData, job: JobDescription): { score: number; breakdown: Record<string, number> } {
-    const jobSkills = new Set((job.skills || []).map(s => s.toLowerCase()));
-    const resumeSkills = new Set((resume.skills || []).map(s => s.toLowerCase()));
-
-    const matchedSkills = [...resumeSkills].filter(s => jobSkills.has(s));
-    const skillsMatch = jobSkills.size > 0 ? Math.round((matchedSkills.length / jobSkills.size) * 100) : 50;
-
-    // Calculate experience relevance
-    const expRelevance = resume.experience?.length ? 60 : 30;
-
-    // Calculate keyword density
-    const keywordDensity = jobSkills.size > 0 ? Math.min(100, Math.round((matchedSkills.length / Math.max(1, jobSkills.size)) * 100)) : 50;
-
-    // Education score
-    const educationScore = resume.education?.length ? 100 : 70;
-
-    // Format quality
-    const formatQuality = resume.summary && resume.skills?.length ? 100 : 80;
-
-    const breakdown = {
-        skills_match: skillsMatch,
-        experience_relevance: expRelevance,
-        keyword_density: keywordDensity,
-        education: educationScore,
-        format_quality: formatQuality,
+        },
+        ats_tips: [
+            'Add more keywords from the job description',
+            'Quantify your achievements with numbers',
+            'Use action verbs to describe your experience',
+        ],
     };
-
-    const totalScore = Math.round(
-        skillsMatch * 0.30 +
-        expRelevance * 0.30 +
-        keywordDensity * 0.20 +
-        educationScore * 0.10 +
-        formatQuality * 0.10
-    );
-
-    return { score: totalScore, breakdown };
 }
 
 export async function POST(request: NextRequest) {
+    console.log('📥 [enhance-resume] Request received');
+
     try {
         const body = await request.json();
         const { resume_data, job_description } = body;
 
-        console.log('📥 [enhance-resume] Request received');
-        console.log('👤 [enhance-resume] Resume name:', resume_data?.name);
-        console.log('💼 [enhance-resume] Job title:', job_description?.title);
-
-        // Calculate ATS score
-        const { score, breakdown } = calculateATSScore(resume_data, job_description);
-
-        // Prepare experience details for the prompt
-        const experienceDetails = (resume_data.experience || [])
-            .map((exp: ExperienceItem, i: number) => `
-Experience #${i + 1}:
-- Role: ${exp.role || 'N/A'}
-- Company: ${exp.company || 'N/A'}
-- Duration: ${exp.duration || 'N/A'}
-- Current Description: ${exp.description || 'N/A'}
-`).join('\n');
-
-        const jobSkillsList = (job_description.skills || []).join(', ');
-
-        // AI Enhancement Prompt - Optimized for smaller models
-        const prompt = `Analyze and enhance this resume for a ${job_description.title} position.
-
-JOB REQUIREMENTS:
-- Title: ${job_description.title}
-- Company: ${job_description.company || 'Company'}
-- Key Skills: ${jobSkillsList}
-
-CURRENT RESUME:
-- Name: ${resume_data.name}
-- Summary: ${resume_data.summary || 'None'}
-- Skills: ${(resume_data.skills || []).join(', ')}
-${experienceDetails}
-
-TASK: Return ONLY a JSON object with:
-{
-  "enhanced_summary": "3-4 sentence professional summary",
-  "experience_enhancements": [
-    {
-      "experience_index": 0,
-      "ai_suggested_bullets": ["bullet 1", "bullet 2", "bullet 3"]
-    }
-  ],
-  "skills_to_add": ["skill1", "skill2"],
-  "ats_tips": ["tip1", "tip2"]
-}
-
-Return ONLY valid JSON, no explanation.`;
-
-        const systemPrompt = `You are a resume optimization expert. Always return valid JSON only.`;
-
-        let aiEnhancements = null;
-
-        try {
-            if (OPENROUTER_API_KEY) {
-                console.log('🚀 [enhance-resume] Calling OpenRouter API...');
-                const aiResponse = await callOpenRouter(prompt, systemPrompt);
-
-                // Parse AI response
-                let cleanedResponse = aiResponse;
-                if (cleanedResponse.includes('```json')) {
-                    cleanedResponse = cleanedResponse.split('```json')[1].split('```')[0].trim();
-                } else if (cleanedResponse.includes('```')) {
-                    cleanedResponse = cleanedResponse.split('```')[1].split('```')[0].trim();
-                }
-
-                // Try to extract JSON from response
-                const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    aiEnhancements = JSON.parse(jsonMatch[0]);
-                    console.log('✅ [enhance-resume] AI enhancements parsed successfully');
-                }
-            } else {
-                console.log('⚠️ [enhance-resume] No API key, using local enhancements');
-            }
-        } catch (aiError) {
-            console.error('❌ [enhance-resume] AI enhancement error:', aiError);
+        if (!resume_data) {
+            return NextResponse.json({ error: 'Resume data required' }, { status: 400 });
         }
 
-        // Build response with fallback content
-        const response = {
-            ats_score: score,
-            score_breakdown: breakdown,
-            enhanced_summary: aiEnhancements?.enhanced_summary || `Results-driven ${job_description.title || 'professional'} with expertise in ${(resume_data.skills || []).slice(0, 3).join(', ')}. Seeking to leverage experience to drive impact at ${job_description.company || 'your organization'}.`,
-            section_improvements: {
-                summary: {
-                    ai_enhanced: aiEnhancements?.enhanced_summary,
-                },
-                experience: {
-                    items: (resume_data.experience || []).map((exp: ExperienceItem, i: number) => {
-                        const aiExp = aiEnhancements?.experience_enhancements?.find(
-                            (e: { experience_index: number }) => e.experience_index === i
-                        );
-                        return {
-                            original: exp,
-                            ai_suggested_bullets: aiExp?.ai_suggested_bullets || [
-                                `• Delivered key results using ${jobSkillsList.split(',')[0] || 'technical expertise'}`,
-                                `• Collaborated with cross-functional teams to achieve business objectives`,
-                                `• Implemented solutions improving efficiency and quality metrics`,
-                            ],
-                        };
-                    }),
-                },
-                skills: {
-                    matched: (resume_data.skills || []).filter((s: string) =>
-                        (job_description.skills || []).map((js: string) => js.toLowerCase()).includes(s.toLowerCase())
-                    ),
-                    missing: (job_description.skills || []).filter((s: string) =>
-                        !(resume_data.skills || []).map((rs: string) => rs.toLowerCase()).includes(s.toLowerCase())
-                    ),
-                    ai_recommended: aiEnhancements?.skills_to_add || [],
-                },
-            },
-            ats_tips: aiEnhancements?.ats_tips || [
-                'Add specific metrics and numbers to bullet points',
-                'Include keywords from the job description naturally',
-                'Quantify achievements where possible',
-            ],
-        };
+        console.log('👤 Resume for:', resume_data.name || 'Unknown');
+        console.log('💼 Target job:', job_description?.title || 'Not specified');
 
-        console.log('📤 [enhance-resume] Response sent successfully');
-        return NextResponse.json(response);
+        let result: object;
+
+        if (OPENROUTER_API_KEY) {
+            try {
+                result = await enhanceWithAI(resume_data, job_description || {});
+                console.log('✅ [enhance-resume] AI enhancement succeeded');
+            } catch (aiError) {
+                console.error('❌ [enhance-resume] AI failed:', aiError);
+                result = generateFallbackEnhancement(resume_data, job_description || {});
+            }
+        } else {
+            result = generateFallbackEnhancement(resume_data, job_description || {});
+        }
+
+        return NextResponse.json(result);
 
     } catch (error) {
         console.error('❌ [enhance-resume] Error:', error);
         return NextResponse.json(
-            { error: 'Failed to enhance resume', details: String(error) },
+            { error: 'Failed to enhance resume' },
             { status: 500 }
         );
     }
-}
-
-export async function OPTIONS() {
-    return new NextResponse(null, {
-        status: 200,
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-    });
 }
