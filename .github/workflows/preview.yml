@@ -1,0 +1,85 @@
+name: Preview Deployment
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  preview-comment:
+    name: 🔮 Preview Info
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📊 Generate PR Summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Get changed files
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const frontendChanges = files.filter(f => f.filename.startsWith('frontend/')).length;
+            const backendChanges = files.filter(f => f.filename.startsWith('backend/')).length;
+            const configChanges = files.filter(f => 
+              f.filename.includes('vercel.json') || 
+              f.filename.includes('.github/')
+            ).length;
+            
+            const body = `## 🔮 Preview Deployment Info
+            
+            ### 📊 Changes Summary
+            | Area | Files Changed |
+            |------|---------------|
+            | 🎨 Frontend | ${frontendChanges} |
+            | 🐍 Backend | ${backendChanges} |
+            | ⚙️ Config | ${configChanges} |
+            
+            ### 🚀 Deployment
+            - Vercel will automatically create a preview deployment
+            - Preview URL will be available once build completes
+            
+            ### ✅ CI Status
+            - Check the Actions tab for build status
+            - All checks must pass before merging
+            
+            ---
+            *Automated by CareerAgentPro CI/CD*
+            `;
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const botComment = comments.find(c => 
+              c.user.type === 'Bot' && 
+              c.body.includes('Preview Deployment Info')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }

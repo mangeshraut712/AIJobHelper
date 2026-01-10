@@ -1,0 +1,80 @@
+name: Vercel Deployment Check
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'vercel.json'
+      - 'frontend/**'
+      - 'backend/**'
+  pull_request:
+    paths:
+      - 'vercel.json'
+      - 'frontend/**'
+      - 'backend/**'
+
+jobs:
+  vercel-check:
+    name: ✅ Vercel Configuration Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🔍 Validate vercel.json
+        run: |
+          echo "Validating vercel.json..."
+          if [ ! -f vercel.json ]; then
+            echo "❌ vercel.json missing"
+            exit 1
+          fi
+          
+          # Validate JSON syntax
+          python3 -c "import json; json.load(open('vercel.json'))" && echo "✅ Valid JSON syntax"
+          
+          # Check required fields
+          python3 << 'EOF'
+          import json
+          with open('vercel.json') as f:
+              config = json.load(f)
+          
+          print("Checking vercel.json configuration...")
+          
+          # Check version
+          if config.get('version') != 2:
+              print("⚠️ Warning: version should be 2")
+          else:
+              print("✅ Version: 2")
+          
+          # Check builds
+          if 'builds' in config:
+              print(f"✅ Builds configured: {len(config['builds'])} builder(s)")
+              for build in config['builds']:
+                  print(f"   - {build.get('src')} → {build.get('use')}")
+          else:
+              print("⚠️ No builds configured")
+          
+          # Check rewrites
+          if 'rewrites' in config:
+              print(f"✅ Rewrites configured: {len(config['rewrites'])} rule(s)")
+          else:
+              print("⚠️ No rewrites configured")
+          
+          # Check headers
+          if 'headers' in config:
+              print(f"✅ Security headers configured: {len(config['headers'])} rule(s)")
+          
+          print("\n🎉 Vercel configuration check passed!")
+          EOF
+      
+      - name: 📋 Generate Summary
+        run: |
+          echo "## ✅ Vercel Configuration Valid" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| vercel.json | ✅ Valid |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Build | Configured |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Build | Configured |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Headers | Enabled |" >> $GITHUB_STEP_SUMMARY

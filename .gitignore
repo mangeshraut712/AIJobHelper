@@ -1,0 +1,92 @@
+# =========================
+# Dependencies
+# =========================
+frontend/node_modules/
+backend/venv/
+backend/.venv/
+venv/
+node_modules/
+
+# =========================
+# Build Outputs
+# =========================
+frontend/.next/
+frontend/out/
+frontend/.vercel/
+dist/
+build/
+*.egg-info/
+
+# =========================
+# Environment Variables
+# =========================
+.env
+.env.local
+.env.*.local
+frontend/.env*
+backend/.env
+!.env.example
+!frontend/.env.example
+!backend/.env.example
+
+# =========================
+# IDE & Editor
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/rules/
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# =========================
+# Python Cache
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# =========================
+# Temporary Files
+# =========================
+*.tmp
+*.temp
+*.log
+*.bak
+temp_*
+tmp_*
+
+# =========================
+# Generated Exports
+# =========================
+storage/exports/
+exports/
+
+# =========================
+# Personal/Sensitive Files
+# =========================
+*.pdf
+*.docx
+*.doc
+*.tex
+!docs/*.md
+
+# =========================
+# TypeScript Build Info
+# =========================
+*.tsbuildinfo
