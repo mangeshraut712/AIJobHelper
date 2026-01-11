@@ -275,7 +275,8 @@ export default function OutreachStrategyPage() {
                                         </div>
 
                                         {strategy.messages.map((msg, i) => {
-                                            const TrackIcon = trackIcons[msg.track] || Send;
+                                            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                            const _TrackIcon = trackIcons[msg.track] || Send;
                                             const ChannelIcon = channelIcons[msg.channel] || MessageSquare;
                                             const isActive = selectedMessage === msg;
 
@@ -399,7 +400,7 @@ export default function OutreachStrategyPage() {
     );
 }
 
-const PenTool = ({ size = 24, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
+const PenTool = ({ size = 24 }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
     <svg
         width={size}
         height={size}

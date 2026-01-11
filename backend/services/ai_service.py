@@ -1,5 +1,4 @@
 """AI Service for resume parsing and enhancement using OpenRouter API."""
-import os
 import json
 import re
 import logging
@@ -7,21 +6,24 @@ from openai import OpenAI
 from typing import Dict, Any, List, Optional
 from schemas import ResumeData, JobDescription
 
+# PERMANENT SOLUTION: Import from bulletproof env loader
+from env_loader import get_api_key, is_ai_enabled, get_ai_status
+
 logger = logging.getLogger(__name__)
 
 
 class AIService:
     """AI Service using OpenRouter API for resume parsing and enhancement.
     
-    For local development: Uses enhanced regex-based parsing (no API key needed)
-    For production: Uses OpenRouter with OPENROUTER_API_KEY from Vercel env vars
+    PERMANENT SOLUTION: Uses env_loader module for bulletproof API key loading.
+    Works on: Localhost (.env), Vercel (env vars), Docker, any deployment.
     """
     
     def __init__(self):
-        # Get API key from environment (works on Vercel without .env file)
-        self.api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        # BULLETPROOF: Get API key from permanent env loader
+        self.api_key = get_api_key()
         self.base_url = "https://openrouter.ai/api/v1"
-        self.is_configured = bool(self.api_key and len(self.api_key) > 20)
+        self.is_configured = is_ai_enabled()
         
         if self.is_configured:
             try:
@@ -46,7 +48,6 @@ class AIService:
         # Using Qwen Coder - optimized for structured output, excellent for parsing
         # Pricing: $0.22/M input tokens, $0.95/M output tokens
         # No free tier rate limits, fast, reliable
-        # TESTED: xiaomi/mimo-v2-flash:free - FAILED (5+ min timeout)
         self.model = "qwen/qwen-2.5-coder-32b-instruct"
 
     async def get_completion(

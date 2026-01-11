@@ -385,7 +385,7 @@ ${name}`
     );
 }
 
-const Target = ({ size = 24, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
+const Target = ({ size = 24 }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
     <svg
         width={size}
         height={size}

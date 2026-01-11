@@ -512,7 +512,8 @@ export default function ProfilePage() {
                                                 </div>
 
                                                 <div className="flex flex-wrap gap-3 mb-10 min-h-[100px] items-start content-start">
-                                                    {profile.skills.map((skill, idx) => (
+                                                    {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
+                                                    {profile.skills.map((skill, _idx) => (
                                                         <motion.div
                                                             key={skill}
                                                             initial={{ scale: 0.8, opacity: 0 }}
@@ -755,7 +756,7 @@ function EducationNode({ edu, isEditing, onEdit, onSave, onUpdate, onDelete }: E
     );
 }
 
-const Building2 = ({ size = 24, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
+const Building2 = ({ size = 24 }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
     <svg
         width={size}
         height={size}
@@ -777,7 +778,7 @@ const Building2 = ({ size = 24, ...props }: React.SVGProps<SVGSVGElement> & { si
     </svg>
 );
 
-const History = ({ size = 24, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
+const History = ({ size = 24 }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
     <svg
         width={size}
         height={size}

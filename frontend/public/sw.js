@@ -2,7 +2,7 @@
 const CACHE_NAME = 'career-agent-pro-v1';
 
 // Install event - cache static assets
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
     self.skipWaiting();
 });
 

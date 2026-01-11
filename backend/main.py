@@ -15,7 +15,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 import uvicorn
 from dotenv import load_dotenv
-from schemas import EnhancementRequest, CoverLetterRequest, CommunicationRequest, ResumeData, BulletSelectionRequest
+from schemas import EnhancementRequest, CoverLetterRequest, CommunicationRequest, ResumeData, BulletSelectionRequest, SixPointBullet
 from services.ai_service import AIService
 from services.job_service import JobService
 from services.export_service import ExportService
@@ -26,11 +26,17 @@ from services.bullet_framework import (
     ActionVerbChecker, analyze_complete_resume
 )
 from services.bullet_library import BulletLibrary
-from services.verification_service import ResumeVerifier, CoverLetterVerifier, OutreachVerifier
+from services.verification_service import ResumeVerifier as LegacyResumeVerifier, CoverLetterVerifier, OutreachVerifier
 from services.jd_assessor import JDAssessor, assess_job_fit
 from services.outreach_service import OutreachCreator, generate_outreach_strategy
 from services.cover_letter_service import CoverLetterService
 from services.workflow_orchestrator import ApplicationOrchestrator
+# New quality framework services
+from services.bullet_validator import BulletValidator
+from services.competency_assessor import CompetencyAssessor
+from services.spinning_service import SpinningStrategy
+from services.resume_verifier import ResumeVerifier as QualityResumeVerifier
+from services.bullet_library_manager import BulletLibraryManager
 
 load_dotenv()
 
@@ -151,10 +157,12 @@ async def parse_resume(file: UploadFile = File(...)):
 
 @app.get("/health")
 async def health():
-    """Comprehensive health check endpoint for CareerAgentPro."""
+    """Comprehensive health check endpoint with API key status."""
     from datetime import datetime
+    from env_loader import get_ai_status
     
     is_vercel = os.getenv("VERCEL") == "1" or os.getenv("ENVIRONMENT") == "production"
+    ai_status = get_ai_status()
     
     health_status = {
         "status": "healthy",
@@ -164,21 +172,31 @@ async def health():
         "timestamp": datetime.utcnow().isoformat(),
         "checks": {
             "api": "ok",
-            "ai_service": "configured" if ai_service.is_configured else "not_configured",
+            "ai_service": ai_status["mode"],
+            "api_key_present": ai_status["api_key_present"],
+            "api_key_valid": ai_status["api_key_valid"],
+        },
+        "ai_configuration": {
+            "enabled": ai_status["ai_enabled"],
+            "model": ai_status["model"],
+            "mode": ai_status["mode"],
+            "api_key_length": ai_status["api_key_length"],
         },
         "features": {
             "resume_parsing": True,
-            "resume_enhancement": ai_service.is_configured,
+            "resume_enhancement": ai_status["ai_enabled"],
             "job_extraction": True,
-            "cover_letter_generation": ai_service.is_configured,
+            "cover_letter_generation": ai_status["ai_enabled"],
             "export_pdf": True,
             "export_docx": True,
-            "export_latex": True
+            "export_latex": True,
+            "ai_fallbacks": True,  # Always available
         }
     }
     
-    if not ai_service.is_configured:
-        health_status["status"] = "degraded"
+    if not ai_status["ai_enabled"]:
+        health_status["status"] = "operational_with_fallbacks"
+        health_status["note"] = "AI features using heuristic fallbacks. Set OPENROUTER_API_KEY for full AI."
         
     return health_status
 
@@ -606,7 +624,7 @@ async def verify_resume(data: dict = Body(...)):
                 detail="resume_data is required"
             )
         
-        report = ResumeVerifier.verify(resume_data)
+        report = LegacyResumeVerifier.verify(resume_data)
         
         return {
             "status": report.overall_status.value,
@@ -805,6 +823,213 @@ async def generate_elite_cover_letter(data: dict = Body(...)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate cover letter"
+        )
+
+
+# ============================================================================
+# NEW QUALITY FRAMEWORK ENDPOINTS
+# ============================================================================
+
+@app.post("/validate-bullet")
+async def validate_bullet_endpoint(data: dict = Body(...)):
+    """
+    Validate a 6-point bullet against quality standards.
+    
+    Checks:
+    - All 6 points present
+    - Character count (240-260)
+    - Metrics requirement
+    - Strong action verb
+    - No generic language
+    
+    Returns quality score and detailed feedback.
+    """
+    try:
+        bullet_data = data.get("bullet")
+        if not bullet_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="bullet object is required"
+            )
+        
+        # Create SixPointBullet object
+        bullet = SixPointBullet(**bullet_data)
+        
+        # Validate
+        validation = BulletValidator.validate_bullet(bullet)
+        
+        logger.info(f"Bullet validated - Quality: {validation.quality_score}/100")
+        
+        return {
+            "is_valid": validation.is_valid,
+            "character_count": validation.character_count,
+            "has_metrics": validation.has_metrics,
+            "has_all_six_points": validation.has_all_six_points,
+            "has_strong_verb": validation.has_strong_verb,
+            "no_generic_language": validation.no_generic_language,
+            "quality_score": validation.quality_score,
+            "errors": validation.errors,
+            "warnings": validation.warnings,
+            "suggestions": validation.suggestions,
+            "auto_fix_available": validation.auto_fix_available,
+            "auto_fix_suggestions": validation.auto_fix_suggestions
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to validate bullet: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to validate bullet: {str(e)}"
+        )
+
+
+@app.post("/assess-competencies")
+async def assess_competencies_endpoint(data: dict = Body(...)):
+    """
+    Assess JD competencies and calculate fit score.
+    
+    Returns:
+    - List of competencies with weightage (%)
+    - Company stage (early/growth/enterprise)
+    - Overall fit score (if user data provided)
+    - Top strengths and gaps
+    - Recommendations
+    """
+    try:
+        jd_text = data.get("job_description", "")
+        requirements = data.get("requirements", [])
+        skills = data.get("skills", [])
+        
+        if not jd_text:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="job_description is required"
+            )
+        
+        # Assess JD
+        assessment = CompetencyAssessor.assess_job_description(jd_text, requirements, skills)
+        
+        # Calculate fit if user data provided
+        user_skills = data.get("user_skills", [])
+        user_experience = data.get("user_experience", [])
+        
+        if user_skills or user_experience:
+            fit_result = CompetencyAssessor.calculate_fit_score(
+                assessment,
+                user_skills,
+                user_experience
+            )
+            assessment["fit_analysis"] = fit_result
+        
+        logger.info(f"Competency assessment completed - Stage: {assessment['company_stage']}")
+        
+        return assessment
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to assess competencies: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to assess competencies: {str(e)}"
+        )
+
+
+@app.post("/spin-text")
+async def spin_text_endpoint(data: dict = Body(...)):
+    """
+    Adapt text to match target company stage language.
+    
+    Transforms language without changing facts:
+    - Early Stage: Speed, iteration, validation
+    - Growth Stage: Metrics, scaling, optimization
+    - Enterprise: Coordination, compliance, stakeholder management
+    
+    Returns before/after comparison with explanations.
+    """
+    try:
+        text = data.get("text", "")
+        target_stage = data.get("targetStage", "growth_stage")
+        
+        if not text:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="text is required"
+            )
+        
+        # Map stage string to enum
+        stage_map = {
+            "early_stage": CompanyStage.EARLY_STAGE,
+            "growth_stage": CompanyStage.GROWTH_STAGE,
+            "enterprise": CompanyStage.ENTERPRISE
+        }
+        
+        stage_enum = stage_map.get(target_stage, CompanyStage.GROWTH_STAGE)
+        
+        # Spin the text
+        result = SpinningStrategy.spin_text(text, stage_enum)
+        
+        logger.info(f"Text spun to {target_stage} - {len(result['changes'])} changes made")
+        
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to spin text: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to spin text: {str(e)}"
+        )
+
+
+@app.post("/verify-resume-quality")
+async def verify_resume_quality_endpoint(data: dict = Body(...)):
+    """
+    Comprehensive resume quality verification.
+    
+    Validates:
+    - Profile completeness
+    - All bullets meet standards
+    - Overall quality score (0-100)
+    - Export readiness
+    
+    Returns detailed quality report with suggestions.
+    """
+    try:
+        resume_data_dict = data.get("resume")
+        bullets_data = data.get("bullets", [])
+        strict_mode = data.get("strict_mode", False)
+        
+        if not resume_data_dict:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="resume object is required"
+            )
+        
+        # Create ResumeData object
+        resume = ResumeData(**resume_data_dict)
+        
+        # Create SixPointBullet objects if provided
+        bullets = None
+        if bullets_data:
+            bullets = [SixPointBullet(**b) for b in bullets_data]
+        
+        # Verify
+        result = QualityResumeVerifier.verify_resume(resume, bullets, strict_mode)
+        
+        logger.info(
+            f"Resume verified - Score: {result['overall_quality_score']}/100, "
+            f"Can export: {result['can_export']}"
+        )
+        
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to verify resume quality: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to verify resume quality: {str(e)}"
         )
 
 

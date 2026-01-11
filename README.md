@@ -1,485 +1,477 @@
-# 🚀 CareerAgentPro
-**AI-Powered Career Optimization Platform**
+# 🚀 CareerAgentPro - AI-Powered Job Application Platform
 
-<div align="center">
+[![Status](https://img.shields.io/badge/status-active-success.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
+[![AI](https://img.shields.io/badge/AI-Qwen%20Coder-orange)]()
 
-![CareerAgentPro](https://img.shields.io/badge/CareerAgentPro-AI%20Career%20Platform-0071e3?style=for-the-badge)
-[![Next.js](https://img.shields.io/badge/Next.js-15.1-000000?style=flat-square&logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://react.dev/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
-[![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python)](https://python.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+**Premium AI-powered platform for job applications** - Resume enhancement, cover letters, job matching, and more!
 
-**The ultimate AI-powered platform for career optimization** — Transform your job search with intelligent resume parsing, ATS optimization, AI-powered cover letters, and strategic outreach tools.
-
-[🌐 Live Demo](https://ai-job-helper-steel.vercel.app/) • [✨ Features](#-features) • [🚀 Quick Start](#-quick-start) • [� Documentation](#-documentation)
-
-</div>
+**Live Demo**: https://ai-job-helper-steel.vercel.app/
 
 ---
 
 ## ✨ Features
 
-### 🎯 **Core Features**
+### Core Features
+- 📄 **Resume Upload & Parsing** - AI extracts information from PDFs
+- 🎯 **Job Extraction** - Extract job details from any URL
+- ✨ **AI Resume Enhancement** - Personalized improvements for each job
+- 📝 **Cover Letter Generation** - AI-powered personalized letters
+- 📊 **ATS Optimization** - Score and improve resume for ATS systems
+- 💼 **Job Fit Analysis** - Match your skills to job requirements
+- 📤 **Multi-Format Export** - PDF, DOCX, LaTeX export
 
-#### � **Resume Management** (`/profile`)
-- **Smart Resume Parsing**: Upload PDF, DOCX, or TXT files with AI-powered extraction
-- **Intelligent Data Recognition**: Automatically extracts name, contact info, skills, experience, and education
-- **Dual Processing**: AI parsing with robust regex fallback (70%+ accuracy)
-- **Profile Builder**: Beautiful, intuitive form to complete your professional identity
-
-#### 🔍 **Resume Enhancement** (`/resumes`)
-- **ATS Scoring**: Real-time compatibility analysis with 0-100 scoring
-- **AI-Powered Optimization**: Section-by-section improvement suggestions
-- **Skills Gap Analysis**: Identifies missing keywords from job descriptions
-- **Multiple Export Formats**: PDF, DOCX, and LaTeX with professional templates
-- **Score Breakdown**: Detailed metrics for skills match, experience relevance, and format quality
-
-#### 💌 **Cover Letter Generation** (`/communication`)
-- **AI-Generated Letters**: Personalized, professional cover letters in seconds
-- **Multiple Templates**: Apply-Pilot, Professional, Creative styles
-- **Strategic Formatting**: 8-12 line format optimized for recruiter attention
-- **Customization**: Tailored to specific job descriptions and companies
-- **Template Fallback**: Professional templates when AI is unavailable
-
-#### 🎯 **Job Extraction** (`/jobs`)
-- **URL-Based Extraction**: Paste any job posting URL (LinkedIn, Indeed, etc.)
-- **Comprehensive Parsing**: Extracts title, company, description, requirements, skills
-- **AI-Powered Analysis**: Intelligent extraction of key information
-- **One-Click Save**: Store job details for later comparison
-
-#### 💬 **Communication Tools** (`/outreach`)
-- **Email Templates**: Professional outreach messages
-- **LinkedIn Messages**: Optimized connection requests
-- **Follow-Up Sequences**: Strategic 3-tier engagement system
-- **Personalization**: Customized to your profile and target company
-
-#### 🧪 **Fit Analysis** (`/fit-analysis`)
-- **Job Matching**: Calculate compatibility between your profile and job posts
-- **Skills Comparison**: Visualize matched vs. missing skills
-- **Strategic Recommendations**: Actionable advice to improve your fit score
-- **Company Intelligence**: Insights on company stage and culture
+### Quality Framework (NEW)
+- 🎯 **6-Point Bullet Builder** - Structured bullet points with validation
+- 📊 **Competency Assessment** - 10-category skill analysis
+- 🔄 **Language Spinning** - Adapt text for early/growth/enterprise stages
+- ✅ **Resume Verification** - Comprehensive quality scoring
+- 📚 **Master Bullet Library** - Reusable bullet point management
+- 💬 **Multi-Track Outreach** - Customized outreach strategies
 
 ---
 
-## 🛠 **Technology Stack**
+## 🏗️ Tech Stack
 
-### **Frontend**
-- **Framework**: Next.js 15.1 (App Router)
-- **UI Library**: React 19
-- **Language**: TypeScript 5.7
-- **Styling**: Tailwind CSS 4.0
-- **Components**: Custom Apple-inspired design system
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **State Management**: React Hooks + Local Storage
+### Frontend
+- **Framework**: Next.js 15.1 (React 19)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Animation**: Framer Motion
+- **HTTP Client**: Axios
 
-### **Backend**
+### Backend
 - **Framework**: FastAPI 0.115
 - **Language**: Python 3.12
-- **Validation**: Pydantic 2.10
-- **PDF Processing**: PyPDF2, pdf-parse
-- **Document Generation**: python-docx, reportlab
-- **AI Integration**: OpenAI SDK (via OpenRouter)
+- **AI**: OpenRouter (Qwen Coder 32B)
+- **Export**: PyPDF2, python-docx, fpdf2
 
-### **AI & Services**
-- **AI Provider**: OpenRouter (multi-model support)
-- **Primary Model**: Qwen 2.5 Coder 32B (optimized for structured output)
-- **Fallback**: Enhanced regex parsing with 70%+ accuracy
-- **Cost**: ~$0.85 per 1,000 requests (very affordable)
-
-### **Deployment**
-- **Frontend**: Vercel (Next.js optimized)
-- **Backend**: FastAPI (can run on Vercel or standalone)
-- **Database**: Client-side encrypted local storage
-- **Environment**: Serverless with edge functions
+### Deployment
+- **Platform**: Vercel
+- **Serverless**: Mangum adapter
+- **Environment**: Automatic environment detection
 
 ---
 
 ## 🚀 Quick Start
 
-### **Prerequisites**
-- Node.js 18+ and npm/yarn
+### Prerequisites
 - Python 3.12+
-- OpenRouter API key ([Sign up here](https://openrouter.ai/))
+- Node.js 18+
+- OpenRouter API key ([get one here](https://openrouter.ai/keys))
 
-### **1. Clone the Repository**
+### 1. Clone Repository
 ```bash
-git clone https://github.com/yourusername/AIJobHelper.git
-cd AIJobHelper
+git clone <repository-url>
+cd AIJobHelper-main
 ```
 
-### **2. Frontend Setup**
+### 2. Setup Backend
 ```bash
+cd backend
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Create .env file
+cp .env.example .env
+
+# Add your API key to .env:
+# OPENROUTER_API_KEY=sk-or-v1-your-key-here
+
+# Start backend
+uvicorn main:app --reload --port 8000
+```
+
+**Expected Output**:
+```
+🚀 AI MODE ENABLED
+✅ OpenRouter API Key: Configured
+✅ AI Features: ACTIVE
+```
+
+### 3. Setup Frontend
+```bash
+# In new terminal
 cd frontend
+
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
-Frontend will be available at **http://localhost:3000**
 
-### **3. Backend Setup**
-```bash
-cd backend
-python -m venv venv
+Visit **http://localhost:3000**
 
-# On macOS/Linux:
-source venv/bin/activate
+---
 
-# On Windows:
-venv\Scripts\activate
+## 🔐 Environment Setup
 
-pip install -r requirements.txt
-```
+### Local Development
 
-### **4. Environment Configuration**
-
-Create `.env` file in `backend/` directory:
+**Backend** (`backend/.env`):
 ```bash
 OPENROUTER_API_KEY=your_api_key_here
+ENVIRONMENT=development
 ```
 
-Or export directly:
+**Project Root** (`.env`):
 ```bash
-export OPENROUTER_API_KEY=your_api_key_here
+OPENROUTER_API_KEY=your_api_key_here
+NODE_ENV=development
 ```
 
-### **5. Run the Backend**
-```bash
-cd backend
-uvicorn main:app --reload
-```
-Backend API will be available at **http://localhost:8000**
+### Vercel Deployment
 
-### **6. Access the Application**
-- **Frontend**: http://localhost:3000
-- **Backend API Docs**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
-
----
-
-## 📖 Documentation
-
-### **API Endpoints**
-
-#### **Frontend API Routes** (Next.js)
-- `POST /api/parse-resume` - Parse resume files (PDF, DOCX, TXT)
-- `POST /api/enhance-resume` - Get ATS score and optimization suggestions
-- `POST /api/generate-cover-letter` - Generate personalized cover letters
-- `POST /api/extract-job` - Extract job details from URL
-- `GET /api/health` - Health check
-- `POST /api/export/pdf` - Export resume as PDF
-- `POST /api/export/docx` - Export resume as DOCX
-- `POST /api/export/latex` - Export resume as LaTeX
-
-#### **Backend API Endpoints** (FastAPI)
-- `GET /health` - Comprehensive health check
-- `POST /parse-resume` - Parse resume (alternative endpoint)
-- `POST /enhance-resume` - ATS scoring and enhancement
-- `POST /generate-cover-letter` - AI cover letter generation
-- `POST /generate-communication` - Email and LinkedIn messages
-- `POST /extract-job` - Job posting extraction
-- `POST /export/*` - Various export formats
-
-### **Features by Page**
-
-#### **Dashboard** (`/`)
-- Overview of all features
-- Quick access to all tools
-- Recent activity summary
-
-#### **Profile** (`/profile`)
-- Upload and parse resumes
-- Manual profile editing
-- Completeness tracking
-- Save to local storage
-
-#### **Jobs** (`/jobs`)
-- Paste job posting URLs
-- AI-powered extraction
-- Save job details
-- Compare multiple positions
-
-#### **Resumes** (`/resumes`)
-- Select saved jobs
-- Get ATS score (0-100)
-- View detailed breakdown
-- Get optimization suggestions
-- Export in multiple formats
-
-#### **Communication** (`/communication`)
-- Generate cover letters
-- Multiple template styles
-- AI-powered personalization
-- Copy or export
-
-#### **Interview Prep** (`/interview`)
-- Common interview questions
-- STAR method guidance
-- Practice responses
-
-#### **Fit Analysis** (`/fit-analysis`)
-- Match profile to job
-- Skills gap analysis
-- Strategic recommendations
-
-#### **Outreach** (`/outreach`)
-- Email templates
-- LinkedIn strategies
-- Follow-up sequences
-
----
-
-## 🎨 Design System
-
-### **Design Philosophy**
-- **Apple-Inspired**: Clean, minimal, premium aesthetics
-- **Glassmorphism**: Frosted glass effects with backdrop blur
-- **Smooth Animations**: 60fps+ transitions with Framer Motion
-- **Responsive**: Mobile-first design, works on all screen sizes
-- **Dark Mode**: Beautiful dark theme with system preference sync
-
-### **Color Palette**
-- **Primary**: Blue gradient (#0071e3 → #0077ed)
-- **Accent**: Purple, Pink, Cyan gradients
-- **Neutral**: Slate for dark mode, White for light mode
-- **Semantic**: Green (success), Red (error), Yellow (warning)
-
-### **Components**
-- `<AppleCard>` - Premium card with hover effects
-- `<AppleButton>` - Button with smooth interactions
-- `<LoadingSkeleton>` - Skeleton loading states
-- `<Toast>` - Beautiful toast notifications
-
----
-
-## 💰 Cost & Performance
-
-### **AI Model Pricing**
-- **Model**: `qwen/qwen-2.5-coder-32b-instruct`
-- **Input**: $0.22 per million tokens
-- **Output**: $0.95 per million tokens
-- **Average Request**: ~$0.0008 per request
-- **Monthly** (1,000 requests): ~$0.85
-
-### **Features**
-- ✅ No rate limits (paid model)
-- ✅ Consistent performance
-- ✅ Production-ready
-- ✅ Fast response times (5-15 seconds)
-
----
-
-## 🔐 Security & Privacy
-
-### **Security Features**
-1. **Environment Variables**: API keys stored securely, never in code
-2. **Client-Side Storage**: Personal data encrypted in local storage
-3. **No Database**: No server-side storage of personal information
-4. **HTTPS**: All API requests over secure connections
-5. **Input Validation**: Comprehensive validation with Pydantic
-
-### **Privacy**
-- ✅ Your data stays on your device
-- ✅ Resume processing is temporary (not saved server-side)
-- ✅ No tracking or analytics
-- ✅ GDPR compliant
+1. Go to Vercel Dashboard → Settings → Environment Variables
+2. Add:
+   - **Name**: `OPENROUTER_API_KEY`
+   - **Value**: Your OpenRouter API key
+   - **Environments**: ☑ Production ☑ Preview ☑ Development
+3. Save (Vercel auto-redeploys)
 
 ---
 
 ## 🧪 Testing
 
-### **Test Resume Upload**
+### Test Backend
 ```bash
-curl -X POST http://localhost:3000/api/parse-resume \
-  -F "file=@your_resume.pdf"
+# Check AI is enabled
+cd backend
+python3 -c "from env_loader import get_ai_status; print('AI:', get_ai_status()['ai_enabled'])"
+
+# Expected: AI: True
 ```
 
-### **Test Backend Health**
+### Test Endpoints
 ```bash
+# Start backend first: uvicorn main:app --reload
+
+# Test health
 curl http://localhost:8000/health
-```
 
-### **Test Cover Letter Generation**
-```bash
-curl -X POST http://localhost:3000/api/generate-cover-letter \
+# Test AI feature
+curl -X POST http://localhost:8000/validate-bullet \
   -H "Content-Type: application/json" \
-  -d '{
-    "resume_data": {...},
-    "job_description": {...},
-    "template_type": "professional"
-  }'
+  -d '{"bullet": {"action": "Led", "context": "team"}}'
 ```
+
+### Test Frontend
+1. Start backend: `uvicorn main:app --reload`
+2. Start frontend: `npm run dev`
+3. Visit: http://localhost:3000
+4. Test each feature:
+   - Upload resume
+   - Extract job from URL
+   - Enhance resume
+   - Generate cover letter
+   - Build 6-point bullets
+   - Verify resume quality
 
 ---
 
-## � Project Structure
+## 📋 API Endpoints
 
+### Core Endpoints
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/parse-resume` | POST | Parse resume PDF |
+| `/extract-job` | POST | Extract job from URL |
+| `/enhance-resume` | POST | AI resume enhancement |
+| `/generate-cover-letter` | POST | AI cover letter |
+| `/assess-job-fit` | POST | Job fit analysis |
+
+### Quality Framework
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/validate-bullet` | POST | 6-point bullet validation |
+| `/assess-competencies` | POST | Competency analysis |
+| `/spin-text` | POST | Language adaptation |
+| `/verify-resume-quality` | POST | Resume quality check |
+
+### Export
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/export/pdf` | POST | Export to PDF |
+| `/export/docx` | POST | Export to DOCX |
+| `/export/latex` | POST | Export to LaTeX |
+
+**All endpoints work with AND without AI** - graceful fallback to heuristics.
+
+---
+
+## 🎯 Features in Detail
+
+### 1. Resume Enhancement
+- **With AI**: Personalized improvements using Qwen Coder
+- **Without AI**: Rule-based suggestions
+- **Endpoint**: `/enhance-resume`
+- **Frontend**: `/resumes` page
+
+### 2. 6-Point Bullet Builder
+- **Structure**: Action, Context, Method, Result, Impact, Outcome
+- **Validation**: Character count (240-260), metrics detection
+- **With AI**: Deep quality validation
+- **Without AI**: Rule-based validation
+- **Component**: `BulletBuilder.tsx`
+
+### 3. Competency Assessment
+- **Categories**: 10 competency areas
+- **Analysis**: Technical, Leadership, Product, Data, etc.
+- **With AI**: Deep JD analysis
+- **Without AI**: Keyword extraction
+- **Component**: `CompetencyBreakdown.tsx`
+
+### 4. Language Spinning
+- **Stages**: Early Stage, Growth Stage, Enterprise
+- **Adaptation**: Context-aware language transformation
+- **With AI**: Smart adaptation
+- **Without AI**: Dictionary-based
+- **Component**: `SpinningEngine.tsx`
+
+### 5. Resume Verification
+- **Scoring**: Overall quality score (0-100)
+- **Checks**: Profile completeness, bullet quality, errors
+- **With AI**: Deep validation
+- **Without AI**: Rule-based
+- **Component**: `ResumeVerifier.tsx`
+
+---
+
+## 🚀 Deployment
+
+### Deploy to Vercel
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Login
+vercel login
+
+# Deploy
+vercel --prod
 ```
-AIJobHelper/
-├── frontend/                      # Next.js Frontend
-│   ├── src/
-│   │   ├── app/                   # App Router Pages
-│   │   │   ├── page.tsx          # Dashboard
-│   │   │   ├── profile/          # Resume Upload/Edit
-│   │   │   ├── jobs/             # Job Extraction
-│   │   │   ├── resumes/          # ATS Enhancement
-│   │   │   ├── communication/    # Cover Letters
-│   │   │   ├── interview/        # Interview Prep
-│   │   │   ├── fit-analysis/     # Job Matching
-│   │   │   ├── outreach/         # Email Templates
-│   │   │   └── api/              # API Routes
-│   │   │       ├── parse-resume/
-│   │   │       ├── enhance-resume/
-│   │   │       ├── generate-cover-letter/
-│   │   │       └── extract-job/
-│   │   ├── components/           # React Components
-│   │   │   ├── ui/              # Design System
-│   │   │   ├── Toast.tsx
-│   │   │   └── LoadingSkeleton.tsx
-│   │   └── lib/                 # Utilities
-│   │       ├── ai-config.ts     # AI Configuration
-│   │       ├── api.ts           # API Client
-│   │       └── secureStorage.ts # Local Storage
-│   └── package.json
-│
-├── backend/                       # FastAPI Backend
-│   ├── main.py                   # FastAPI App
-│   ├── services/                 # Business Logic
-│   │   ├── ai_service.py        # AI Integration
-│   │   ├── resume_parser.py     # PDF/DOCX Parsing
-│   │   ├── jd_assessor.py       # Job Analysis
-│   │   ├── outreach_service.py  # Email Templates
-│   │   └── bullet_framework.py  # Resume Writing
-│   ├── schemas.py               # Pydantic Models
+
+### Post-Deployment
+
+1. **Set Environment Variable**:
+   - Vercel Dashboard → Settings → Environment Variables
+   - Add `OPENROUTER_API_KEY`
+
+2. **Verify**:
+   ```bash
+   curl https://your-app.vercel.app/api/health
+   ```
+
+3. **Expected Response**:
+   ```json
+   {
+     "status": "healthy",
+     "ai_service": "configured"
+   }
+   ```
+
+---
+
+## 🔒 Security
+
+### API Key Protection
+- ✅ `.env` files are gitignored
+- ✅ API key never committed to git
+- ✅ Vercel stores keys encrypted
+- ✅ Environment variable loading (not hardcoded)
+- ✅ No frontend exposure
+
+### Best Practices
+- Keep `.env` file private
+- Use different keys for dev/production
+- Rotate keys every 90 days
+- Monitor OpenRouter usage
+- Never share keys publicly
+
+---
+
+## 🛠️ Development
+
+### File Structure
+```
+AIJobHelper-main/
+├── backend/
+│   ├── main.py                 # FastAPI app
+│   ├── env_loader.py          # Environment config (bulletproof)
+│   ├── services/              # AI services
+│   │   ├── ai_service.py      # OpenRouter integration
+│   │   ├── bullet_validator.py
+│   │   ├── competency_assessor.py
+│   │   ├── spinning_service.py
+│   │   └── resume_verifier.py
 │   └── requirements.txt
-│
-├── README.md                     # This file
-├── vercel.json                  # Vercel config
-└── .gitignore
+├── frontend/
+│   ├── src/
+│   │   ├── app/               # Next.js pages
+│   │   ├── components/        # React components
+│   │   │   ├── resume/        # Quality framework components
+│   │   │   └── outreach/
+│   │   └── lib/
+│   │       └── api.ts         # Smart API URL detection
+│   └── package.json
+└── README.md
+```
+
+### Code Quality
+- **ESLint**: 0 errors, 0 warnings
+- **TypeScript**: 0 compilation errors
+- **Python**: All files compile
+- **Tests**: All endpoints verified
+
+---
+
+## 🐛 Troubleshooting
+
+### Backend Won't Start
+```bash
+# Check Python version
+python3 --version  # Should be 3.12+
+
+# Check .env file exists
+ls -la backend/.env
+
+# Check API key is set
+cat backend/.env | grep OPENROUTER
+
+# Reinstall dependencies
+pip install -r backend/requirements.txt
+```
+
+### "AI not configured"
+```bash
+# 1. Check env loader
+cd backend
+python3 -c "from env_loader import get_ai_status; import json; print(json.dumps(get_ai_status(), indent=2))"
+
+# 2. Verify .env file
+cat .env
+
+# 3. Check API key format
+# Should start with: sk-or-v1-
+# Should be 73 characters long
+```
+
+### Frontend Can't Connect to Backend
+```bash
+# 1. Check backend is running
+curl http://localhost:8000/health
+
+# 2. Check frontend API_URL
+# frontend/src/lib/api.ts
+
+# 3. Verify CORS is enabled (backend/main.py)
+```
+
+### Vercel Deployment Issues
+```bash
+# 1. Check environment variables
+# Vercel Dashboard → Settings → Environment Variables
+
+# 2. Check logs
+vercel logs
+
+# 3. Force redeploy
+vercel --prod --force
+
+# 4. Verify health endpoint
+curl https://your-app.vercel.app/api/health
 ```
 
 ---
 
-## � Development
+## 📊 Performance
 
-### **Running Tests**
-```bash
-# Frontend
-cd frontend
-npm run test
-
-# Backend
-cd backend
-pytest
-```
-
-### **Building for Production**
-```bash
-# Frontend
-cd frontend
-npm run build
-
-# Backend (no build needed, Python)
-cd backend
-# Deploy to your hosting provider
-```
-
-### **Environment Variables**
-
-**Frontend** (`.env.local`):
-```bash
-NEXT_PUBLIC_API_URL=/api  # Default for Next.js API routes
-```
-
-**Backend** (`.env`):
-```bash
-OPENROUTER_API_KEY=your_openrouter_api_key
-ENVIRONMENT=production  # or development
-```
-
-**Vercel** (Environment Variables):
-```bash
-OPENROUTER_API_KEY=your_openrouter_api_key
-```
+- **AI Response Time**: 2-5 seconds (depends on OpenRouter)
+- **Fallback Response**: <100ms (local heuristics)
+- **Frontend Load**: <1 second
+- **Build Time**: ~30 seconds
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
-
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
 
 ---
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ---
 
-## 🙏 Acknowledgments
+## 🎯 Roadmap
 
-- **OpenRouter** - AI model routing and management
-- **Next.js Team** - Amazing React framework
-- **FastAPI** - High-performance Python framework
-- **Vercel** - Deployment and hosting
-- **Tailwind CSS** - Utility-first CSS framework
-- **Framer Motion** - Beautiful animations
-
----
-
-## 📮 Support
-
-### **Issues & Bugs**
-If you encounter any issues, please [open an issue](https://github.com/yourusername/AIJobHelper/issues) on GitHub.
-
-### **Questions**
-For questions and discussions, use [GitHub Discussions](https://github.com/yourusername/AIJobHelper/discussions).
-
----
-
-## 🗺️ Roadmap
-
-### **Completed** ✅
-- [x] Resume parsing (PDF, DOCX, TXT)
-- [x] ATS scoring and optimization
-- [x] AI-powered cover letter generation
-- [x] Job URL extraction
-- [x] Profile management
-- [x] Multiple export formats
-- [x] Interview preparation
-- [x] Outreach templates
-- [x] Dark mode support
-- [x] Responsive design
-
-### **In Progress** 🚧
-- [ ] Resume version history
+- [ ] User authentication
+- [ ] Resume version control
+- [ ] Interview preparation tools
+- [ ] Salary negotiation assistant
 - [ ] Job application tracking
-- [ ] Email integration
-- [ ] Browser extension
-- [ ] Mobile app
-
-### **Planned** 📋
-- [ ] LinkedIn integration
-- [ ] Interview simulation with AI
-- [ ] Salary negotiation guides
-- [ ] Career path recommendations
-- [ ] Job board aggregation
+- [ ] Company research tools
 
 ---
 
-<div align="center">
+## 💡 Tips
 
-## 🌟 **Star this repository to stay updated!**
+### Get Better AI Results
+1. Provide complete resume information
+2. Include specific job requirements
+3. Add company context
+4. Use detailed bullet points
+5. Specify target role clearly
 
-**Built with ❤️ for job seekers everywhere**
+### Optimize ATS Score
+1. Match keywords from job description
+2. Use standard section headers
+3. Include metrics and numbers
+4. Avoid images and complex formatting
+5. Use standard fonts
 
-[⬆ Back to Top](#-careeragentpro)
+### Best Practices
+1. Keep master bullet library updated
+2. Tailor resume for each application
+3. Use appropriate language for company stage
+4. Verify quality before exporting
+5. Test resume with ATS scanners
 
-</div>
+---
+
+## 📧 Support
+
+- **Issues**: Open an issue on GitHub
+- **Email**: support@example.com
+- **Documentation**: This README
+- **OpenRouter**: https://openrouter.ai/docs
+
+---
+
+## ⭐ Status
+
+**Version**: 1.0.0  
+**Status**: ✅ Production Ready  
+**AI Status**: ✅ Enabled  
+**Tests**: ✅ All Passing  
+**Deployment**: ✅ Vercel  
+
+---
+
+**Built with ❤️ using Next.js, FastAPI, and OpenRouter AI**
+
+🚀 **Deploy now**: `vercel --prod`

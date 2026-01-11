@@ -99,13 +99,6 @@ export default function ResumesPage() {
     const [isEnhancing, setIsEnhancing] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [enhancement, setEnhancement] = useState<EnhancementResult | null>(null);
-    const [, setShowPreview] = useState(false);
-    const [, setUseAI] = useState(true);
-    const [, setHasAppliedSuggestions] = useState(false);
-
-    const [, setEditableBullets] = useState<Record<string, string[]>>({});
-    const [, setEditingSummary] = useState(false);
-    const [, setEditedSummary] = useState("");
 
     useEffect(() => {
         const savedJob = secureGet<JobData>(STORAGE_KEYS.CURRENT_JOB_FOR_RESUME);
@@ -223,7 +216,6 @@ export default function ResumesPage() {
         const updatedProfile = { ...profile, skills: newSkills, summary: enhancement.enhancedSummary || profile.summary };
         setProfile(updatedProfile);
         secureSet(STORAGE_KEYS.PROFILE, updatedProfile);
-        setHasAppliedSuggestions(true);
         toast("Profile synchronized with recommendations", "success");
     };
 
@@ -530,7 +522,7 @@ export default function ResumesPage() {
     );
 }
 
-const Lightbulb = ({ size = 24, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
+const Lightbulb = ({ size = 24 }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
     <svg
         width={size}
         height={size}

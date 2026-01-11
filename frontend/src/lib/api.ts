@@ -1,72 +1,83 @@
 /**
- * API Configuration for CareerAgentPro
+ * Smart API URL Configuration
+ * Works identically on localhost and Vercel without code changes
  * 
- * Works seamlessly with:
- * - Local development (Next.js dev server)
- * - Vercel production deployment
- * - Any environment with NEXT_PUBLIC_API_URL override
+ * Usage: import API_URL from '@/lib/api'
+ * Then: `${API_URL}/endpoint` works everywhere!
  */
 
-// Determine the API base URL
-const getApiUrl = (): string => {
-    // Allow explicit override via environment variable
-    if (process.env.NEXT_PUBLIC_API_URL) {
-        return process.env.NEXT_PUBLIC_API_URL;
+class SmartAPIURL {
+    private baseUrl: string;
+    private isProd: boolean;
+
+    constructor() {
+        this.isProd = this.checkProduction();
+        this.baseUrl = this.getBaseUrl();
     }
 
-    // All environments use relative /api path
-    // Next.js API routes handle everything
-    return '/api';
-};
+    private checkProduction(): boolean {
+        if (typeof window === 'undefined') {
+            return process.env.NODE_ENV === 'production';
+        }
+        const hostname = window.location.hostname;
+        return hostname.includes('vercel.app') ||
+            hostname.includes('yourdomain.com') ||
+            process.env.NODE_ENV === 'production';
+    }
 
-const API_URL = getApiUrl();
-
-export default API_URL;
-
-/**
- * Generic API call helper with error handling
- */
-export async function apiCall<T>(
-    endpoint: string,
-    options: RequestInit = {}
-): Promise<{ data: T | null; error: string | null }> {
-    try {
-        const url = `${API_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-
-        const response = await fetch(url, {
-            ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers,
-            },
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || errorData.error || `API Error: ${response.status}`);
+    private getBaseUrl(): string {
+        if (typeof window === 'undefined') {
+            return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         }
 
-        const data = await response.json();
-        return { data, error: null };
-    } catch (error) {
-        console.error(`API call failed for ${endpoint}:`, error);
-        return {
-            data: null,
-            error: error instanceof Error ? error.message : 'Unknown error'
-        };
+        const hostname = window.location.hostname;
+
+        if (this.isProd) {
+            // Vercel: Same origin, endpoints at /api/*
+            return window.location.origin + '/api';
+        }
+
+        // Localhost
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:8000';
+        }
+
+        return 'http://localhost:8000';
+    }
+
+    // Make the object behave like a string
+    toString(): string {
+        return this.baseUrl;
+    }
+
+    valueOf(): string {
+        return this.baseUrl;
+    }
+
+    // Allow concatenation
+    concat(...args: string[]): string {
+        return this.baseUrl + args.join('');
     }
 }
 
-/**
- * API endpoints for the application
- */
-export const endpoints = {
-    health: '/health',
-    parseResume: '/parse-resume',
-    enhanceResume: '/enhance-resume',
-    extractJob: '/extract-job',
-    generateCoverLetter: '/generate-cover-letter',
-    exportPdf: '/export/pdf',
-    exportDocx: '/export/docx',
-    exportLatex: '/export/latex',
-} as const;
+// Create instance
+const apiUrlInstance = new SmartAPIURL();
+
+// Export as string-like object
+const API_URL = apiUrlInstance.toString();
+
+export default API_URL;
+
+// Export helper functions
+export const isProduction = (): boolean => {
+    if (typeof window === 'undefined') {
+        return process.env.NODE_ENV === 'production';
+    }
+    const hostname = window.location.hostname;
+    return hostname.includes('vercel.app') || hostname.includes('yourdomain.com');
+};
+
+export const getApiEndpoint = (path: string): string => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return API_URL + cleanPath;
+};
