@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { FADE_IN } from "@/lib/animations";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     Mic, Brain, MessageCircle, Sparkles, ChevronRight,
     Target, BookOpen, Lightbulb, Clock, Star, RefreshCw,
-    CheckCircle2, AlertCircle, Building2
+    AlertCircle, Building2,
+    Headphones, Square
 } from "lucide-react";
 import { AppleCard } from "@/components/ui/AppleCard";
 import { AppleButton } from "@/components/ui/AppleButton";
@@ -23,10 +25,10 @@ interface InterviewQuestion {
 }
 
 const categories = [
-    { id: "behavioral", label: "Behavioral", icon: MessageCircle, color: "bg-blue-500" },
-    { id: "technical", label: "Technical", icon: Brain, color: "bg-purple-500" },
-    { id: "situational", label: "Situational", icon: Target, color: "bg-green-500" },
-    { id: "culture", label: "Culture Fit", icon: Star, color: "bg-orange-500" },
+    { id: "behavioral", label: "Behavioral", icon: MessageCircle, color: "bg-blue-500", gradient: "from-blue-500 to-indigo-600", desc: "STAR Method focus" },
+    { id: "technical", label: "Technical", icon: Brain, color: "bg-purple-500", gradient: "from-purple-500 to-pink-500", desc: "System Design & Logic" },
+    { id: "situational", label: "Situational", icon: Target, color: "bg-emerald-500", gradient: "from-emerald-500 to-teal-600", desc: "Hypothetical Scenarios" },
+    { id: "culture", label: "Culture Fit", icon: Star, color: "bg-amber-500", gradient: "from-amber-500 to-orange-600", desc: "Values & Alignment" },
 ];
 
 const sampleQuestions: InterviewQuestion[] = [
@@ -78,11 +80,15 @@ const sampleQuestions: InterviewQuestion[] = [
     },
 ];
 
-const FADE_IN = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.5, ease: "easeOut" as const },
-};
+
+
+const VisualizerBar = ({ delay }: { delay: number }) => (
+    <motion.div
+        animate={{ height: [10, 30, 15, 40, 10] }}
+        transition={{ duration: 1, repeat: Infinity, delay, ease: "easeInOut" }}
+        className="w-1.5 bg-primary/40 rounded-full"
+    />
+);
 
 export default function InterviewPrepPage() {
     const { toast } = useToast();
@@ -90,6 +96,7 @@ export default function InterviewPrepPage() {
     const [currentQuestion, setCurrentQuestion] = useState<InterviewQuestion | null>(null);
     const [showAnswer, setShowAnswer] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
     // Practice mode tracking
     const [currentJob, setCurrentJob] = useState<{ title: string; company: string } | null>(null);
 
@@ -132,229 +139,248 @@ export default function InterviewPrepPage() {
             const randomIndex = Math.floor(Math.random() * filtered.length);
             setCurrentQuestion(filtered[randomIndex]);
             setIsGenerating(false);
-        }, 500);
+        }, 600);
     };
 
-    const startPractice = () => {
-        toast("Practice mode started! Answer the question out loud.", "success");
+    const toggleRecording = () => {
+        setIsRecording(!isRecording);
+        if (!isRecording) {
+            toast("Listening... (Microphone Simulation)", "info");
+        } else {
+            toast("Analysis paused", "info");
+        }
     };
 
     return (
-        <div className="max-w-6xl mx-auto px-6 py-8">
-            {/* Header */}
-            <motion.div {...FADE_IN} className="mb-8">
-                <h1 className="text-4xl font-bold tracking-tight mb-2">Interview Prep</h1>
-                <p className="text-lg text-muted-foreground">
-                    Practice common interview questions and get AI-powered feedback
-                </p>
-                {currentJob && (
-                    <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary text-sm">
-                        <Building2 size={14} className="text-primary" />
-                        Preparing for: <span className="font-medium">{currentJob.title}</span> at {currentJob.company}
+        <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 lg:py-20">
+
+                {/* Immersive Header */}
+                <motion.div {...FADE_IN} className="mb-16">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 shadow-lg shadow-indigo-500/5">
+                            <Headphones size={24} />
+                        </div>
+                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-indigo-500/80">Virtual Coach</h2>
                     </div>
-                )}
-            </motion.div>
+                    <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-6">
+                        Interview <span className="text-indigo-500">Simulation.</span>
+                    </h1>
+                    <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed">
+                        Master the art of the interview with real-time AI feedback and scenario-based training.
+                    </p>
+                </motion.div>
 
-            <div className="grid lg:grid-cols-3 gap-8">
-                {/* Main Content */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
-                    className="lg:col-span-2 space-y-6"
-                >
-                    {/* Category Tabs */}
-                    <div className="flex flex-wrap gap-2">
-                        {categories.map((cat) => (
-                            <motion.button
-                                key={cat.id}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => handleCategoryChange(cat.id)}
-                                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${selectedCategory === cat.id
-                                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                                    : "bg-secondary hover:bg-secondary/80"
-                                    }`}
-                            >
-                                <cat.icon size={16} />
-                                {cat.label}
-                            </motion.button>
-                        ))}
-                    </div>
+                <div className="grid lg:grid-cols-12 gap-10">
 
-                    {/* Question Card */}
-                    <AppleCard className="p-8">
-                        {currentQuestion ? (
-                            <div className="space-y-6">
-                                {/* Question Header */}
-                                <div className="flex items-start justify-between">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${currentQuestion.difficulty === "Easy" ? "bg-green-500/10 text-green-600" :
-                                        currentQuestion.difficulty === "Medium" ? "bg-yellow-500/10 text-yellow-600" :
-                                            "bg-red-500/10 text-red-600"
-                                        }`}>
-                                        {currentQuestion.difficulty}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground capitalize">
-                                        {currentQuestion.category}
-                                    </span>
-                                </div>
-
-                                {/* Question */}
-                                <h2 className="text-2xl font-semibold leading-relaxed">
-                                    {currentQuestion.question}
-                                </h2>
-
-                                {/* Tips Section */}
-                                <div className="space-y-3">
-                                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                                        <Lightbulb size={14} className="text-yellow-500" />
-                                        Tips for Answering
-                                    </h3>
-                                    <ul className="space-y-2">
-                                        {currentQuestion.tips.map((tip, idx) => (
-                                            <li key={idx} className="flex items-start gap-2 text-sm">
-                                                <CheckCircle2 size={14} className="text-green-500 mt-0.5 shrink-0" />
-                                                <span>{tip}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-
-                                {/* Sample Answer (if available) */}
-                                {currentQuestion.sampleAnswer && (
-                                    <div className="space-y-3">
-                                        <button
-                                            onClick={() => setShowAnswer(!showAnswer)}
-                                            className="text-sm font-semibold uppercase tracking-wider text-primary flex items-center gap-2 hover:underline"
-                                        >
-                                            <BookOpen size={14} />
-                                            {showAnswer ? "Hide" : "Show"} Sample Answer
-                                            <ChevronRight size={14} className={`transition-transform ${showAnswer ? "rotate-90" : ""}`} />
-                                        </button>
-
-                                        {showAnswer && (
-                                            <motion.div
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: "auto" }}
-                                                className="p-4 bg-secondary/50 rounded-xl text-sm leading-relaxed"
+                    {/* Left Panel: Configuration & Stats */}
+                    <div className="lg:col-span-3 space-y-6">
+                        {/* Category Pills */}
+                        <motion.div {...FADE_IN} transition={{ delay: 0.1 }}>
+                            <AppleCard className="p-4 border-border/40 bg-card/60 backdrop-blur-sm rounded-[2rem]">
+                                <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4 pl-2">Focus Area</h3>
+                                <div className="space-y-2">
+                                    {categories.map((cat) => {
+                                        const isActive = selectedCategory === cat.id;
+                                        return (
+                                            <motion.button
+                                                key={cat.id}
+                                                whileHover={{ x: 4 }}
+                                                onClick={() => handleCategoryChange(cat.id)}
+                                                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group ${isActive
+                                                    ? `bg-secondary text-foreground shadow-sm ring-1 ring-border/50`
+                                                    : "hover:bg-secondary/50 text-muted-foreground"
+                                                    }`}
                                             >
-                                                {currentQuestion.sampleAnswer}
-                                            </motion.div>
+                                                <div className={`w-8 h-8 rounded-lg ${isActive ? `bg-gradient-to-br ${cat.gradient} text-white` : "bg-muted text-muted-foreground"} flex items-center justify-center shadow-sm`}>
+                                                    <cat.icon size={14} />
+                                                </div>
+                                                <div>
+                                                    <span className={`block text-sm font-bold ${isActive ? "text-foreground" : ""}`}>{cat.label}</span>
+                                                    <span className="text-[10px] font-medium opacity-60">{cat.desc}</span>
+                                                </div>
+                                            </motion.button>
+                                        )
+                                    })}
+                                </div>
+                            </AppleCard>
+                        </motion.div>
+
+                        {/* Progress Card */}
+                        <motion.div {...FADE_IN} transition={{ delay: 0.2 }}>
+                            <AppleCard className="p-6 border-border/40 rounded-[2rem]">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Clock size={16} className="text-primary" />
+                                    <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Session Stats</h3>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-end">
+                                        <div className="text-3xl font-black">12</div>
+                                        <div className="text-xs font-bold text-emerald-500 mb-1">+3 today</div>
+                                    </div>
+                                    <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                                        <div className="h-full w-[60%] bg-gradient-to-r from-primary to-purple-500 rounded-full" />
+                                    </div>
+                                    <p className="text-[10px] font-medium text-muted-foreground">Questions practiced this week</p>
+                                </div>
+                            </AppleCard>
+                        </motion.div>
+                    </div>
+
+                    {/* Main Content: The Studio */}
+                    <div className="lg:col-span-9">
+                        <motion.div {...FADE_IN} transition={{ delay: 0.3 }} className="h-full">
+                            <AppleCard className="h-full p-0 border-border/40 bg-card/80 backdrop-blur-xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col min-h-[600px] relative">
+
+                                {/* Top Bar: Context */}
+                                <div className="px-8 py-6 border-b border-border/20 flex items-center justify-between bg-secondary/5">
+                                    <div className="flex items-center gap-4">
+                                        {currentJob ? (
+                                            <div className="flex items-center gap-3 bg-secondary/50 px-4 py-2 rounded-full border border-border/50">
+                                                <Building2 size={14} className="text-muted-foreground" />
+                                                <span className="text-sm font-bold text-foreground">{currentJob.company}</span>
+                                                <span className="w-1 h-1 bg-border rounded-full" />
+                                                <span className="text-sm text-muted-foreground">{currentJob.title}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="text-xs font-bold text-muted-foreground bg-secondary/30 px-3 py-1.5 rounded-full">General Practice Mode</div>
                                         )}
                                     </div>
-                                )}
-
-                                {/* Action Buttons */}
-                                <div className="flex flex-wrap gap-3 pt-4 border-t border-border">
-                                    <AppleButton
-                                        variant="primary"
-                                        onClick={startPractice}
-                                        className="px-6"
-                                    >
-                                        <Mic size={16} />
-                                        Practice Out Loud
-                                    </AppleButton>
-                                    <AppleButton
-                                        variant="secondary"
-                                        onClick={getNextQuestion}
-                                        disabled={isGenerating}
-                                        className="px-6"
-                                    >
-                                        {isGenerating ? (
-                                            <>
-                                                <RefreshCw size={16} className="animate-spin" />
-                                                Loading...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Sparkles size={16} />
-                                                Next Question
-                                            </>
-                                        )}
-                                    </AppleButton>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`flex h-2.5 w-2.5 rounded-full ${isRecording ? "bg-rose-500 animate-pulse" : "bg-slate-300 dark:bg-slate-700"}`}></span>
+                                        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{isRecording ? "Live" : "Standby"}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="text-center py-12">
-                                <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                <p className="text-muted-foreground">No questions available for this category.</p>
-                            </div>
-                        )}
-                    </AppleCard>
-                </motion.div>
 
-                {/* Sidebar */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    className="space-y-6"
-                >
-                    {/* Progress Card */}
-                    <AppleCard className="p-6">
-                        <h3 className="font-semibold mb-4">Your Progress</h3>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Questions Practiced</span>
-                                <span className="font-semibold">12</span>
-                            </div>
-                            <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                                <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: "60%" }}
-                                    transition={{ duration: 0.8 }}
-                                    className="h-full bg-gradient-to-r from-primary to-purple-500 rounded-full"
-                                />
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Keep practicing! You&lsquo;re doing great.
-                            </p>
-                        </div>
-                    </AppleCard>
+                                {/* Main Interaction Area */}
+                                <div className="flex-1 p-10 flex flex-col justify-between relative">
+                                    {/* Visualizer Background */}
+                                    {isRecording && (
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+                                            <div className="flex gap-1 h-32 items-center">
+                                                {[...Array(20)].map((_, i) => (
+                                                    <VisualizerBar key={i} delay={i * 0.05} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
 
-                    {/* Quick Tips */}
-                    <AppleCard className="p-6">
-                        <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <Lightbulb size={16} className="text-yellow-500" />
-                            Quick Tips
-                        </h3>
-                        <ul className="space-y-3 text-sm">
-                            <li className="flex items-start gap-2">
-                                <Clock size={14} className="text-muted-foreground mt-0.5" />
-                                <span>Keep answers to 2-3 minutes</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <Target size={14} className="text-muted-foreground mt-0.5" />
-                                <span>Use STAR method for behavioral questions</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <Brain size={14} className="text-muted-foreground mt-0.5" />
-                                <span>Prepare 5-7 stories that showcase your skills</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <Mic size={14} className="text-muted-foreground mt-0.5" />
-                                <span>Practice out loud, not just in your head</span>
-                            </li>
-                        </ul>
-                    </AppleCard>
+                                    {currentQuestion ? (
+                                        <AnimatePresence mode="wait">
+                                            <motion.div
+                                                key={currentQuestion.id}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -10 }}
+                                                className="space-y-8 max-w-3xl mx-auto text-center"
+                                            >
+                                                {/* Badge */}
+                                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/50 border border-border/50 text-[10px] font-black uppercase tracking-widest text-muted-foreground mx-auto">
+                                                    <span className={`w-2 h-2 rounded-full ${currentQuestion.difficulty === "Easy" ? "bg-emerald-400" :
+                                                        currentQuestion.difficulty === "Medium" ? "bg-amber-400" : "bg-rose-400"
+                                                        }`} />
+                                                    {currentQuestion.difficulty} Challenge
+                                                </div>
 
-                    {/* Resources */}
-                    <AppleCard className="p-6">
-                        <h3 className="font-semibold mb-4">Resources</h3>
-                        <div className="space-y-2">
-                            {["STAR Method Guide", "Common Questions PDF", "Body Language Tips"].map((resource, idx) => (
-                                <motion.button
-                                    key={idx}
-                                    whileHover={{ x: 4 }}
-                                    className="w-full flex items-center justify-between p-3 rounded-xl bg-secondary/50 hover:bg-secondary text-sm font-medium transition-colors"
-                                >
-                                    <span>{resource}</span>
-                                    <ChevronRight size={14} className="text-muted-foreground" />
-                                </motion.button>
-                            ))}
-                        </div>
-                    </AppleCard>
-                </motion.div>
+                                                {/* Question Text */}
+                                                <h2 className="text-3xl md:text-4xl font-bold leading-tight tracking-tight">
+                                                    &ldquo;{currentQuestion.question}&rdquo;
+                                                </h2>
+
+                                                {/* AI Coach Hints */}
+                                                <div className="flex flex-wrap justify-center gap-2 mt-4">
+                                                    {currentQuestion.tips.slice(0, 2).map((tip, i) => (
+                                                        <div key={i} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-500/5 border border-indigo-500/10 text-indigo-600 font-bold text-xs">
+                                                            <Lightbulb size={12} />
+                                                            {tip}
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Sample Answer Expandable */}
+                                                {currentQuestion.sampleAnswer && (
+                                                    <div className="mt-8 text-left max-w-2xl mx-auto">
+                                                        <motion.div
+                                                            className="rounded-2xl border border-border/50 overflow-hidden bg-background/40 backdrop-blur-sm"
+                                                        >
+                                                            <button
+                                                                onClick={() => setShowAnswer(!showAnswer)}
+                                                                className="w-full flex items-center justify-between p-4 hover:bg-secondary/30 transition-colors"
+                                                            >
+                                                                <span className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                                                                    <BookOpen size={14} /> Expert Response
+                                                                </span>
+                                                                <ChevronRight size={16} className={`text-muted-foreground transition-transform ${showAnswer ? "rotate-90" : ""}`} />
+                                                            </button>
+                                                            <AnimatePresence>
+                                                                {showAnswer && (
+                                                                    <motion.div
+                                                                        initial={{ height: 0, opacity: 0 }}
+                                                                        animate={{ height: "auto", opacity: 1 }}
+                                                                        exit={{ height: 0, opacity: 0 }}
+                                                                        className="border-t border-border/30"
+                                                                    >
+                                                                        <div className="p-6 text-lg leading-relaxed font-medium text-foreground/80">
+                                                                            {currentQuestion.sampleAnswer}
+                                                                        </div>
+                                                                    </motion.div>
+                                                                )}
+                                                            </AnimatePresence>
+                                                        </motion.div>
+                                                    </div>
+                                                )}
+
+                                            </motion.div>
+                                        </AnimatePresence>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
+                                            <AlertCircle size={48} className="mb-4" />
+                                            <p className="font-bold text-lg">Select a category to begin</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Bottom Control Bar */}
+                                <div className="p-6 border-t border-border/20 bg-secondary/5 backdrop-blur-md flex flex-wrap gap-4 items-center justify-center md:justify-between absolute bottom-0 inset-x-0">
+                                    <div className="hidden md:flex items-center gap-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                                        <div className="flex items-center gap-2">
+                                            <Sparkles size={14} className="text-indigo-500" /> AI Coach Active
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4">
+                                        <AppleButton
+                                            variant="secondary"
+                                            className={`h-14 w-14 rounded-full p-0 flex items-center justify-center border-border/50 ${isRecording ? "bg-rose-500/10 text-rose-500 border-rose-500/20" : ""}`}
+                                            onClick={toggleRecording}
+                                        >
+                                            {isRecording ? <Square size={20} fill="currentColor" /> : <Mic size={24} />}
+                                        </AppleButton>
+
+                                        <AppleButton
+                                            onClick={getNextQuestion}
+                                            disabled={isGenerating}
+                                            className="h-14 px-8 bg-foreground text-background font-bold rounded-full shadow-xl hover:scale-105 active:scale-95 transition-all text-sm uppercase tracking-widest"
+                                        >
+                                            {isGenerating ? (
+                                                <>
+                                                    <RefreshCw size={16} className="animate-spin mr-2" />
+                                                    Generating...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Next scenario <ChevronRight size={16} className="ml-2" />
+                                                </>
+                                            )}
+                                        </AppleButton>
+                                    </div>
+                                </div>
+
+                            </AppleCard>
+                        </motion.div>
+                    </div>
+
+                </div>
             </div>
         </div>
     );

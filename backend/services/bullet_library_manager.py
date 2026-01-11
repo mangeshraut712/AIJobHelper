@@ -109,7 +109,7 @@ class BulletLibraryManager:
         # Update the bullet
         existing = cls._storage[bullet_id]
         existing.bullet = bullet
-       existing.quality_score = validation.quality_score if validate else existing.quality_score
+        existing.quality_score = validation.quality_score if validate else existing.quality_score
         
         return {
             "success": True,

@@ -5,7 +5,10 @@ frontend/node_modules/
 backend/venv/
 backend/.venv/
 venv/
+.venv/
 node_modules/
+.pnp/
+.pnp.js
 
 # =========================
 # Build Outputs
@@ -13,15 +16,20 @@ node_modules/
 frontend/.next/
 frontend/out/
 frontend/.vercel/
+frontend/build/
 dist/
 build/
 *.egg-info/
+__pypackages__/
 
 # =========================
 # Environment Variables
 # =========================
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env.*.local
 frontend/.env*
 backend/.env
@@ -30,14 +38,23 @@ backend/.env
 !backend/.env.example
 
 # =========================
-# IDE & Editor
+# IDE & Editors
 # =========================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.cursor/
 .cursor/rules/
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+.metadata
 
 # =========================
 # OS Files
@@ -45,9 +62,12 @@ backend/.env
 .DS_Store
 .DS_Store?
 ._*
-Thumbs.db
+.Spotlight-V100
+.Trashes
 ehthumbs.db
+Thumbs.db
 Desktop.ini
+$RECYCLE.BIN/
 
 # =========================
 # Python Cache
@@ -55,27 +75,62 @@ Desktop.ini
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 .pytest_cache/
 .mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
 .coverage
+.coverage.*
 htmlcov/
 .tox/
+.nox/
+.hypothesis/
+*.cover
+*.log
+.cache
+nosetests.xml
+coverage.xml
+*.mo
+*.pot
+
+# =========================
+# JavaScript/TypeScript
+# =========================
+*.tsbuildinfo
+next-env.d.ts
+.eslintcache
 
 # =========================
 # Temporary Files
 # =========================
 *.tmp
 *.temp
-*.log
 *.bak
+*.swp
+.*.swp
 temp_*
 tmp_*
+*.log
+logs/
+*.log.*
+
+# =========================
+# Test Coverage
+# =========================
+coverage/
+.nyc_output/
+lib-cov/
 
 # =========================
 # Generated Exports
 # =========================
 storage/exports/
 exports/
+*.generated.pdf
+*.generated.docx
 
 # =========================
 # Personal/Sensitive Files
@@ -84,9 +139,73 @@ exports/
 *.docx
 *.doc
 *.tex
-!docs/*.md
+!docs/*.pdf
+!docs/*.docx
+!examples/*.pdf
 
 # =========================
-# TypeScript Build Info
+# Database
 # =========================
-*.tsbuildinfo
+*.sqlite
+*.sqlite3
+*.db
+postgres_data/
+mongodb_data/
+
+# =========================
+# Secrets
+# =========================
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+credentials/
+
+# =========================
+# Vercel
+# =========================
+.vercel
+.now
+
+# =========================
+# Misc
+# =========================
+.turbo
+.parcel-cache/
+.docusaurus/
+.cache/
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# =========================
+# Documentation (Keep README)
+# =========================
+!README.md
+!LICENSE
+!CONTRIBUTING.md
+!CODE_OF_CONDUCT.md
+
+# =========================
+# Analytics & Monitoring
+# =========================
+.sentry-cli
+.sourcemaps/
+
+# =========================
+# Storybook
+# =========================
+storybook-static/
+.chromatic/
+
+# =========================
+# Testing
+# =========================
+.jest/
+playwright-report/
+test-results/
+e2e/results/

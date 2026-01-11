@@ -1,13 +1,46 @@
 {
   "name": "career-agent-pro",
-  "version": "0.2.0",
+  "version": "1.1.0",
+  "description": "AI-Powered Career Platform - Your AI Career Co-Pilot for job search automation",
+  "author": {
+    "name": "Mangesh Raut",
+    "email": "your-email@example.com",
+    "url": "https://github.com/yourusername"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/AIJobHelper"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/AIJobHelper/issues"
+  },
+  "homepage": "https://ai-job-helper-steel.vercel.app",
+  "keywords": [
+    "ai",
+    "resume",
+    "job-search",
+    "career",
+    "cover-letter",
+    "next.js",
+    "typescript",
+    "fastapi",
+    "openrouter",
+    "ats-optimization"
+  ],
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "clean": "rm -rf .next out node_modules/.cache",
+    "analyze": "ANALYZE=true next build",
+    "vercel-build": "next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -17,7 +50,6 @@
     "framer-motion": "^11.0.0",
     "lucide-react": "^0.562.0",
     "next": "^16.1.1",
-    "pdf-parse": "1.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.69.0",
@@ -26,15 +58,32 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.1.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.27",
-    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
+    "prettier": "^3.4.2",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.3%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }

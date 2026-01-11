@@ -1,36 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { FADE_IN } from "@/lib/animations";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Send, Mail, Linkedin, MessageSquare, Copy,
     RefreshCw, Clock, Target, Users, Clipboard,
     Building2, Sparkles, Layout, ShieldCheck,
-    Zap, Rocket, History, MousePointer2, Check
+    Zap, Rocket, History, MousePointer2, Check, PenTool
 } from "lucide-react";
 import { AppleCard } from "@/components/ui/AppleCard";
 import { AppleButton } from "@/components/ui/AppleButton";
 import { useToast } from "@/components/ui/Toast";
 import axios from "axios";
 import API_URL from "@/lib/api";
-import { secureGet } from "@/lib/secureStorage";
-import { STORAGE_KEYS } from "@/lib/storageKeys";
+
+import { useAppData } from "@/hooks/useAppData";
 import Link from "next/link";
 
-interface JobData {
-    title: string;
-    company: string;
-    description: string;
-}
 
-interface ProfileData {
-    name: string;
-    email: string;
-    summary: string;
-    skills: string[];
-    experience: Array<{ role: string; company: string; description: string }>;
-    linkedin?: string;
-}
 
 interface OutreachMessage {
     track: string;
@@ -70,28 +58,15 @@ const tierGradients: Record<string, string> = {
     tier_3: "from-rose-500 to-pink-600",
 };
 
-const FADE_IN = {
-    initial: { opacity: 0, y: 30 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
-};
+
 
 export default function OutreachStrategyPage() {
     const { toast } = useToast();
     const [isGenerating, setIsGenerating] = useState(false);
-    const [currentJob, setCurrentJob] = useState<JobData | null>(null);
-    const [profile, setProfile] = useState<ProfileData | null>(null);
+    const { currentJob, profile } = useAppData();
     const [strategy, setStrategy] = useState<OutreachStrategy | null>(null);
     const [selectedMessage, setSelectedMessage] = useState<OutreachMessage | null>(null);
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-
-    useEffect(() => {
-        const savedJob = secureGet<JobData>(STORAGE_KEYS.CURRENT_JOB_FOR_RESUME);
-        if (savedJob) setCurrentJob(savedJob);
-
-        const savedProfile = secureGet<ProfileData>(STORAGE_KEYS.PROFILE);
-        if (savedProfile) setProfile(savedProfile);
-    }, []);
 
     const generateStrategy = async () => {
         if (!currentJob) {
@@ -400,21 +375,4 @@ export default function OutreachStrategyPage() {
     );
 }
 
-const PenTool = ({ size = 24 }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
-    <svg
-        width={size}
-        height={size}
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M12 19l7-7 3 3-7 7-3-3z" />
-        <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
-        <path d="M2 2l5 5" />
-        <path d="M9.5 14.5L16 8" />
-    </svg>
-);
+

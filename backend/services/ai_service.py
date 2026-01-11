@@ -1,8 +1,9 @@
-"""AI Service for resume parsing and enhancement using OpenRouter API."""
+import os
 import json
 import re
+import asyncio
 import logging
-from openai import OpenAI
+from openai import AsyncOpenAI
 from typing import Dict, Any, List, Optional
 from schemas import ResumeData, JobDescription
 
@@ -27,7 +28,7 @@ class AIService:
         
         if self.is_configured:
             try:
-                self.client = OpenAI(
+                self.client = AsyncOpenAI(
                     base_url=self.base_url,
                     api_key=self.api_key,
                     timeout=60.0,
@@ -36,7 +37,7 @@ class AIService:
                         "X-Title": "CareerAgentPro",
                     }
                 )
-                logger.info("✅ OpenRouter API configured - using Qwen Coder AI")
+                logger.info(f"✅ OpenRouter API configured - Mode: {os.getenv('AI_MODEL_TIER', 'free')}")
             except Exception as e:
                 logger.error(f"Failed to initialize OpenAI client: {str(e)}")
                 self.client = None
@@ -45,23 +46,23 @@ class AIService:
             self.client = None
             logger.info("ℹ️ Running in local mode - using smart regex parsing")
             
-        # Using Qwen Coder - optimized for structured output, excellent for parsing
-        # Pricing: $0.22/M input tokens, $0.95/M output tokens
-        # No free tier rate limits, fast, reliable
-        self.model = "qwen/qwen-2.5-coder-32b-instruct"
+        # Model selection: Prepare Free first
+        self.free_model = "google/gemini-2.0-flash-exp:free"
+        self.premium_model = "qwen/qwen-2.5-coder-32b-instruct"
+        self.model = self.premium_model if os.getenv("AI_MODEL_TIER") == "premium" else self.free_model
 
     async def get_completion(
         self,
         prompt: str,
         system_prompt: str = "You are a professional career coach.",
-        temperature: float = 0.15
+        temperature: float = 0.1
     ) -> str:
-        """Get AI completion from OpenRouter."""
+        """Get AI completion from OpenRouter with enhanced error handling."""
         if not self.is_configured or not self.client:
             return '{"error": "API not configured"}'
             
         try:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 temperature=temperature,
                 messages=[
@@ -72,7 +73,35 @@ class AIService:
             return response.choices[0].message.content
         except Exception as e:
             logger.error(f"AI API request failed: {str(e)}")
-            return '{"error": "API request failed"}'
+            return f'{{"error": "API request failed: {str(e)}"}}'
+
+    async def stream_completion(
+        self,
+        prompt: str,
+        system_prompt: str = "You are a professional career coach.",
+        temperature: float = 0.1
+    ):
+        """Stream AI completion from OpenRouter."""
+        if not self.is_configured or not self.client:
+            yield '{"error": "API not configured"}'
+            return
+
+        try:
+            stream = await self.client.chat.completions.create(
+                model=self.model,
+                temperature=temperature,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt},
+                ],
+                stream=True
+            )
+            async for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+        except Exception as e:
+            logger.error(f"AI Streaming failed: {str(e)}")
+            yield f'Error: {str(e)}'
 
     async def enhance_resume(self, resume: ResumeData, job: JobDescription) -> Dict[str, Any]:
         """
@@ -153,6 +182,8 @@ class AIService:
             len(resume.skills or []) >= 5,
             len(resume.experience or []) >= 1,
             len(resume.education or []) >= 1,
+            len(resume.projects or []) >= 1,
+            len(resume.certifications or []) >= 1,
         ]
         scores["format_quality"] = int((sum(format_checks) / len(format_checks)) * 100)
         
@@ -187,6 +218,9 @@ class AIService:
                 "tips": [],
                 "suggested": [],
             },
+            "certifications": {
+                "tips": [],
+            }
         }
         
         # Summary improvements
@@ -238,10 +272,13 @@ class AIService:
         # Skills suggestions
         section_improvements["skills"]["suggested_additions"] = list(job_skills - resume_skills)[:10] if job_skills else []
         
-        # Projects suggestions
         if not resume.projects or len(resume.projects) == 0:
             section_improvements["projects"]["tips"].append("Add 2-3 relevant projects showcasing your skills")
         section_improvements["projects"]["tips"].append(f"Include projects using: {', '.join(list(job_skills)[:3])}" if job_skills else "Add projects with relevant technologies")
+        
+        # Certifications suggestions
+        if not resume.certifications or len(resume.certifications) == 0:
+             section_improvements["certifications"]["tips"].append("Add relevant certifications to validate your expertise")
         
         # ============ BUILD RESPONSE ============
         response = {
@@ -649,10 +686,14 @@ Best regards,
         return projects
 
     async def parse_resume(self, text: str) -> Dict[str, Any]:
-        """Parse resume text and extract structured data."""
+        """Parse resume text and extract structured data with high precision.
+        
+        Increased limit to 30,000 characters (~7500-10000 tokens) for full extraction.
+        """
         
         result = {
             "name": "",
+            "jobTitle": "",
             "email": "",
             "phone": "",
             "linkedin": "",
@@ -673,134 +714,141 @@ Best regards,
         text = re.sub(r'envel⌢', '', text)
         text = re.sub(r'/linkedin-in(?=linkedin)', '', text)
         
-        # Extract name
+        # HEURISTIC EXTRACTION (Safety Fallback)
         lines = [l.strip() for l in text.split('\n') if l.strip()]
-        for line in lines[:5]:
-            if '@' not in line and not line[0].isdigit() and '+' not in line:
-                if len(line) > 3 and len(line) < 50 and line[0].isupper():
-                    if not any(skip in line.lower() for skip in ['summary', 'skills', 'experience', 'resume', 'cv']):
-                        result["name"] = line
-                        break
+        for line in lines[:8]:
+            if '@' not in line and not any(c.isdigit() for c in line[:5]) and len(line) > 3:
+                if not any(skip in line.lower() for skip in ['summary', 'skills', 'experience', 'resume', 'cv']):
+                    result["name"] = line
+                    break
         
-        # Extract email
         email_match = re.search(r'[\w\.\-\+]+@[\w\.\-]+\.\w+', text)
-        if email_match:
-            result["email"] = email_match.group()
+        if email_match: result["email"] = email_match.group()
         
-        # Extract phone
-        phone_match = re.search(r'\+?1?\d{10,11}|\+?\d{1,3}[\s\-]?\d{3}[\s\-]?\d{3}[\s\-]?\d{4}', text)
-        if phone_match:
-            result["phone"] = phone_match.group().strip()
+        phone_match = re.search(r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}', text)
+        if phone_match: result["phone"] = phone_match.group().strip()
         
-        # Extract LinkedIn
-        linkedin_match = re.search(r'linkedin\.com/in/([a-zA-Z0-9\-_]+)', text, re.I)
+        # Improved Link Extraction
+        linkedin_match = re.search(r'(linkedin\.com/in/|linkedin:?\s*)([a-zA-Z0-9\-_]+)', text, re.I)
         if linkedin_match:
-            result["linkedin"] = f"linkedin.com/in/{linkedin_match.group(1)}"
-        
-        # Extract GitHub
-        github_patterns = [
-            r'github\.com/([a-zA-Z0-9\-_]+)',
-            r'([a-zA-Z0-9\-_]+)\.github\.io'
-        ]
-        for pattern in github_patterns:
-            github_match = re.search(pattern, text, re.I)
-            if github_match:
-                result["github"] = f"github.com/{github_match.group(1)}"
-                break
-        
-        # Extract website
-        website_match = re.search(r'([a-zA-Z0-9\-_]+\.github\.io/[a-zA-Z0-9\-_]+)', text, re.I)
-        if website_match:
-            result["website"] = website_match.group(1)
+            username = linkedin_match.group(2)
+            result["linkedin"] = username if '/' not in username else username.split('/')[-1]
+
+        github_match = re.search(r'(github\.com/|github:?\s*)([a-zA-Z0-9\-_]+)', text, re.I)
+        if github_match: result["github"] = github_match.group(2)
+
+        portfolio_match = re.search(r'(portfolio|website):?\s*(https?://\S+|www\.\S+)', text, re.I)
+        if portfolio_match: result["website"] = portfolio_match.group(2)
         
         # Extract location
-        location_match = re.search(r'(Philadelphia|Pune|Boston|New York|San Francisco|Seattle|Los Angeles|Chicago)[,\s]*([A-Z]{2})?\s*(\d{5})?', text, re.I)
+        location_match = re.search(r'(Philadelphia|Pune|Boston|New York|San Francisco|Seattle|Los Angeles|Chicago|NJ|PA|CA|India|USA)[,\s]*([A-Z]{2})?\s*(\d{5})?', text, re.I)
         if location_match:
             loc_parts = [p for p in location_match.groups() if p]
             result["location"] = " ".join(loc_parts)
         
-        # Extract sections
-        summary_section = self._extract_section(
-            text,
-            ['Summary', 'Objective', 'Profile', 'About'],
-            ['Skills', 'Experience', 'Education', 'Technical']
-        )
-        if summary_section:
-            result["summary"] = re.sub(r'\s+', ' ', summary_section).strip()[:600]
-        
-        skills_section = self._extract_section(
-            text,
-            ['Skills', 'Technical Skills', 'Skills and Technical Proficiencies'],
-            ['Experience', 'Education', 'Projects', 'Work History']
-        )
-        if skills_section:
-            result["skills"] = self._parse_skills(skills_section)
-        
-        experience_section = self._extract_section(
-            text,
-            ['Experience', 'Work Experience', 'Employment', 'Work History'],
-            ['Education', 'Projects', 'Publications', 'Certifications']
-        )
-        if experience_section:
-            result["experience"] = self._parse_experience(experience_section)
-        
-        education_section = self._extract_section(
-            text,
-            ['Education'],
-            ['Projects', 'Publications', 'Certifications', 'Skills']
-        )
-        if education_section:
-            result["education"] = self._parse_education(education_section)
-        
-        projects_section = self._extract_section(
-            text,
-            ['Projects'],
-            ['Publications', 'Certifications', 'References']
-        )
-        if projects_section:
-            result["projects"] = self._parse_projects(projects_section)
-        
-        # Extract certifications
-        cert_section = self._extract_section(
-            text,
-            ['Certifications', 'Certificates'],
-            ['References', 'Publications', '$']
-        )
-        if cert_section:
-            certs = []
-            for line in cert_section.split('\n'):
-                line = line.strip()
-                if line and line.startswith('○'):
-                    line = line[1:].strip()
-                if line and len(line) > 5:
-                    certs.append(line)
-            result["certifications"] = certs[:10]
-        
-        # Use AI if configured for better parsing
+        # AI-POWERED EXTRACTION (Primary)
         if self.is_configured:
             try:
-                prompt = f"""Parse this resume and return ONLY valid JSON with these fields:
-{text[:4000]}
+                # Use up to 25,000 characters for speed/context balance
+                clipped_text = text[:25000]
+                
+                prompt = f"""EXTRACT RESUME DATA INTO JSON.
+FAST & ACCURATE.
 
-Return JSON: {{"name": "", "email": "", "phone": "", "linkedin": "", "github": "", "website": "", "location": "", "summary": "", "experience": [{{"company": "", "role": "", "duration": "", "location": "", "description": ""}}], "education": [{{"institution": "", "degree": "", "graduation_year": "", "gpa": ""}}], "skills": [], "projects": [{{"name": "", "description": ""}}], "certifications": []}}"""
+Output JSON only:
+{{
+  "name": "", "jobTitle": "", "email": "", "phone": "", "location": "",
+  "linkedin": "", "github": "", "website": "", "summary": "",
+  "skills": [],
+  "experience": [{{"company": "", "role": "", "location": "", "duration": "", "description": ""}}],
+  "education": [{{"institution": "", "degree": "", "field": "", "graduation_year": ""}}],
+  "projects": [{{"name": "", "description": ""}}],
+  "certifications": []
+}}
+
+RESUME TEXT:
+{clipped_text}
+"""
                 
-                response = await self.get_completion(prompt, "You are a JSON resume parser. Return only valid JSON, no explanation.")
+                response = await self.get_completion(prompt, "You are a high-speed JSON extraction engine. Return ONLY the JSON object.")
                 
-                if "```json" in response:
-                    response = response.split("```json")[1].split("```")[0].strip()
-                elif "```" in response:
-                    response = response.split("```")[1].split("```")[0].strip()
+                # Robust extraction from markdown if AI ignores instructions
+                clean_response = response.strip()
+                if "```json" in clean_response:
+                    clean_response = clean_response.split("```json")[1].split("```")[0].strip()
+                elif "```" in clean_response:
+                    clean_response = clean_response.split("```")[1].split("```")[0].strip()
                 
-                ai_result = json.loads(response)
-                # Merge AI results (prefer AI for complex structures)
-                for key, value in ai_result.items():
-                    if value:
-                        if isinstance(value, list) and len(value) > len(result.get(key, [])):
-                            result[key] = value
-                        elif isinstance(value, str) and len(value) > len(result.get(key, "")):
-                            result[key] = value
+                # FINAL FALLBACK: Find first { and last }
+                try:
+                    ai_result = json.loads(clean_response)
+                except json.JSONDecodeError:
+                    match = re.search(r'(\{.*\})', clean_response, re.DOTALL)
+                    if match:
+                        ai_result = json.loads(match.group(1))
+                    else:
+                        raise
+                
+                # Smart Merge Logic
+                for key, val in ai_result.items():
+                    if val:
+                        if key == "title":
+                            result["jobTitle"] = val
+                        else:
+                            result[key] = val
+                            
             except Exception as e:
-                logger.warning(f"AI parsing failed, using regex results: {str(e)}")
-                pass  # Use regex results
+                logger.warning(f"AI parsing failed, using heuristic results: {str(e)}")
         
-        return result
+    async def stream_parse_resume(self, text: str):
+        """Stream resume parsing results via SSE format."""
+        
+        # 1. Initial status
+        yield "data: " + json.dumps({"status": "extracting", "message": "Reading file content..."}) + "\n\n"
+        await asyncio.sleep(0.1)
+
+        # 2. Heuristic extraction (fast)
+        result = {
+            "name": "", "jobTitle": "", "email": "", "phone": "", "linkedin": "",
+            "github": "", "website": "", "location": "", "summary": "",
+            "experience": [], "education": [], "skills": [], "projects": [], "certifications": []
+        }
+        
+        # Fast Link Extraction
+        email_match = re.search(r'[\w\.\-\+]++@[\w\.\-]+\.\w+', text)
+        if email_match: result["email"] = email_match.group()
+        
+        linkedin_match = re.search(r'linkedin\.com/in/([a-zA-Z0-9\-_]+)', text, re.I)
+        if linkedin_match: result["linkedin"] = linkedin_match.group(1)
+        
+        yield "data: " + json.dumps({"status": "heuristics", "data": result}) + "\n\n"
+
+        # 3. AI Powered Streaming Extraction
+        if self.is_configured:
+            yield "data: " + json.dumps({"status": "analyzing", "message": "AI is analyzing your profile nodes..."}) + "\n\n"
+            
+            clipped_text = text[:25000]
+            prompt = f"EXTRACT RESUME DATA INTO JSON. FAST & ACCURATE.\n\nJSON SCHEMA:\n{{\"name\": \"\", \"jobTitle\": \"\", \"email\": \"\", \"phone\": \"\", \"location\": \"\", \"linkedin\": \"\", \"github\": \"\", \"website\": \"\", \"summary\": \"\", \"skills\": [], \"experience\": [], \"education\": [], \"projects\": [], \"certifications\": []}}\n\nRESUME:\n{clipped_text}"
+            
+            content_accumulated = ""
+            async for chunk in self.stream_completion(prompt, "Return ONLY valid JSON. Accuracy is paramount.", temperature=0.0):
+                content_accumulated += chunk
+                # Periodically send accumulated data
+                yield "data: " + json.dumps({"status": "streaming", "chunk": chunk}) + "\n\n"
+            
+            # Post-processing
+            try:
+                # Try to extract JSON if AI added markdown
+                clean_json = content_accumulated.strip()
+                if "```json" in clean_json:
+                    clean_json = clean_json.split("```json")[1].split("```")[0].strip()
+                elif "```" in clean_json:
+                    clean_json = clean_json.split("```")[1].split("```")[0].strip()
+                
+                final_ai_data = json.loads(clean_json)
+                yield "data: " + json.dumps({"status": "completed", "data": final_ai_data}) + "\n\n"
+            except Exception as e:
+                logger.error(f"Stream parsing final merge failed: {e}")
+                yield "data: " + json.dumps({"status": "error", "message": "Final merge failed, using partial data."}) + "\n\n"
+        else:
+            yield "data: " + json.dumps({"status": "completed", "data": result, "message": "AI not configured, used heuristic parsing."}) + "\n\n"

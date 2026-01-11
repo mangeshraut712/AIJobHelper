@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { FADE_IN } from "@/lib/animations";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Mail, Linkedin, MessageSquare, Copy,
     RefreshCw, FileText, Layout,
     PenTool, Zap,
     ShieldCheck, History, Wand2,
-    Check, Share2
+    Check, Share2, Target
 } from "lucide-react";
 import { AppleCard } from "@/components/ui/AppleCard";
 import { AppleButton } from "@/components/ui/AppleButton";
@@ -15,26 +16,12 @@ import { useToast } from "@/components/ui/Toast";
 import axios from "axios";
 import API_URL from "@/lib/api";
 import Link from "next/link";
-import { secureGet } from "@/lib/secureStorage";
-import { STORAGE_KEYS } from "@/lib/storageKeys";
+
+import { useAppData } from "@/hooks/useAppData";
 
 type MessageType = "cover_letter" | "email" | "linkedin" | "follow_up";
 
-interface JobData {
-    title: string;
-    company: string;
-    description: string;
-    requirements: string[];
-    skills: string[];
-}
 
-interface ProfileData {
-    name: string;
-    email: string;
-    summary: string;
-    skills: string[];
-    experience: Array<{ role: string; company: string; description: string }>;
-}
 
 import type { LucideIcon } from "lucide-react";
 
@@ -45,11 +32,7 @@ const templates: Record<MessageType, { icon: LucideIcon; label: string; color: s
     follow_up: { icon: MessageSquare, label: "Momentum Lock", color: "bg-emerald-500", gradient: "from-emerald-500 to-teal-600", description: "Post-engagement follow-up" },
 };
 
-const FADE_IN = {
-    initial: { opacity: 0, y: 30 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
-};
+
 
 export default function CommunicationPage() {
     const { toast } = useToast();
@@ -57,16 +40,7 @@ export default function CommunicationPage() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [copied, setCopied] = useState(false);
     const [generatedContent, setGeneratedContent] = useState("");
-    const [currentJob, setCurrentJob] = useState<JobData | null>(null);
-    const [profile, setProfile] = useState<ProfileData | null>(null);
-
-    useEffect(() => {
-        const savedJob = secureGet<JobData>(STORAGE_KEYS.CURRENT_JOB_FOR_RESUME);
-        if (savedJob) setCurrentJob(savedJob);
-
-        const savedProfile = secureGet<ProfileData>(STORAGE_KEYS.PROFILE);
-        if (savedProfile) setProfile(savedProfile);
-    }, []);
+    const { currentJob, profile } = useAppData();
 
     const generateMessage = async () => {
         if (!currentJob) {
@@ -385,20 +359,4 @@ ${name}`
     );
 }
 
-const Target = ({ size = 24 }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
-    <svg
-        width={size}
-        height={size}
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <circle cx="12" cy="12" r="10" />
-        <circle cx="12" cy="12" r="6" />
-        <circle cx="12" cy="12" r="2" />
-    </svg>
-);
+

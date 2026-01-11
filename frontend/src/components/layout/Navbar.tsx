@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Menu, X, Link2, FileText, MessageSquare, LayoutDashboard, Mic, Target, ListChecks, ArrowRight } from "lucide-react";
+import { Sparkles, Menu, X, Link2, FileText, MessageSquare, LayoutDashboard, Mic, Target, ListChecks, ArrowRight, Send, User } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
+// Navigation items configuration
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, gradient: "from-blue-500 to-cyan-400" },
   { href: "/jobs", label: "Jobs", icon: Link2, gradient: "from-purple-500 to-pink-400" },
@@ -14,8 +15,8 @@ const navItems = [
   { href: "/resumes", label: "Resumes", icon: FileText, gradient: "from-indigo-500 to-violet-400" },
   { href: "/bullet-library", label: "Bullets", icon: ListChecks, gradient: "from-green-500 to-emerald-400" },
   { href: "/interview", label: "Interview", icon: Mic, gradient: "from-pink-500 to-rose-400" },
-  { href: "/communication", label: "Messages", icon: MessageSquare, gradient: "from-cyan-500 to-blue-400" },
-  { href: "/profile", label: "Profile", icon: Sparkles, gradient: "from-amber-500 to-orange-400" },
+  { href: "/outreach", label: "Outreach", icon: Send, gradient: "from-cyan-500 to-blue-400" },
+  { href: "/communication", label: "Messages", icon: MessageSquare, gradient: "from-sky-500 to-indigo-400" },
 ];
 
 export function Navbar() {
@@ -75,41 +76,42 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-1 bg-secondary/50 backdrop-blur-sm rounded-full px-2 py-1.5 border border-border/30">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link key={item.href} href={item.href}>
-                  <motion.div
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="relative group"
-                  >
-                    <div
-                      className={`px-4 py-2 rounded-full text-[13px] font-medium transition-all relative flex items-center gap-1.5 ${isActive
-                        ? "text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                        }`}
+          <div className="hidden lg:flex flex-1 justify-center items-center px-8">
+            <div className="flex items-center gap-1 bg-secondary/50 backdrop-blur-sm rounded-full px-2 py-1.5 border border-border/30 shadow-sm">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link key={item.href} href={item.href}>
+                    <motion.div
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="relative group"
                     >
-                      <item.icon size={14} className={isActive ? "text-primary" : ""} />
-                      <span>{item.label}</span>
-                      {isActive && (
-                        <motion.div
-                          layoutId="navbar-indicator"
-                          className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-[0.08] rounded-full -z-10 border border-primary/10`}
-                          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                        />
+                      <div
+                        className={`px-3 lg:px-4 py-2 rounded-full text-[13px] font-medium transition-all relative flex items-center gap-1.5 ${isActive
+                          ? "text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                          }`}
+                      >
+                        <item.icon size={14} className={isActive ? "text-primary" : ""} />
+                        <span>{item.label}</span>
+                        {isActive && (
+                          <motion.div
+                            layoutId="navbar-indicator"
+                            className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-[0.08] rounded-full -z-10 border border-primary/10`}
+                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                          />
+                        )}
+                      </div>
+                      {/* Hover gradient effect */}
+                      {!isActive && (
+                        <div className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-[0.05] rounded-full transition-opacity`} />
                       )}
-                    </div>
-                    {/* Hover gradient effect */}
-                    {!isActive && (
-                      <div className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-[0.05] rounded-full transition-opacity`} />
-                    )}
-                  </motion.div>
-                </Link>
-              );
-            })}
+                    </motion.div>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
 
           {/* Right Side - Theme Toggle & CTA */}
@@ -117,21 +119,28 @@ export function Navbar() {
             {/* Theme Toggle */}
             <ThemeToggle />
 
-            {/* CTA Button - Desktop */}
-            <div className="hidden sm:block">
-              <Link href="/jobs">
-                <motion.button
-                  whileHover={{ scale: 1.02, boxShadow: "0 10px 30px -5px rgba(0, 113, 227, 0.35)" }}
-                  whileTap={{ scale: 0.98 }}
-                  className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary via-blue-600 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-primary/25 overflow-hidden"
-                >
-                  <span className="relative z-10">Analyze Job</span>
-                  <ArrowRight size={14} className="relative z-10 group-hover:rotate-12 transition-transform" />
-                  {/* Animated shine effect */}
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                </motion.button>
-              </Link>
-            </div>
+            {/* Profile Link (Icon) */}
+            <Link href="/profile" className="hidden sm:flex items-center justify-center w-9 h-9 rounded-full bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-all">
+              <User size={18} />
+            </Link>
+
+            {/* CTA Button - Desktop (Hide on Jobs page) */}
+            {pathname !== "/jobs" && (
+              <div className="hidden sm:block">
+                <Link href="/jobs">
+                  <motion.button
+                    whileHover={{ scale: 1.02, boxShadow: "0 10px 30px -5px rgba(0, 113, 227, 0.35)" }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary via-blue-600 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-primary/25 overflow-hidden"
+                  >
+                    <span className="relative z-10">Analyze Job</span>
+                    <ArrowRight size={14} className="relative z-10 group-hover:rotate-12 transition-transform" />
+                    {/* Animated shine effect */}
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                  </motion.button>
+                </Link>
+              </div>
+            )}
 
             {/* Mobile Menu Toggle */}
             <motion.button

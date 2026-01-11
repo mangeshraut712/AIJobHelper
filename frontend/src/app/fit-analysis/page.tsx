@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { FADE_IN } from "@/lib/animations";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Target, Sparkles, CheckCircle2, AlertTriangle, XCircle,
@@ -13,25 +14,8 @@ import { AppleButton } from "@/components/ui/AppleButton";
 import { useToast } from "@/components/ui/Toast";
 import axios from "axios";
 import API_URL from "@/lib/api";
-import { secureGet } from "@/lib/secureStorage";
-import { STORAGE_KEYS } from "@/lib/storageKeys";
+import { useAppData } from "@/hooks/useAppData";
 import Link from "next/link";
-
-interface JobData {
-    title: string;
-    company: string;
-    description: string;
-    requirements?: string[];
-    skills?: string[];
-}
-
-interface ProfileData {
-    name: string;
-    email: string;
-    summary: string;
-    skills: string[];
-    experience: Array<{ role: string; company: string; description: string }>;
-}
 
 interface CompetencyMatch {
     area: string;
@@ -52,11 +36,7 @@ interface AssessmentResult {
     competency_breakdown: CompetencyMatch[];
 }
 
-const FADE_IN = {
-    initial: { opacity: 0, y: 30 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
-};
+
 
 const getFitTheme = (level: string) => {
     switch (level.toLowerCase()) {
@@ -71,17 +51,8 @@ const getFitTheme = (level: string) => {
 export default function FitAnalysisPage() {
     const { toast } = useToast();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [currentJob, setCurrentJob] = useState<JobData | null>(null);
-    const [profile, setProfile] = useState<ProfileData | null>(null);
+    const { currentJob, profile } = useAppData();
     const [assessment, setAssessment] = useState<AssessmentResult | null>(null);
-
-    useEffect(() => {
-        const savedJob = secureGet<JobData>(STORAGE_KEYS.CURRENT_JOB_FOR_RESUME);
-        if (savedJob) setCurrentJob(savedJob);
-
-        const savedProfile = secureGet<ProfileData>(STORAGE_KEYS.PROFILE);
-        if (savedProfile) setProfile(savedProfile);
-    }, []);
 
     const analyzeJobFit = async () => {
         if (!currentJob) {
@@ -210,7 +181,7 @@ export default function FitAnalysisPage() {
                                     </div>
                                     <div>
                                         <p className="font-black text-lg leading-tight mb-1">{profile.name}</p>
-                                        <p className="text-sm font-medium text-muted-foreground truncate">{profile.skills.length} Loaded Competencies</p>
+                                        <p className="text-sm font-medium text-muted-foreground truncate">{profile.skills?.length || 0} Loaded Competencies</p>
                                     </div>
                                 </div>
                             ) : (

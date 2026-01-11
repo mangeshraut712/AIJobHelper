@@ -51,6 +51,7 @@ class ResumeData(BaseModel):
     education: List[dict]   # List of {institution, degree, graduation_year}
     skills: List[str]
     projects: Optional[List[dict]] = None
+    certifications: List[str] = []
     
     # Targeted Info (New)
     targeted_job_title: Optional[str] = None

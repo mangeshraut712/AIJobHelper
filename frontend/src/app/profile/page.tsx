@@ -6,9 +6,8 @@ import {
     User, Mail, Phone, MapPin, Globe, Linkedin, Github, Briefcase,
     GraduationCap, Code, Save, Upload, CheckCircle2, Plus,
     Edit3, X, Heart, RefreshCw, Sparkles,
-    ArrowRight, Layout, Zap
+    ArrowRight, Zap
 } from "lucide-react";
-import axios from "axios";
 import API_URL from "@/lib/api";
 import { AppleCard } from "@/components/ui/AppleCard";
 import { AppleButton } from "@/components/ui/AppleButton";
@@ -35,6 +34,13 @@ interface Education {
     endDate: string;
 }
 
+interface Project {
+    id: string;
+    name: string;
+    description: string;
+    technologies?: string[];
+}
+
 interface ProfileData {
     name: string;
     title: string;
@@ -47,6 +53,8 @@ interface ProfileData {
     jobSearchStatus: string;
     experience: Experience[];
     education: Education[];
+    projects: Project[];
+    certifications: string[];
     skills: string[];
     preferredSkills: string[];
     summary: string;
@@ -73,6 +81,11 @@ interface ParsedEducation {
     year?: string;
 }
 
+interface ParsedProject {
+    name?: string;
+    description?: string;
+}
+
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const EMPTY_PROFILE: ProfileData = {
@@ -87,6 +100,8 @@ const EMPTY_PROFILE: ProfileData = {
     jobSearchStatus: "actively_looking",
     experience: [],
     education: [],
+    projects: [],
+    certifications: [],
     skills: [],
     preferredSkills: [],
     summary: ""
@@ -96,6 +111,8 @@ const navItems = [
     { id: "info", icon: User, label: "Identity", gradient: "from-blue-500 to-cyan-400" },
     { id: "experience", icon: Briefcase, label: "Narrative", gradient: "from-purple-500 to-pink-400" },
     { id: "education", icon: GraduationCap, label: "Foundation", gradient: "from-amber-500 to-orange-400" },
+    { id: "projects", icon: Zap, label: "Strategic Projects", gradient: "from-indigo-500 to-blue-400" },
+    { id: "certifications", icon: Heart, label: "Professional Proof", gradient: "from-rose-500 to-orange-400" },
     { id: "skills", icon: Code, label: "Core Competency", gradient: "from-emerald-500 to-teal-400" },
 ];
 
@@ -115,11 +132,16 @@ export default function ProfilePage() {
     const [newSkill, setNewSkill] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [profile, setProfile] = useState<ProfileData>(EMPTY_PROFILE);
+    const [hasMounted, setHasMounted] = useState(false);
+    const [parsingMessage, setParsingMessage] = useState("");
 
     useEffect(() => {
+        setHasMounted(true);
         const saved = secureGet<ProfileData>('profile');
         if (saved) setProfile(saved);
     }, []);
+
+    if (!hasMounted) return null;
 
     const handleInputChange = (field: string, value: string) => {
         setProfile(prev => ({ ...prev, [field]: value }));
@@ -139,76 +161,106 @@ export default function ProfilePage() {
         const file = e.target.files?.[0];
         if (!file) return;
         setIsParsing(true);
+        setParsingMessage("Initializing neural extraction...");
 
         try {
             const formData = new FormData();
             formData.append("file", file);
-            const response = await axios.post(`${API_URL}/parse-resume`, formData);
-            const parsed = response.data;
 
-            // Check if parsing returned meaningful data
-            const hasData = parsed.name || parsed.email || (parsed.skills && parsed.skills.length > 0) ||
-                (parsed.experience && parsed.experience.length > 0);
+            const response = await fetch(`${API_URL}/parse-resume-stream`, {
+                method: 'POST',
+                body: formData,
+            });
 
-            const mappedExperience: Experience[] = (parsed.experience || []).map((exp: ParsedExperience) => ({
-                id: generateId(),
-                company: exp.company || "",
-                role: exp.role || exp.title || "",
-                location: exp.location || "",
-                startDate: exp.duration?.split(" - ")[0] || exp.start_date || "",
-                endDate: exp.duration?.split(" - ")[1] || exp.end_date || "Present",
-                type: "Full-time",
-                description: exp.description || ""
-            }));
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.body) throw new Error("No response body");
 
-            const mappedEducation: Education[] = (parsed.education || []).map((edu: ParsedEducation) => ({
-                id: generateId(),
-                institution: edu.institution || edu.school || "",
-                degree: edu.degree || "",
-                field: edu.field || edu.major || "",
-                startDate: "",
-                endDate: edu.graduation_year || edu.year || ""
-            }));
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let accumulatedData = "";
 
-            setProfile(prev => ({
-                ...prev,
-                name: parsed.name || prev.name,
-                title: parsed.jobTitle || parsed.title || prev.title,
-                email: parsed.email || prev.email,
-                phone: parsed.phone || prev.phone,
-                location: parsed.location || prev.location,
-                linkedin: parsed.linkedin || prev.linkedin,
-                github: parsed.github || prev.github,
-                portfolio: parsed.portfolio || parsed.website || prev.portfolio,
-                skills: parsed.skills?.length ? parsed.skills : prev.skills,
-                summary: parsed.summary || prev.summary,
-                experience: mappedExperience.length ? mappedExperience : prev.experience,
-                education: mappedEducation.length ? mappedEducation : prev.education,
-            }));
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
 
-            if (hasData) {
-                toast("Profile Extracted Successfully!", "success");
-            } else {
-                toast("Partial extraction - please review and complete your profile manually.", "info");
+                const chunk = decoder.decode(value, { stream: true });
+                accumulatedData += chunk;
+
+                // Process SSE events
+                const lines = accumulatedData.split("\n\n");
+                accumulatedData = lines.pop() || "";
+
+                for (const line of lines) {
+                    if (line.startsWith("data: ")) {
+                        try {
+                            const event = JSON.parse(line.substring(6));
+
+                            if (event.status === "extracting" || event.status === "analyzing") {
+                                setParsingMessage(event.message);
+                            } else if (event.status === "heuristics") {
+                                // Live update basic info
+                                setProfile(prev => ({
+                                    ...prev,
+                                    email: event.data.email || prev.email,
+                                    linkedin: event.data.linkedin || prev.linkedin,
+                                }));
+                            } else if (event.status === "completed") {
+                                const parsed = event.data;
+                                const mappedExperience: Experience[] = (parsed.experience || []).map((exp: ParsedExperience) => ({
+                                    id: generateId(),
+                                    company: exp.company || "",
+                                    role: exp.role || exp.title || "",
+                                    location: exp.location || "",
+                                    startDate: exp.duration?.split(" - ")[0] || exp.start_date || "",
+                                    endDate: exp.duration?.split(" - ")[1] || exp.end_date || "Present",
+                                    type: "Full-time",
+                                    description: exp.description || ""
+                                }));
+
+                                const mappedEducation: Education[] = (parsed.education || []).map((edu: ParsedEducation) => ({
+                                    id: generateId(),
+                                    institution: edu.institution || edu.school || "",
+                                    degree: edu.degree || "",
+                                    field: edu.field || edu.major || "",
+                                    startDate: "",
+                                    endDate: edu.graduation_year || edu.year || ""
+                                }));
+
+                                setProfile(prev => ({
+                                    ...prev,
+                                    name: parsed.name || prev.name,
+                                    title: parsed.jobTitle || parsed.title || prev.title,
+                                    email: parsed.email || prev.email,
+                                    phone: parsed.phone || prev.phone,
+                                    location: parsed.location || prev.location,
+                                    linkedin: parsed.linkedin || prev.linkedin,
+                                    github: parsed.github || prev.github,
+                                    portfolio: parsed.portfolio || parsed.website || prev.portfolio,
+                                    skills: parsed.skills?.length ? parsed.skills : prev.skills,
+                                    summary: parsed.summary || prev.summary,
+                                    experience: mappedExperience.length ? mappedExperience : prev.experience,
+                                    education: mappedEducation.length ? mappedEducation : prev.education,
+                                    projects: (parsed.projects || []).map((p: ParsedProject) => ({
+                                        id: generateId(),
+                                        name: p.name || "",
+                                        description: p.description || ""
+                                    })),
+                                    certifications: parsed.certifications || []
+                                }));
+                                toast("Profile Synchronization Complete!", "success");
+                            }
+                        } catch (e) {
+                            console.warn("Error parsing chunk", e);
+                        }
+                    }
+                }
             }
         } catch (error: unknown) {
-            console.error("Parse error:", error);
-            // Provide helpful error message based on error type
-            if (axios.isAxiosError(error)) {
-                if (error.response?.status === 400) {
-                    toast("Could not read the file. Try a different format (PDF, DOCX, TXT).", "error");
-                } else if (error.response?.status === 500) {
-                    toast("Server error during parsing. You can still enter your details manually.", "info");
-                } else if (!error.response) {
-                    toast("Cannot connect to server. Please check if the backend is running.", "error");
-                } else {
-                    toast("Parsing error. Please enter your details manually.", "error");
-                }
-            } else {
-                toast("An unexpected error occurred. Please try again.", "error");
-            }
+            console.error("Stream parse error:", error);
+            toast("Extraction failed. Please try again or fill manually.", "error");
         } finally {
             setIsParsing(false);
+            setParsingMessage("");
             if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
@@ -245,6 +297,33 @@ export default function ProfilePage() {
 
     const deleteEducation = (id: string) => {
         setProfile(prev => ({ ...prev, education: prev.education.filter(edu => edu.id !== id) }));
+    };
+
+    const addProject = () => {
+        const newProj: Project = { id: generateId(), name: "", description: "" };
+        setProfile(prev => ({ ...prev, projects: [...prev.projects, newProj] }));
+        setEditMode(`proj-${newProj.id}`);
+    };
+
+    const updateProject = (id: string, field: keyof Project, value: string) => {
+        setProfile(prev => ({
+            ...prev,
+            projects: prev.projects.map(p => p.id === id ? { ...p, [field]: value } : p)
+        }));
+    };
+
+    const deleteProject = (id: string) => {
+        setProfile(prev => ({ ...prev, projects: prev.projects.filter(p => p.id !== id) }));
+    };
+
+    const addCertification = (cert: string) => {
+        if (cert.trim() && !profile.certifications.includes(cert.trim())) {
+            setProfile(prev => ({ ...prev, certifications: [...prev.certifications, cert.trim()] }));
+        }
+    };
+
+    const removeCertification = (cert: string) => {
+        setProfile(prev => ({ ...prev, certifications: prev.certifications.filter(c => c !== cert) }));
     };
 
     const addSkill = () => {
@@ -303,10 +382,19 @@ export default function ProfilePage() {
                                     variant="secondary"
                                     onClick={() => fileInputRef.current?.click()}
                                     disabled={isParsing}
-                                    className="h-14 px-8 border-border/40 bg-white/50 backdrop-blur-md shadow-sm font-bold gap-2"
+                                    className="h-14 px-8 border-border/40 bg-white/50 backdrop-blur-md shadow-sm font-bold gap-4 relative min-w-[220px]"
                                 >
-                                    {isParsing ? <RefreshCw size={18} className="animate-spin" /> : <Upload size={18} />}
-                                    Update from Resume
+                                    {isParsing ? (
+                                        <div className="flex items-center gap-3">
+                                            <RefreshCw size={18} className="animate-spin text-blue-500" />
+                                            <span className="text-xs font-black uppercase tracking-widest animate-pulse">{parsingMessage || "Processing..."}</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Upload size={18} />
+                                            Update from Resume
+                                        </>
+                                    )}
                                 </AppleButton>
                                 <AppleButton
                                     onClick={handleSave}
@@ -333,7 +421,7 @@ export default function ProfilePage() {
                     >
                         <AppleCard className="p-3 border-border/40 rounded-[2rem] overflow-hidden bg-card/60 backdrop-blur-sm">
                             <div className="p-4 mb-2">
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Profile Nodes</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Career Architecture</span>
                             </div>
                             {navItems.map((item) => (
                                 <motion.button
@@ -396,7 +484,7 @@ export default function ProfilePage() {
                                         <div className="space-y-12">
                                             <div className="flex items-center gap-3 mb-4">
                                                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-                                                    <Layout size={20} />
+                                                    <User size={20} />
                                                 </div>
                                                 <h2 className="text-2xl font-black tracking-tight">Personal Identity</h2>
                                             </div>
@@ -495,7 +583,99 @@ export default function ProfilePage() {
                                         </div>
                                     )}
 
-                                    {/* Section 4: Skills */}
+                                    {/* Section 4: Projects */}
+                                    {activeSection === "projects" && (
+                                        <div className="space-y-8">
+                                            <div className="flex items-center justify-between gap-4 mb-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                                                        <Zap size={20} />
+                                                    </div>
+                                                    <h2 className="text-2xl font-black tracking-tight">Strategic Projects</h2>
+                                                </div>
+                                                <AppleButton onClick={addProject} variant="secondary" className="px-5 font-bold border-indigo-500/20 text-indigo-600 hover:bg-indigo-500 hover:text-white transition-all">
+                                                    <Plus size={18} /> Add Project
+                                                </AppleButton>
+                                            </div>
+
+                                            <div className="space-y-6">
+                                                {profile.projects.length === 0 ? (
+                                                    <EmptySection message="No project nodes deployed." icon={Zap} onAdd={addProject} color="purple" />
+                                                ) : (
+                                                    profile.projects.map(proj => (
+                                                        <ProjectNode
+                                                            key={proj.id}
+                                                            proj={proj}
+                                                            isEditing={editMode === `proj-${proj.id}`}
+                                                            onEdit={() => setEditMode(`proj-${proj.id}`)}
+                                                            onSave={() => setEditMode(null)}
+                                                            onUpdate={updateProject}
+                                                            onDelete={() => deleteProject(proj.id)}
+                                                        />
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Section 5: Certifications */}
+                                    {activeSection === "certifications" && (
+                                        <div className="space-y-10">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500">
+                                                    <Heart size={20} />
+                                                </div>
+                                                <h2 className="text-2xl font-black tracking-tight">Professional Proof</h2>
+                                            </div>
+
+                                            <div className="p-8 rounded-[2rem] bg-secondary/20 border border-border/20">
+                                                <div className="flex flex-wrap gap-3 mb-10 min-h-[100px] items-start content-start">
+                                                    {profile.certifications.map((cert) => (
+                                                        <motion.div
+                                                            key={cert}
+                                                            initial={{ scale: 0.8, opacity: 0 }}
+                                                            animate={{ scale: 1, opacity: 1 }}
+                                                            whileHover={{ y: -2, scale: 1.02 }}
+                                                            className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-br from-rose-50 to-orange-50 dark:from-rose-950/30 dark:to-orange-950/10 border border-rose-100 dark:border-rose-900/30 shadow-sm"
+                                                        >
+                                                            <div className="w-6 h-6 rounded-full bg-white dark:bg-rose-900/50 flex items-center justify-center shadow-sm">
+                                                                <Heart size={12} className="text-rose-500 fill-rose-500/20" />
+                                                            </div>
+                                                            <span className="text-sm font-bold tracking-tight text-rose-900 dark:text-rose-100">{cert}</span>
+                                                            <button
+                                                                onClick={() => removeCertification(cert)}
+                                                                className="ml-2 p-1 rounded-full hover:bg-black/10 text-muted-foreground hover:text-rose-500 transition-colors"
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
+                                                        </motion.div>
+                                                    ))}
+                                                    {profile.certifications.length === 0 && (
+                                                        <p className="text-sm font-medium text-muted-foreground/40 italic">Add certifications to verify expertise...</p>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex gap-4">
+                                                    <div className="relative flex-1">
+                                                        <Plus className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/60" size={18} />
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Add certification (e.g. AWS Solutions Architect)..."
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === "Enter") {
+                                                                    addCertification(e.currentTarget.value);
+                                                                    e.currentTarget.value = "";
+                                                                }
+                                                            }}
+                                                            className="w-full pl-12 pr-6 py-4 bg-white dark:bg-slate-800 rounded-2xl text-base font-bold outline-none focus:ring-2 focus:ring-rose-500/20 border border-border/40 transition-all"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Section 6: Skills */}
                                     {activeSection === "skills" && (
                                         <div className="space-y-10">
                                             <div className="flex items-center gap-3 mb-2">
@@ -571,11 +751,19 @@ export default function ProfilePage() {
 
 function calculateCompleteness(profile: ProfileData): number {
     let score = 0;
-    if (profile.name && profile.email) score += 25;
-    if (profile.experience.length > 0) score += 25;
-    if (profile.education.length > 0) score += 25;
-    if (profile.skills.length >= 5) score += 25;
-    else if (profile.skills.length > 0) score += 15;
+    // Base Identity (20%)
+    if (profile.name && profile.email) score += 20;
+
+    // Core Pillars (60%)
+    if (profile.experience.length > 0) score += 15;
+    if (profile.education.length > 0) score += 15;
+    if (profile.projects.length > 0) score += 15;
+    if (profile.certifications.length > 0) score += 15;
+
+    // Competency (20%)
+    if (profile.skills.length >= 8) score += 20;
+    else if (profile.skills.length > 0) score += 10;
+
     return Math.min(score, 100);
 }
 
@@ -704,6 +892,52 @@ interface EducationNodeProps {
     onSave: () => void;
     onUpdate: (id: string, field: keyof Education, value: string) => void;
     onDelete: () => void;
+}
+
+interface ProjectNodeProps {
+    proj: Project;
+    isEditing: boolean;
+    onEdit: () => void;
+    onSave: () => void;
+    onUpdate: (id: string, field: keyof Project, value: string) => void;
+    onDelete: () => void;
+}
+
+function ProjectNode({ proj, isEditing, onEdit, onSave, onUpdate, onDelete }: ProjectNodeProps) {
+    if (isEditing) {
+        return (
+            <div className="p-8 border-2 border-indigo-500/30 rounded-[2rem] space-y-6 bg-indigo-50/10 backdrop-blur-sm">
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Project Name</label>
+                    <input value={proj.name} onChange={(e) => onUpdate(proj.id, "name", e.target.value)} placeholder="e.g. AI Career Assistant" className="w-full px-5 py-3 bg-white border border-border rounded-xl font-bold outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                </div>
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Strategic Impact</label>
+                    <textarea value={proj.description} onChange={(e) => onUpdate(proj.id, "description", e.target.value)} placeholder="Describe technologies used and outcome..." rows={4} className="w-full px-5 py-4 bg-white border border-border rounded-2xl font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 resize-none" />
+                </div>
+                <div className="flex justify-end items-center gap-6">
+                    <button onClick={onDelete} className="text-xs font-black uppercase tracking-widest text-rose-500 hover:text-rose-600 transition-colors">Delete Project</button>
+                    <AppleButton onClick={onSave} className="bg-indigo-600 hover:bg-indigo-700 px-8 font-black tracking-widest uppercase text-xs shadow-lg shadow-indigo-500/20">Finalize</AppleButton>
+                </div>
+            </div>
+        );
+    }
+    return (
+        <motion.div
+            whileHover={{ y: -4, scale: 1.01 }}
+            onClick={onEdit}
+            className="p-6 border border-border/40 rounded-[2rem] hover:border-indigo-500/40 hover:bg-indigo-500/[0.02] cursor-pointer transition-all flex items-start gap-6 group bg-card shadow-sm"
+        >
+            <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform"><Zap size={28} /></div>
+            <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                    <h4 className="text-lg font-black tracking-tight group-hover:text-indigo-600 transition-colors">{proj.name || "Unnamed Project"}</h4>
+                    <Edit3 size={16} className="text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-all" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground line-clamp-2">{proj.description || "No description provided."}</p>
+            </div>
+        </motion.div>
+    );
 }
 
 function EducationNode({ edu, isEditing, onEdit, onSave, onUpdate, onDelete }: EducationNodeProps) {

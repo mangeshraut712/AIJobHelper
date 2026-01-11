@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { FADE_IN } from "@/lib/animations";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     FileText, Sparkles, CheckCircle2, AlertCircle,
     RefreshCw, ArrowRight,
     Layers, ShieldCheck,
-    Zap, Rocket, Cpu, FileDown, Globe, Search
+    Zap, Rocket, Cpu, FileDown, Globe, Search, Lightbulb
 } from "lucide-react";
 import { AppleCard } from "@/components/ui/AppleCard";
 import { AppleButton } from "@/components/ui/AppleButton";
@@ -14,27 +15,10 @@ import { useToast } from "@/components/ui/Toast";
 import axios from "axios";
 import API_URL from "@/lib/api";
 import Link from "next/link";
-import { secureGet, secureSet } from "@/lib/secureStorage";
-import { STORAGE_KEYS } from "@/lib/storageKeys";
 
-interface JobData {
-    title: string;
-    company: string;
-    skills: string[];
-    requirements: string[];
-    description: string;
-}
+import { useAppData } from "@/hooks/useAppData";
 
-interface ProfileData {
-    name: string;
-    title?: string;
-    email: string;
-    phone: string;
-    summary: string;
-    skills: string[];
-    experience: Array<{ id?: string; role: string; company: string; description: string; location?: string; startDate?: string; endDate?: string }>;
-    education: Array<{ institution: string; degree: string }>;
-}
+
 
 interface ExperienceImprovement {
     original: { role: string; company: string; description: string };
@@ -86,27 +70,14 @@ interface EnhancementResult {
     section_improvements: SectionImprovements;
 }
 
-const FADE_IN = {
-    initial: { opacity: 0, y: 30 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
-};
+
 
 export default function ResumesPage() {
     const { toast } = useToast();
-    const [currentJob, setCurrentJob] = useState<JobData | null>(null);
-    const [profile, setProfile] = useState<ProfileData | null>(null);
+    const { currentJob, profile, updateProfile } = useAppData();
     const [isEnhancing, setIsEnhancing] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [enhancement, setEnhancement] = useState<EnhancementResult | null>(null);
-
-    useEffect(() => {
-        const savedJob = secureGet<JobData>(STORAGE_KEYS.CURRENT_JOB_FOR_RESUME);
-        if (savedJob) setCurrentJob(savedJob);
-
-        const savedProfile = secureGet<ProfileData>(STORAGE_KEYS.PROFILE);
-        if (savedProfile) setProfile(savedProfile);
-    }, []);
 
     const enhanceResume = async () => {
         if (!currentJob || !profile) {
@@ -195,7 +166,7 @@ export default function ResumesPage() {
                 enhancedSummary: `Seeking to contribute as ${currentJob.title} at ${currentJob.company}. ${profile.summary}`,
                 suggestedSkillsToAdd: missingSkills,
                 section_improvements: {
-                    summary: { current: profile.summary, issues: [], suggested: `Seeking ${currentJob.title}...`, tips: [] },
+                    summary: { current: profile.summary || "", issues: [], suggested: `Seeking ${currentJob.title}...`, tips: [] },
                     experience: { items: [], general_tips: [] },
                     skills: { matched: matchedSkills, missing: missingSkills, suggested_additions: missingSkills },
                     projects: { tips: [], suggested: [] }
@@ -214,8 +185,8 @@ export default function ResumesPage() {
             if (!currentSkills.has(skill.toLowerCase())) newSkills.push(skill);
         });
         const updatedProfile = { ...profile, skills: newSkills, summary: enhancement.enhancedSummary || profile.summary };
-        setProfile(updatedProfile);
-        secureSet(STORAGE_KEYS.PROFILE, updatedProfile);
+
+        updateProfile(updatedProfile);
         toast("Profile synchronized with recommendations", "success");
     };
 
@@ -522,20 +493,4 @@ export default function ResumesPage() {
     );
 }
 
-const Lightbulb = ({ size = 24 }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
-    <svg
-        width={size}
-        height={size}
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-    >
-        <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
-        <path d="M9 18h6" />
-        <path d="M10 22h4" />
-    </svg>
-);
+

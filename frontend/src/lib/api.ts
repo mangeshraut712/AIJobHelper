@@ -25,6 +25,31 @@ class SmartAPIURL {
             process.env.NODE_ENV === 'production';
     }
 
+    private isValidOrigin(url: string): boolean {
+        // Security: Validate URL to prevent injection attacks
+        try {
+            const parsed = new URL(url);
+            // Only allow http/https protocols
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                return false;
+            }
+            // Block private/local IPs
+            const hostname = parsed.hostname.toLowerCase();
+            if (hostname === 'localhost' ||
+                hostname === '127.0.0.1' ||
+                hostname === '0.0.0.0' ||
+                hostname.startsWith('10.') ||
+                hostname.startsWith('192.168.') ||
+                hostname.startsWith('172.')) {
+                return false;
+            }
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+
     private getBaseUrl(): string {
         if (typeof window === 'undefined') {
             return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -34,7 +59,13 @@ class SmartAPIURL {
 
         if (this.isProd) {
             // Vercel: Same origin, endpoints at /api/*
-            return window.location.origin + '/api';
+            // Security: Validate origin before using it
+            const origin = window.location.origin;
+            if (this.isValidOrigin(origin)) {
+                return origin + '/api';
+            }
+            // Fallback to safe default if validation fails
+            return '/api';
         }
 
         // Localhost

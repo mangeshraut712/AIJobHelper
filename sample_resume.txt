@@ -1,0 +1,86 @@
+Mangesh Raut
+Philadelphia, PA, USA
++1 (609) 505 3500• mbr63drexel@gmail.com • https://github.com/mangeshraut712 • https://www.linkedin.com/in/mangeshraut71298/ •  https://mangeshraut.pro 
+Portfolio
+Summary
+Software Engineer skilled in full-stack development (Java, Python, AngularJS) and cloud solutions (AWS,
+Docker), currently enhancing energy analytics tools at Customized Energy Solutions (40% efficiency gain).
+Previously honed expertise in network engineering (35% latency reduction at Harshwardhan Enterprises)
+and Java development (20% code optimization at IoasiZ), alongside part-time roles managing databases at
+Aramark and Drexel University. Eager to leverage hands-on experience with scalable systems, CI/CD pipelines,
+and machine learning to drive innovation in fast-paced teams. Actively pursuing roles focused on emerging
+technologies to accelerate career growth.
+Technical Skills
+Languages: Java, Python, SQL, JavaScript
+Frameworks: Spring Boot, AngularJS, TensorFlow, scikit-learn
+Cloud/DevOps: AWS, Docker, Jenkins, Terraform
+Databases: PostgreSQL, MongoDB, MySQL
+Tools: Git, Jira, Tableau, Wireshark
+Networking: Cisco, OSPF/BGP
+Experience
+Customized Energy Solutions Philadelphia, PA
+Software Engineer Aug 2024–Present
+Full-Stack Development: Built energy analytics dashboards using Java Spring Boot (backend) and AngularJS
+(frontend), reducing data rendering latency by 40% via RESTful API optimization
+Cloud DevOps: Orchestrated AWS Lambda/EC2 workflows with Terraform IaC, accelerating deployment by
+35% through Dockerized Jenkins CI/CD pipelines
+Machine Learning: Enhanced demand forecasting accuracy by 25% using Python-based LSTM models
+(TensorFlow) with feature engineering
+IoasiZ Piscataway, NJ
+Software Engineer Jul 2023–Jul 2024
+System Modernization: Refactored legacy Java monoliths into modular services using Spring Framework,
+cutting code redundancy by 20% (SOLID principles)
+Distributed Systems: Resolved 50+ bugs in microservices architecture, boosting sprint efficiency by 15% via
+JUnit/Mockito test suites
+Performance Optimization: Integrated Redis caching for inventory APIs, achieving 30% faster response times
+through query tuning
+Aramark Philadelphia, PA
+Database Administrator (Part-Time & Internship) Jun 2022–Jun 2023
+AWS Automation: Developed Python scripts to manage event inventory systems on AWS, reducing manual
+errors by 25% for 200+ events
+Data Migration: Transitioned 3+ legacy databases to AWS RDS, improving scalability for high-traffic event
+analytics
+1/2
+Drexel University Philadelphia, PA
+Database Administrator (Part-Time) Sep 2021–May 2022
+SQL & Compliance: Maintained HIPAA-compliant MySQL databases for 5K+ student records, ensuring 99.9%
+accuracy with constraint-driven validation
+Reporting Tools: Streamlined data workflows using Tableau and Excel, cutting report generation time by 20%
+for administrative teams
+Harshwardhan Enterprises Pune, India
+Network Engineer Jun 2020–Jun 2021
+Network Optimization: Deployed Cisco ASR 9000 routers with OSPF/BGP protocols, slashing latency by
+35% in enterprise WANs
+Troubleshooting: Resolved 500+ connectivity issues via Wireshark analysis, achieving 90% SLA compliance for
+client networks
+Scripting: Created Python-based monitoring tools, reducing manual diagnostics by 50%
+Education
+Drexel University Philadelphia, PA
+Master of Science in Computer Science, GPA: 3.3 Pune University Pune, India
+Bachelor of Engineering in Computer Engineering, GPA: 3.6 Sep 2021–Jun 2023
+Jun 2017–Jun 2020
+Projects
+Angular, Flask, SQLite
+Starlight Blogging Website Jan 2023–Apr 2023
+Built a blogging website with user authentication and post-management features Attracted 100+ users within
+three months and enabled interactive community features
+Python, OpenCV, Machine Learning
+Real-Time Face Emotion Recognition System Planned a real-time emotion recognition model with 95% accuracy
+Arranged in retail stores and institutions, reducing incidents by 50%
+Java, Database Integration, Automation
+PC Crime Detector Implemented security automation, reducing breaches by 80%
+Deployed in institutions, decreasing security incidents by 50%
+Publications
+Jun 2019–Jun 2020
+Jun 2016–Jun 2017
+International Journal of Future Generation Communication and Networking
+Real-Time Face Emotion Recognition System Published research on facial recognition algorithms and image processing
+Explored elastic bunch map graphing, PCA, and cascading techniques
+Certifications
+May 2020–Jun 2020
+Google - Prompt Design in Vertex AI Skill Badge, Digital Marketing, Online Marketing Fundamentals
+IBM - Cybersecurity Fundamentals, Data Fundamentals (SQL/NoSQL), Explore Emerging Tech (AI),
+Fundamentals of Sustainability and Technology
+Cisco - Networking Basics (OSPF/BGP), CCNP (Routing & Switching)
+Microsoft - JavaScript Programming
+2/2

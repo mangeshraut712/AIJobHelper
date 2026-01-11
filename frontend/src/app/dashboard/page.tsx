@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { FADE_IN } from "@/lib/animations";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
-    Link2, FileText, MessageSquare, Target, TrendingUp,
-    Briefcase, Plus, ExternalLink, Trash2, Building2,
-    Sparkles, Clock, Zap, Award
+    Link2, FileText, MessageSquare, Target,
+    Award, Sparkles, Clock
 } from "lucide-react";
 import { AppleCard } from "@/components/ui/AppleCard";
 import { AppleButton } from "@/components/ui/AppleButton";
 import { useToast } from "@/components/ui/Toast";
-import { secureGet, secureSet, sanitizeUrl } from "@/lib/secureStorage";
+import { secureGet, secureSet } from "@/lib/secureStorage";
+import { JobTracker } from "@/components/dashboard/JobTracker";
 
 interface TrackedJob {
     id: string;
@@ -19,10 +20,10 @@ interface TrackedJob {
     company: string;
     url: string;
     status: "analyzing" | "resume_updated" | "applied" | "interviewing" | "offer" | "rejected";
-    appliedDate?: string;
-    notes?: string;
     createdAt: string;
 }
+
+
 
 const STATUS_CONFIG = {
     analyzing: { label: "Analyzing", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", gradient: "from-blue-500 to-cyan-400" },
@@ -33,18 +34,7 @@ const STATUS_CONFIG = {
     rejected: { label: "Rejected", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400", gradient: "from-red-500 to-pink-400" },
 };
 
-const FADE_IN = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.5, ease: "easeOut" },
-};
 
-const quickActions = [
-    { href: "/jobs", icon: Link2, label: "Analyze Job", desc: "Paste a job URL", highlight: true, gradient: "from-blue-500 to-cyan-400" },
-    { href: "/resumes", icon: FileText, label: "Resume Studio", desc: "Enhance your resume", gradient: "from-purple-500 to-pink-400" },
-    { href: "/communication", icon: MessageSquare, label: "Messages", desc: "Generate outreach", gradient: "from-green-500 to-emerald-400" },
-    { href: "/profile", icon: Target, label: "My Profile", desc: "Update your info", gradient: "from-orange-500 to-red-400" },
-];
 
 export default function DashboardPage() {
     const { toast } = useToast();
@@ -90,7 +80,15 @@ export default function DashboardPage() {
         );
         setTrackedJobs(updated);
         secureSet('analyzedJobs', updated);
-        toast(`Status updated to ${STATUS_CONFIG[status].label}`, "success");
+        const labels = {
+            analyzing: "Analyzing",
+            resume_updated: "Resume Ready",
+            applied: "Applied",
+            interviewing: "Interviewing",
+            offer: "Offer",
+            rejected: "Rejected"
+        };
+        toast(`Status updated to ${labels[status]}`, "success");
     };
 
     const deleteTrackedJob = (jobId: string) => {
@@ -100,205 +98,136 @@ export default function DashboardPage() {
         toast("Job removed from tracking", "info");
     };
 
-    const stats = [
-        { label: "Jobs Analyzed", value: trackedJobs.length.toString(), icon: Target, gradient: "from-blue-500 to-cyan-400", change: "+12% this week" },
-        { label: "Resumes Updated", value: trackedJobs.filter(j => j.status !== "analyzing").length.toString(), icon: FileText, gradient: "from-purple-500 to-pink-400", change: "3 this week" },
-        { label: "Applications", value: trackedJobs.filter(j => ["applied", "interviewing", "offer"].includes(j.status)).length.toString(), icon: Briefcase, gradient: "from-green-500 to-emerald-400", change: "+2 this week" },
-        { label: "Profile Strength", value: `${profileComplete}%`, icon: TrendingUp, gradient: "from-orange-500 to-red-400", change: profileComplete < 100 ? "Complete now" : "Perfect!" },
+    const mergedActions = [
+        {
+            href: "/jobs",
+            icon: Link2,
+            label: "Analyze Job",
+            desc: "Start new analysis",
+            stat: `${trackedJobs.length}`,
+            statLabel: "Analyzed",
+            gradient: "from-blue-500 to-cyan-400",
+            highlight: true
+        },
+        {
+            href: "/resumes",
+            icon: FileText,
+            label: "Resume Studio",
+            desc: "Optimize your CV",
+            stat: `${trackedJobs.filter(j => j.status !== "analyzing").length}`,
+            statLabel: "Optimized",
+            gradient: "from-purple-500 to-pink-400"
+        },
+        {
+            href: "/communication",
+            icon: MessageSquare,
+            label: "Messages",
+            desc: "Draft outreach",
+            stat: "AI",
+            statLabel: "Assistant",
+            gradient: "from-green-500 to-emerald-400"
+        },
+        {
+            href: "/profile",
+            icon: Target,
+            label: "My Profile",
+            desc: "Career identity",
+            stat: `${profileComplete}%`,
+            statLabel: "Complete",
+            gradient: "from-orange-500 to-red-400"
+        },
     ];
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/10">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
                 {/* Header with Premium Styling */}
-                <motion.div {...FADE_IN} className="mb-8 sm:mb-12">
-                    <div className="relative inline-block mb-4">
-                        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+                <motion.div {...FADE_IN} className="mb-10 text-center max-w-2xl mx-auto">
+                    <div className="relative inline-block mb-3">
+                        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
                             {greeting}
-                            <span className="inline-block ml-2">👋</span>
+                            <motion.span
+                                animate={{ rotate: [0, 10, -10, 10, 0] }}
+                                transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 5 }}
+                                className="inline-block ml-3 origin-bottom-right"
+                            >
+                                👋
+                            </motion.span>
                         </h1>
-                        {/* Gradient underline */}
-                        <div className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-primary via-purple-500 to-pink-500 rounded-full opacity-60" />
                     </div>
-                    <p className="text-lg sm:text-xl text-muted-foreground mt-6">Track your job applications and manage your career tools.</p>
+                    <p className="text-lg text-muted-foreground">
+                        You are tracking <span className="font-bold text-primary">{trackedJobs.length} opportunities</span>.
+                        <br className="hidden sm:block" /> Ready to make your next move?
+                    </p>
                 </motion.div>
 
-                {/* Stats Cards with Glassmorphism */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
-                    className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12"
-                >
-                    {stats.map((stat, index) => (
-                        <motion.div
-                            key={index}
-                            whileHover={{ y: -4, scale: 1.02 }}
-                            transition={{ type: "spring", stiffness: 300 }}
-                            className="group relative"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl blur-xl -z-10"
-                                style={{ background: `linear-gradient(to bottom right, var(--tw-gradient-stops))` }} />
-                            <AppleCard className="relative overflow-hidden border-border/40 hover:border-primary/30 transition-all">
-                                {/* Top gradient bar */}
-                                <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.gradient}`} />
-
-                                <div className="p-5 sm:p-6">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-                                            <stat.icon className="w-6 h-6 text-white" />
-                                        </div>
-                                        <span className="text-xs font-medium text-muted-foreground bg-secondary/50 px-2 py-1 rounded-full"
-                                        >{stat.change}</span>
-                                    </div>
-                                    <div className="text-3xl sm:text-4xl font-bold mb-2 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-                                        {stat.value}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
-                                </div>
-                            </AppleCard>
-                        </motion.div>
-                    ))}
-                </motion.div>
-
-                {/* Quick Actions - Premium Style */}
+                {/* Hero Grid: Consolidated Stats & Actions */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
-                    className="mb-8 sm:mb-12"
+                    className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12"
                 >
-                    <div className="flex items-center gap-2 mb-6">
-                        <Zap className="w-5 h-5 text-primary" />
-                        <h2 className="text-2xl font-bold">Quick Actions</h2>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        {quickActions.map((action, index) => (
-                            <Link key={index} href={action.href}>
-                                <motion.div whileHover={{ y: -6, scale: 1.03 }} whileTap={{ scale: 0.98 }}>
-                                    <AppleCard className={`group relative h-full cursor-pointer overflow-hidden transition-all duration-300 ${action.highlight ? "border-2 border-primary/40 shadow-lg shadow-primary/10" : "border-border/40 hover:border-primary/30"
-                                        }`}>
-                                        {/* Gradient overlay on hover */}
-                                        <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-[0.08] transition-opacity`} />
+                    {mergedActions.map((action, index) => (
+                        <Link key={index} href={action.href}>
+                            <motion.div whileHover={{ y: -5, scale: 1.02 }} whileTap={{ scale: 0.98 }} className="h-full">
+                                <AppleCard className={`group relative h-full cursor-pointer overflow-hidden transition-all duration-300 ${action.highlight
+                                    ? "border-primary/30 shadow-xl shadow-primary/10 bg-gradient-to-br from-primary/5 to-transparent"
+                                    : "border-border/40 hover:border-primary/20"
+                                    }`}>
+                                    {/* Gradient overlay on hover */}
+                                    <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-[0.05] transition-opacity`} />
 
-                                        <div className="p-5 sm:p-6 relative z-10">
-                                            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${action.gradient} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-transform`}>
-                                                <action.icon className="w-7 h-7 text-white" />
+                                    <div className="p-5 flex flex-col h-full relative z-10">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform`}>
+                                                <action.icon className="w-6 h-6 text-white" />
                                             </div>
-                                            <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">{action.label}</h3>
-                                            <p className="text-sm text-muted-foreground">{action.desc}</p>
+                                            {action.stat && (
+                                                <div className="text-right">
+                                                    <div className={`text-xl font-bold bg-gradient-to-br ${action.gradient} bg-clip-text text-transparent`}>
+                                                        {action.stat}
+                                                    </div>
+                                                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                                                        {action.statLabel}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {action.highlight && (
-                                            <div className="absolute top-3 right-3">
-                                                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                                            </div>
-                                        )}
-                                    </AppleCard>
-                                </motion.div>
-                            </Link>
-                        ))}
-                    </div>
+                                        <div className="mt-auto">
+                                            <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors mb-1">{action.label}</h3>
+                                            <p className="text-xs font-medium text-muted-foreground">{action.desc}</p>
+                                        </div>
+                                    </div>
+
+                                    {action.highlight && (
+                                        <div className="absolute top-0 right-0 p-3">
+                                            <span className="relative flex h-2 w-2">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                            </span>
+                                        </div>
+                                    )}
+                                </AppleCard>
+                            </motion.div>
+                        </Link>
+                    ))}
                 </motion.div>
 
                 <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
                     {/* Main Content - Tracked Jobs */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="lg:col-span-2">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.3 }}
                         >
-                            <AppleCard className="overflow-hidden border-border/40">
-                                {/* Card header with gradient */}
-                                <div className="bg-gradient-to-r from-primary/5 via-purple-500/5 to-pink-500/5 border-b border-border/40 p-6">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg">
-                                                <Briefcase className="w-5 h-5 text-white" />
-                                            </div>
-                                            <h2 className="text-xl font-semibold">Job Applications</h2>
-                                        </div>
-                                        <Link href="/jobs">
-                                            <AppleButton variant="secondary" size="sm" className="shadow-sm">
-                                                <Plus size={14} />
-                                                Add Job
-                                            </AppleButton>
-                                        </Link>
-                                    </div>
-                                </div>
-
-                                <div className="p-6">
-                                    {trackedJobs.length > 0 ? (
-                                        <div className="space-y-3">
-                                            {trackedJobs.map((job) => (
-                                                <motion.div
-                                                    key={job.id}
-                                                    whileHover={{ x: 4, scale: 1.01 }}
-                                                    className="group relative flex items-center justify-between p-4 rounded-2xl bg-gradient-to-br from-secondary/30 to-secondary/50 hover:from-secondary/50 hover:to-secondary/70 border border-border/20 hover:border-primary/20 transition-all"
-                                                >
-                                                    {/* Status indicator bar */}
-                                                    <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b ${STATUS_CONFIG[job.status].gradient}`} />
-
-                                                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                                                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${STATUS_CONFIG[job.status].gradient} flex items-center justify-center font-bold text-white text-lg shadow-md flex-shrink-0`}>
-                                                            {job.company.charAt(0)}
-                                                        </div>
-                                                        <div className="min-w-0 flex-1">
-                                                            <h4 className="font-semibold text-sm sm:text-base truncate">{job.title}</h4>
-                                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5 truncate">
-                                                                <Building2 size={12} className="flex-shrink-0" />
-                                                                {job.company}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                                        <select
-                                                            value={job.status}
-                                                            onChange={(e) => updateJobStatus(job.id, e.target.value as TrackedJob["status"])}
-                                                            className={`text-xs font-semibold px-3 py-1.5 rounded-full border-0 cursor-pointer shadow-sm ${STATUS_CONFIG[job.status].color}`}
-                                                        >
-                                                            {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                                                                <option key={key} value={key}>{config.label}</option>
-                                                            ))}
-                                                        </select>
-                                                        <a
-                                                            href={sanitizeUrl(job.url)}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="p-2 rounded-lg hover:bg-background/50 transition-colors"
-                                                        >
-                                                            <ExternalLink size={14} className="text-muted-foreground hover:text-primary transition-colors" />
-                                                        </a>
-                                                        <button
-                                                            onClick={() => deleteTrackedJob(job.id)}
-                                                            className="p-2 rounded-lg hover:bg-background/50 transition-colors text-muted-foreground hover:text-destructive"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </div>
-                                                </motion.div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-16">
-                                            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/10 to-purple-500/10 flex items-center justify-center mx-auto mb-6 border border-primary/20">
-                                                <Briefcase className="w-10 h-10 text-primary" />
-                                            </div>
-                                            <h3 className="font-semibold text-lg mb-2">No jobs tracked yet</h3>
-                                            <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-                                                Start by analyzing a job posting to track your applications
-                                            </p>
-                                            <Link href="/jobs">
-                                                <AppleButton variant="primary" className="shadow-lg shadow-primary/20">
-                                                    <Link2 size={14} />
-                                                    Analyze Your First Job
-                                                </AppleButton>
-                                            </Link>
-                                        </div>
-                                    )}
-                                </div>
-                            </AppleCard>
+                            <JobTracker
+                                jobs={trackedJobs}
+                                onUpdateStatus={updateJobStatus}
+                                onDelete={deleteTrackedJob}
+                            />
                         </motion.div>
                     </div>
 
@@ -390,8 +319,9 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="space-y-3">
                                     {trackedJobs.slice(0, 3).map((job, idx) => (
-                                        <div key={idx} className="flex items-center gap-3 text-sm p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                                            <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${STATUS_CONFIG[job.status].gradient} shadow-sm`} />
+                                        <div key={idx} className="flex items-center gap-3 text-sm p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                                            title={`${STATUS_CONFIG[job.status] ? "" : "Unknown status"}`}>
+                                            <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${STATUS_CONFIG[job.status]?.gradient || "from-gray-500 to-gray-400"} shadow-sm`} />
                                             <span className="text-muted-foreground truncate flex-1">
                                                 Analyzed <span className="font-medium text-foreground">{job.title}</span> at {job.company}
                                             </span>

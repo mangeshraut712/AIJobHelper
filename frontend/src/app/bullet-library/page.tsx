@@ -1,5 +1,7 @@
 "use client";
 
+import { FADE_IN } from "@/lib/animations";
+import { JobData } from "@/types/shared";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -22,14 +24,7 @@ interface BulletItem {
     createdAt: string;
 }
 
-interface JobData {
-    title: string;
-    company: string;
-    description: string;
-    responsibilities?: string[];
-    requirements?: string[];
-    skills?: string[];
-}
+
 
 interface SelectedBullet {
     id: string;
@@ -48,11 +43,7 @@ const COMPETENCY_OPTIONS = [
     { value: "execution", label: "Execution" },
 ];
 
-const FADE_IN = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.5, ease: "easeOut" as const },
-};
+
 
 export default function BulletLibraryPage() {
     const { toast } = useToast();
@@ -211,246 +202,257 @@ export default function BulletLibraryPage() {
     };
 
     return (
-        <div className="max-w-6xl mx-auto px-6 py-8">
-            <motion.div {...FADE_IN} className="mb-8">
-                <h1 className="text-4xl font-bold tracking-tight mb-2">Bullet Library</h1>
-                <p className="text-lg text-muted-foreground">
-                    Build a reusable bullet bank and auto-select the best bullets for each job.
-                </p>
-            </motion.div>
+        <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 lg:py-20">
+                {/* Immersive Hero Header */}
+                <motion.div {...FADE_IN} className="mb-12 relative group">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-lg shadow-amber-500/5">
+                            <Target size={24} />
+                        </div>
+                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-amber-500/80">Impact Arsenal</h2>
+                    </div>
+                    <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-6">
+                        Bullet <span className="text-amber-500">Library.</span>
+                    </h1>
+                    <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed">
+                        Build a repository of high-impact achievements. Auto-select the perfect points for every application.
+                    </p>
+                </motion.div>
 
-            <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                    <motion.div {...FADE_IN}>
-                        <AppleCard className="p-6">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-                                    <ListChecks className="w-5 h-5 text-primary" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-semibold">Add Bullet</h2>
-                                    <p className="text-sm text-muted-foreground">240-260 characters works best</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <textarea
-                                    value={newBulletText}
-                                    onChange={(e) => setNewBulletText(e.target.value)}
-                                    rows={4}
-                                    className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                    placeholder="Led cross-functional discovery for payment reconciliation platform..."
-                                />
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <div className="relative">
-                                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input
-                                            value={newBulletTags}
-                                            onChange={(e) => setNewBulletTags(e.target.value)}
-                                            className="w-full rounded-xl border border-border bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                            placeholder="tags: growth, analytics, leadership"
-                                        />
+                <div className="grid lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 space-y-8">
+                        <motion.div {...FADE_IN}>
+                            <AppleCard className="p-8 border-border/40 bg-card/60 backdrop-blur-sm rounded-[2.5rem] shadow-xl">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                                        <ListChecks className="w-5 h-5 text-primary" />
                                     </div>
-                                    <select
-                                        value={newBulletCompetency}
-                                        onChange={(e) => setNewBulletCompetency(e.target.value)}
-                                        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                    >
-                                        {COMPETENCY_OPTIONS.map((option) => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <AppleButton onClick={handleAddBullet} variant="primary">
-                                    <Plus size={16} />
-                                    Save Bullet
-                                </AppleButton>
-                            </div>
-                        </AppleCard>
-                    </motion.div>
-
-                    <motion.div {...FADE_IN}>
-                        <AppleCard className="p-6">
-                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-                                <div>
-                                    <h2 className="text-lg font-semibold">Library</h2>
-                                    <p className="text-sm text-muted-foreground">{bullets.length} bullets saved</p>
-                                </div>
-                                <div className="flex gap-3 w-full md:w-auto">
-                                    <div className="relative flex-1 md:w-56">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full rounded-xl border border-border bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                            placeholder="Search bullets"
-                                        />
+                                    <div>
+                                        <h2 className="text-lg font-semibold">Add Bullet</h2>
+                                        <p className="text-sm text-muted-foreground">240-260 characters works best</p>
                                     </div>
-                                    <select
-                                        value={filterCompetency}
-                                        onChange={(e) => setFilterCompetency(e.target.value)}
-                                        className="rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                    >
-                                        <option value="all">All</option>
-                                        {COMPETENCY_OPTIONS.map((option) => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
                                 </div>
-                            </div>
 
-                            <div className="space-y-4">
-                                {filteredBullets.length === 0 && (
-                                    <div className="text-sm text-muted-foreground">No bullets yet. Add your first bullet above.</div>
-                                )}
-                                {filteredBullets.map((bullet) => (
-                                    <div key={bullet.id} className="rounded-2xl border border-border/70 bg-secondary/30 p-4">
-                                        {editingId === bullet.id ? (
-                                            <div className="space-y-3">
-                                                <textarea
-                                                    value={editingText}
-                                                    onChange={(e) => setEditingText(e.target.value)}
-                                                    rows={3}
-                                                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                                />
-                                                <div className="grid md:grid-cols-2 gap-3">
-                                                    <input
-                                                        value={editingTags}
-                                                        onChange={(e) => setEditingTags(e.target.value)}
+                                <div className="space-y-4">
+                                    <textarea
+                                        value={newBulletText}
+                                        onChange={(e) => setNewBulletText(e.target.value)}
+                                        rows={4}
+                                        className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                        placeholder="Led cross-functional discovery for payment reconciliation platform..."
+                                    />
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="relative">
+                                            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                            <input
+                                                value={newBulletTags}
+                                                onChange={(e) => setNewBulletTags(e.target.value)}
+                                                className="w-full rounded-xl border border-border bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                                placeholder="tags: growth, analytics, leadership"
+                                            />
+                                        </div>
+                                        <select
+                                            value={newBulletCompetency}
+                                            onChange={(e) => setNewBulletCompetency(e.target.value)}
+                                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                        >
+                                            {COMPETENCY_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <AppleButton onClick={handleAddBullet} variant="primary">
+                                        <Plus size={16} />
+                                        Save Bullet
+                                    </AppleButton>
+                                </div>
+                            </AppleCard>
+                        </motion.div>
+
+                        <motion.div {...FADE_IN}>
+                            <AppleCard className="p-8 border-border/40 bg-card/60 backdrop-blur-sm rounded-[2.5rem] shadow-xl">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                                    <div>
+                                        <h2 className="text-lg font-semibold">Library</h2>
+                                        <p className="text-sm text-muted-foreground">{bullets.length} bullets saved</p>
+                                    </div>
+                                    <div className="flex gap-3 w-full md:w-auto">
+                                        <div className="relative flex-1 md:w-56">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                            <input
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="w-full rounded-xl border border-border bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                                placeholder="Search bullets"
+                                            />
+                                        </div>
+                                        <select
+                                            value={filterCompetency}
+                                            onChange={(e) => setFilterCompetency(e.target.value)}
+                                            className="rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                        >
+                                            <option value="all">All</option>
+                                            {COMPETENCY_OPTIONS.map((option) => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {filteredBullets.length === 0 && (
+                                        <div className="text-sm text-muted-foreground">No bullets yet. Add your first bullet above.</div>
+                                    )}
+                                    {filteredBullets.map((bullet) => (
+                                        <div key={bullet.id} className="rounded-2xl border border-border/70 bg-secondary/30 p-4">
+                                            {editingId === bullet.id ? (
+                                                <div className="space-y-3">
+                                                    <textarea
+                                                        value={editingText}
+                                                        onChange={(e) => setEditingText(e.target.value)}
+                                                        rows={3}
                                                         className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                                        placeholder="tags: growth, analytics"
                                                     />
-                                                    <select
-                                                        value={editingCompetency}
-                                                        onChange={(e) => setEditingCompetency(e.target.value)}
-                                                        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                                    >
-                                                        {COMPETENCY_OPTIONS.map((option) => (
-                                                            <option key={option.value} value={option.value}>
-                                                                {option.label}
-                                                            </option>
+                                                    <div className="grid md:grid-cols-2 gap-3">
+                                                        <input
+                                                            value={editingTags}
+                                                            onChange={(e) => setEditingTags(e.target.value)}
+                                                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                                            placeholder="tags: growth, analytics"
+                                                        />
+                                                        <select
+                                                            value={editingCompetency}
+                                                            onChange={(e) => setEditingCompetency(e.target.value)}
+                                                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                                        >
+                                                            {COMPETENCY_OPTIONS.map((option) => (
+                                                                <option key={option.value} value={option.value}>
+                                                                    {option.label}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <AppleButton size="sm" onClick={() => saveEditing(bullet.id)}>
+                                                            <Check size={14} />
+                                                            Save
+                                                        </AppleButton>
+                                                        <AppleButton size="sm" variant="secondary" onClick={cancelEditing}>
+                                                            <X size={14} />
+                                                            Cancel
+                                                        </AppleButton>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    <p className="text-sm leading-relaxed">{bullet.text}</p>
+                                                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                                        <span className="rounded-full bg-background px-3 py-1">{COMPETENCY_OPTIONS.find((c) => c.value === bullet.competency)?.label || "General"}</span>
+                                                        {bullet.tags.map((tag) => (
+                                                            <span key={tag} className="rounded-full bg-background px-3 py-1">#{tag}</span>
                                                         ))}
-                                                    </select>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => startEditing(bullet)}
+                                                            className="text-xs font-medium text-primary flex items-center gap-1"
+                                                        >
+                                                            <Edit2 size={12} /> Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteBullet(bullet.id)}
+                                                            className="text-xs font-medium text-destructive flex items-center gap-1"
+                                                        >
+                                                            <Trash2 size={12} /> Delete
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <AppleButton size="sm" onClick={() => saveEditing(bullet.id)}>
-                                                        <Check size={14} />
-                                                        Save
-                                                    </AppleButton>
-                                                    <AppleButton size="sm" variant="secondary" onClick={cancelEditing}>
-                                                        <X size={14} />
-                                                        Cancel
-                                                    </AppleButton>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3">
-                                                <p className="text-sm leading-relaxed">{bullet.text}</p>
-                                                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                                    <span className="rounded-full bg-background px-3 py-1">{COMPETENCY_OPTIONS.find((c) => c.value === bullet.competency)?.label || "General"}</span>
-                                                    {bullet.tags.map((tag) => (
-                                                        <span key={tag} className="rounded-full bg-background px-3 py-1">#{tag}</span>
-                                                    ))}
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => startEditing(bullet)}
-                                                        className="text-xs font-medium text-primary flex items-center gap-1"
-                                                    >
-                                                        <Edit2 size={12} /> Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() => deleteBullet(bullet.id)}
-                                                        className="text-xs font-medium text-destructive flex items-center gap-1"
-                                                    >
-                                                        <Trash2 size={12} /> Delete
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </AppleCard>
-                    </motion.div>
-                </div>
-
-                <div className="space-y-6">
-                    <motion.div {...FADE_IN}>
-                        <AppleCard className="p-6">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-                                    <Target className="w-5 h-5 text-primary" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-semibold">Auto-Select</h2>
-                                    <p className="text-sm text-muted-foreground">Use your latest job or paste a JD</p>
-                                </div>
-                            </div>
-
-                            <textarea
-                                value={jobOverride}
-                                onChange={(e) => setJobOverride(e.target.value)}
-                                rows={6}
-                                className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 mb-4"
-                                placeholder={currentJob ? "Optional: paste a different job description" : "Paste a job description to select bullets"}
-                            />
-
-                            <AppleButton onClick={selectForJob} disabled={isSelecting} variant="primary" className="w-full">
-                                <Sparkles size={16} />
-                                {isSelecting ? "Selecting..." : "Select Best Bullets"}
-                            </AppleButton>
-                        </AppleCard>
-                    </motion.div>
-
-                    <motion.div {...FADE_IN}>
-                        <AppleCard className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="font-semibold">Selected Bullets</h3>
-                                {selectionResult.length > 0 && (
-                                    <button
-                                        onClick={copySelected}
-                                        className="text-xs font-medium text-primary flex items-center gap-1"
-                                    >
-                                        <Copy size={12} /> Copy
-                                    </button>
-                                )}
-                            </div>
-
-                            {Object.keys(distribution).length > 0 && (
-                                <div className="mb-4 text-xs text-muted-foreground">
-                                    {Object.entries(distribution).map(([key, value]) => (
-                                        <span key={key} className="inline-flex items-center mr-2">
-                                            {COMPETENCY_OPTIONS.find((c) => c.value === key)?.label || key}: {value}
-                                        </span>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
-                            )}
+                            </AppleCard>
+                        </motion.div>
+                    </div>
 
-                            <div className="space-y-3">
-                                {selectionResult.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">No selection yet.</p>
-                                ) : (
-                                    selectionResult.map((bullet) => (
-                                        <div key={bullet.id} className="rounded-xl border border-border/70 bg-secondary/30 p-3">
-                                            <p className="text-sm leading-relaxed mb-2">{bullet.text}</p>
-                                            <div className="text-xs text-muted-foreground flex flex-wrap gap-2">
-                                                <span>Score: {bullet.score}</span>
-                                                <span>Framework: {bullet.analysis_score}</span>
-                                                <span>
-                                                    {COMPETENCY_OPTIONS.find((c) => c.value === bullet.competency)?.label || bullet.competency}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))
+                    <div className="space-y-6">
+                        <motion.div {...FADE_IN}>
+                            <AppleCard className="p-8 border-border/40 bg-card/60 backdrop-blur-sm rounded-[2.5rem] shadow-xl">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                                        <Target className="w-5 h-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-semibold">Auto-Select</h2>
+                                        <p className="text-sm text-muted-foreground">Use your latest job or paste a JD</p>
+                                    </div>
+                                </div>
+
+                                <textarea
+                                    value={jobOverride}
+                                    onChange={(e) => setJobOverride(e.target.value)}
+                                    rows={6}
+                                    className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 mb-4"
+                                    placeholder={currentJob ? "Optional: paste a different job description" : "Paste a job description to select bullets"}
+                                />
+
+                                <AppleButton onClick={selectForJob} disabled={isSelecting} variant="primary" className="w-full">
+                                    <Sparkles size={16} />
+                                    {isSelecting ? "Selecting..." : "Select Best Bullets"}
+                                </AppleButton>
+                            </AppleCard>
+                        </motion.div>
+
+                        <motion.div {...FADE_IN}>
+                            <AppleCard className="p-8 border-border/40 bg-card/60 backdrop-blur-sm rounded-[2.5rem] shadow-xl">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="font-semibold">Selected Bullets</h3>
+                                    {selectionResult.length > 0 && (
+                                        <button
+                                            onClick={copySelected}
+                                            className="text-xs font-medium text-primary flex items-center gap-1"
+                                        >
+                                            <Copy size={12} /> Copy
+                                        </button>
+                                    )}
+                                </div>
+
+                                {Object.keys(distribution).length > 0 && (
+                                    <div className="mb-4 text-xs text-muted-foreground">
+                                        {Object.entries(distribution).map(([key, value]) => (
+                                            <span key={key} className="inline-flex items-center mr-2">
+                                                {COMPETENCY_OPTIONS.find((c) => c.value === key)?.label || key}: {value}
+                                            </span>
+                                        ))}
+                                    </div>
                                 )}
-                            </div>
-                        </AppleCard>
-                    </motion.div>
+
+                                <div className="space-y-3">
+                                    {selectionResult.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground">No selection yet.</p>
+                                    ) : (
+                                        selectionResult.map((bullet) => (
+                                            <div key={bullet.id} className="rounded-xl border border-border/70 bg-secondary/30 p-3">
+                                                <p className="text-sm leading-relaxed mb-2">{bullet.text}</p>
+                                                <div className="text-xs text-muted-foreground flex flex-wrap gap-2">
+                                                    <span>Score: {bullet.score}</span>
+                                                    <span>Framework: {bullet.analysis_score}</span>
+                                                    <span>
+                                                        {COMPETENCY_OPTIONS.find((c) => c.value === bullet.competency)?.label || bullet.competency}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </AppleCard>
+                        </motion.div>
+                    </div>
                 </div>
             </div>
         </div>
