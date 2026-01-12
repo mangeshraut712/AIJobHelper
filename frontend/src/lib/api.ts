@@ -20,8 +20,11 @@ class SmartAPIURL {
             return process.env.NODE_ENV === 'production';
         }
         const hostname = window.location.hostname;
-        return hostname.includes('vercel.app') ||
-            hostname.includes('yourdomain.com') ||
+        // Exact domain matching to prevent subdomain bypass
+        return hostname === 'vercel.app' ||
+            hostname.endsWith('.vercel.app') ||
+            hostname === 'yourdomain.com' ||
+            hostname.endsWith('.yourdomain.com') ||
             process.env.NODE_ENV === 'production';
     }
 
@@ -105,7 +108,11 @@ export const isProduction = (): boolean => {
         return process.env.NODE_ENV === 'production';
     }
     const hostname = window.location.hostname;
-    return hostname.includes('vercel.app') || hostname.includes('yourdomain.com');
+    // Exact domain matching to prevent subdomain bypass
+    return hostname === 'vercel.app' ||
+        hostname.endsWith('.vercel.app') ||
+        hostname === 'yourdomain.com' ||
+        hostname.endsWith('.yourdomain.com');
 };
 
 export const getApiEndpoint = (path: string): string => {

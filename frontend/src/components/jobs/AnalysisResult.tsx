@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { AppleCard } from "@/components/ui/AppleCard";
 import { AppleButton } from "@/components/ui/AppleButton";
-import { sanitizeUrl } from "@/lib/secureStorage";
+import { sanitizeURL } from "@/lib/sanitize";
 
 interface AnalyzedJob {
     id: string;
@@ -67,7 +67,7 @@ export function AnalysisResult({ job, onSave }: AnalysisResultProps) {
                             <AppleButton onClick={onSave} variant="secondary" className="bg-white/50 backdrop-blur-sm border border-border/50 hover:bg-white shadow-sm h-12 w-12 p-0 flex items-center justify-center">
                                 <Bookmark size={20} className="text-primary" />
                             </AppleButton>
-                            <a href={sanitizeUrl(job.url)} target="_blank" rel="noreferrer" className="flex items-center justify-center bg-white/50 backdrop-blur-sm border border-border/50 hover:bg-white shadow-sm h-12 w-12 p-0 rounded-full transition-all hover:scale-105 active:scale-95">
+                            <a href={sanitizeURL(job.url)} target="_blank" rel="noreferrer" className="flex items-center justify-center bg-white/50 backdrop-blur-sm border border-border/50 hover:bg-white shadow-sm h-12 w-12 p-0 rounded-full transition-all hover:scale-105 active:scale-95">
                                 <ExternalLink size={20} className="text-muted-foreground" />
                             </a>
                         </div>
